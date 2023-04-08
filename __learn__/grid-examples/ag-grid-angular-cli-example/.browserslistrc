@@ -1,0 +1,10 @@
+# check out https://github.com/browserslist/browserslist#queries
+# Angular support https://angular.io/guide/browser-support
+# run npx browserslist
+last 1 Chrome version
+last 1 Firefox version
+last 2 Edge major versions
+last 2 Safari najor versions
+last 2 iOS major versions
+Firefox ESR
+not IE 11 # IE 11 is only supported by Angular as an opt-in
