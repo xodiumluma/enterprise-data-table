@@ -1,17 +1,17 @@
 import { Group } from '@tweenjs/tween.js';
-import { createAgElementFinder } from '../lib/agElements';
-import { getCellPos } from '../lib/agQuery';
-import { Mouse } from '../lib/createMouse';
-import { getOffset } from '../lib/dom';
-import { addPoints, Point } from '../lib/geometry';
-import { clearAllRowHighlights } from '../lib/scriptActions/clearAllRowHighlights';
-import { dragRange } from '../lib/scriptActions/dragRange';
-import { moveTarget } from '../lib/scriptActions/move';
-import { updateRangeInputValue } from '../lib/scriptActions/updateRangeInputValue';
-import { ScriptDebugger } from '../lib/scriptDebugger';
-import { ScriptAction } from '../lib/scriptRunner';
+import { createAgElementFinder } from '../../lib/agElements';
+import { getCellPos } from '../../lib/agQuery';
+import { Mouse } from '../../lib/createMouse';
+import { getOffset } from '../../lib/dom';
+import { addPoints, Point } from '../../lib/geometry';
+import { clearAllRowHighlights } from '../../lib/scriptActions/clearAllRowHighlights';
+import { dragRange } from '../../lib/scriptActions/dragRange';
+import { moveTarget } from '../../lib/scriptActions/move';
+import { updateRangeInputValue } from '../../lib/scriptActions/updateRangeInputValue';
+import { ScriptDebugger } from '../../lib/scriptDebugger';
+import { ScriptAction } from '../../lib/scriptRunner';
 
-interface CreateIntegratedChartsScriptParams {
+interface Params {
     containerEl?: HTMLElement;
     mouse: Mouse;
     offScreenPos: Point;
@@ -19,13 +19,13 @@ interface CreateIntegratedChartsScriptParams {
     scriptDebugger?: ScriptDebugger;
 }
 
-export const createIntegratedChartsScript = ({
+export const createScript = ({
     containerEl,
     mouse,
     offScreenPos,
     tweenGroup,
     scriptDebugger,
-}: CreateIntegratedChartsScriptParams): ScriptAction[] => {
+}: Params): ScriptAction[] => {
     const START_CELL_COL_INDEX = 0;
     const START_CELL_ROW_INDEX = 0;
     const END_CELL_COL_INDEX = 2;
@@ -56,6 +56,7 @@ export const createIntegratedChartsScript = ({
         {
             type: 'moveTo',
             toPos: () => getCellPos({ containerEl, colIndex: START_CELL_COL_INDEX, rowIndex: START_CELL_ROW_INDEX }),
+            speed: 2,
         },
         { type: 'mouseDown' },
 
@@ -72,12 +73,12 @@ export const createIntegratedChartsScript = ({
                     endRow: END_CELL_ROW_INDEX,
                     tweenGroup,
                     scriptDebugger,
-                    duration: 1000,
+                    duration: 200,
                 });
             },
         },
         { type: 'mouseUp' },
-        { type: 'wait', duration: 300 },
+        { type: 'wait', duration: 100 },
 
         {
             type: 'agAction',
@@ -89,9 +90,10 @@ export const createIntegratedChartsScript = ({
                 menuItemPath: ['Chart Range', 'Column', 'Stacked'],
                 tweenGroup,
                 scriptDebugger,
+                speed: 2,
             },
         },
-        { type: 'wait', duration: 500 },
+        { type: 'wait', duration: 200 },
 
         {
             type: 'agAction',
@@ -100,6 +102,7 @@ export const createIntegratedChartsScript = ({
                 target: 'chartToolPanelButton',
             },
         },
+        // Wait for chart tool panel button to finish coming out
         { type: 'wait', duration: 500 },
 
         // Click on data tab
