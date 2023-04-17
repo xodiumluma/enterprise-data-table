@@ -19,8 +19,7 @@ const options: AgCartesianChartOptions = {
       type: 'category',
       position: 'bottom',
       title: {
-        text: 'Desktop Operating Systems',
-        enabled: false,
+        text: 'Operating System',
       },
     },
     {
@@ -28,8 +27,10 @@ const options: AgCartesianChartOptions = {
       position: 'left',
       title: {
         text: 'Market Share (%)',
-        enabled: false,
       },
+      tick: {
+        interval: 20,
+      }
     },
   ],
   legend: {
@@ -37,16 +38,14 @@ const options: AgCartesianChartOptions = {
   },
 }
 
-var chart = AgChart.create(options)
+const chart = AgChart.create(options)
 
-function showAxisTitles() {
-  options.axes![0].title!.enabled = true
-  options.axes![1].title!.enabled = true
-  AgChart.update(chart, options)
+function setMinMaxSpacing(minSpacing: number, maxSpacing: number) {
+  options.axes![1].tick = { minSpacing, maxSpacing };
+  AgChart.update(chart, options);
 }
 
-function hideAxisTitles() {
-  options.axes![0].title!.enabled = false
-  options.axes![1].title!.enabled = false
-  AgChart.update(chart, options)
+function reset() {
+  options.axes![1].tick = {};
+  AgChart.update(chart, options);
 }
