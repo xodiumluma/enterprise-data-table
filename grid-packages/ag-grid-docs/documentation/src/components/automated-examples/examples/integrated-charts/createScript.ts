@@ -1,6 +1,6 @@
 import { Group } from '@tweenjs/tween.js';
+import { GridOptions } from 'ag-grid-community';
 import { createAgElementFinder } from '../../lib/agElements';
-import { getCellPos } from '../../lib/agQuery';
 import { Mouse } from '../../lib/createMouse';
 import { getBottomMidPos, getOffset } from '../../lib/dom';
 import { addPoints } from '../../lib/geometry';
@@ -15,10 +15,17 @@ interface Params {
     containerEl: HTMLElement;
     mouse: Mouse;
     tweenGroup: Group;
+    gridOptions: GridOptions;
     scriptDebugger?: ScriptDebugger;
 }
 
-export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }: Params): ScriptAction[] => {
+export const createScript = ({
+    containerEl,
+    mouse,
+    tweenGroup,
+    gridOptions,
+    scriptDebugger,
+}: Params): ScriptAction[] => {
     const START_CELL_COL_INDEX = 0;
     const START_CELL_ROW_INDEX = 0;
     const END_CELL_COL_INDEX = 2;
@@ -41,6 +48,10 @@ export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }:
         {
             type: 'agAction',
             actionType: 'reset',
+            actionParams: {
+                scrollRow: 0,
+                scrollColumn: 0,
+            },
         },
 
         // Wait for data to load
@@ -49,7 +60,13 @@ export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }:
         // Select start cell
         {
             type: 'moveTo',
-            toPos: () => getCellPos({ containerEl, colIndex: START_CELL_COL_INDEX, rowIndex: START_CELL_ROW_INDEX }),
+            toPos: () =>
+                agElementFinder
+                    .get('cell', {
+                        colIndex: START_CELL_COL_INDEX,
+                        rowIndex: START_CELL_ROW_INDEX,
+                    })
+                    ?.getPos(),
             speed: 2,
         },
         { type: 'mouseDown' },
@@ -59,7 +76,7 @@ export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }:
             type: 'custom',
             action() {
                 return dragRange({
-                    containerEl,
+                    agElementFinder,
                     mouse,
                     startCol: START_CELL_COL_INDEX,
                     startRow: START_CELL_ROW_INDEX,
@@ -88,6 +105,44 @@ export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }:
             },
         },
         { type: 'wait', duration: 200 },
+        {
+            name: 'Context menu fallback',
+            type: 'custom',
+            action: () => {
+                const chartModels = gridOptions.api?.getChartModels() || [];
+
+                if (chartModels.length) {
+                    return; // Chart created, no need for fallback
+                }
+
+                const allColumns = gridOptions.columnApi?.getColumns() || [];
+                const colStartIndex = START_CELL_COL_INDEX;
+                const colEndIndex = END_CELL_COL_INDEX;
+                const columnStart = allColumns[colStartIndex];
+                const columnEnd = allColumns[colEndIndex];
+
+                if (!columnStart) {
+                    scriptDebugger?.errorLog('Column start not found for index', colStartIndex);
+                    return;
+                }
+                if (!columnEnd) {
+                    scriptDebugger?.errorLog('Column end not found for index', colEndIndex);
+                    return;
+                }
+
+                scriptDebugger?.log('Context menu chart creation failed, creating chart using grid API');
+
+                gridOptions?.api?.createRangeChart({
+                    chartType: 'stackedColumn',
+                    cellRange: {
+                        rowStartIndex: START_CELL_ROW_INDEX,
+                        rowEndIndex: END_CELL_ROW_INDEX,
+                        columnStart,
+                        columnEnd,
+                    },
+                });
+            },
+        },
 
         {
             type: 'agAction',
@@ -254,7 +309,7 @@ export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }:
                     sliderLabel: 'Marker Size',
                 });
                 if (!slider) {
-                    console.error('Marker Size slider not found');
+                    scriptDebugger?.errorLog('Marker Size slider not found');
                     return;
                 }
                 const sliderEl = slider?.get() as HTMLInputElement;
@@ -309,6 +364,10 @@ export const createScript = ({ containerEl, mouse, tweenGroup, scriptDebugger }:
         {
             type: 'agAction',
             actionType: 'reset',
+            actionParams: {
+                scrollRow: 0,
+                scrollColumn: 0,
+            },
         },
         {
             type: 'custom',

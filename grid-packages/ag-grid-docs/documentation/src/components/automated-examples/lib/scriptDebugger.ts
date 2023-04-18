@@ -107,8 +107,8 @@ function createDebugPanelSection({
     const updateStateText = (state: string) => {
         stateEl.innerHTML = state;
     };
-    const updateStepText = ({ step, stepName }: { step: number; stepName?: string }) => {
-        stepEl.innerHTML = `<span class='index'>${step}</span>${stepName ? ` ${stepName}` : ''}`;
+    const updateStepText = ({ step, numSteps, stepName }: { step: number; numSteps: number; stepName?: string }) => {
+        stepEl.innerHTML = `<span class='index'>${step}/${numSteps}</span>${stepName ? ` ${stepName}` : ''}`;
     };
     const updatePausedStateText = (pausedState?: string) => {
         pausedStateEl.innerHTML = pausedState ? pausedState : '';
@@ -227,8 +227,8 @@ function createScriptDebugger({
         updateButton(state);
     };
 
-    const updateStep = ({ step, stepName }) => {
-        updateStepText({ step, stepName });
+    const updateStep = ({ step, numSteps, stepName }) => {
+        updateStepText({ step, numSteps, stepName });
     };
 
     const drawPoint = ({ x, y }: Point, color?: string, radius: number = 5) => {
@@ -236,6 +236,14 @@ function createScriptDebugger({
             return;
         }
         debugPen?.drawPoint({ x, y }, radius, color ?? DEFAULT_DRAW_COLOR);
+    };
+
+    const log = (...args: any[]) => {
+        console.log(...args);
+    };
+
+    const errorLog = (...args: any[]) => {
+        console.error(...args);
     };
 
     const clear = () => {
@@ -246,7 +254,7 @@ function createScriptDebugger({
         scriptRunner = runner;
     };
 
-    return { clear, drawPoint, updateStep, updateState, setScriptRunner };
+    return { log, errorLog, clear, drawPoint, updateStep, updateState, setScriptRunner };
 }
 
 export function createScriptDebuggerManager({

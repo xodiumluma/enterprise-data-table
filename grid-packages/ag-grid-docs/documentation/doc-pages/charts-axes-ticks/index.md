@@ -62,7 +62,7 @@ tick: {
 }
 ```
 
-<chart-example title='Time Axis Label Format' name='time-axis-label-format' type='generated'></chart-example>
+<chart-example title='Time Axis Tick Interval' name='time-axis-label-format' type='generated'></chart-example>
 
 ### Tick Values
 
@@ -95,7 +95,10 @@ tick: {
 }
 ```
 
-The following example demonstrates how to specify min / max tick spacing:
+The following example demonstrates how to specify min / max tick spacing. Note the following:
+
+- There is a button at the top of the chart to apply min / max spacing.
+- There is a grab handle in the bottom right to allow resizing of the chart to see how the ticks change with available space.
 
 <chart-example title='Min / Max Spacing' name='axis-tick-min-max-spacing' type='generated'></chart-example>
 

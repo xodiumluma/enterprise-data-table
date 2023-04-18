@@ -105,8 +105,6 @@ export interface CreateScriptRunnerParams {
     loop?: boolean;
     loopOnError?: boolean;
     onStateChange?: (state: RunScriptState) => void;
-    onPaused?: () => void;
-    onUnpaused?: () => void;
     scriptDebugger?: ScriptDebugger;
     /**
      * Default easing function used for move actions
@@ -177,7 +175,7 @@ function createScriptAction({
         const toPos = scriptAction.toPos instanceof Function ? scriptAction.toPos() : scriptAction.toPos;
 
         if (!toPos) {
-            console.error(`No 'toPos' in 'moveTo' action`, scriptAction);
+            scriptDebugger?.errorLog(`No 'toPos' in 'moveTo' action`, scriptAction);
             return;
         }
 
@@ -228,7 +226,7 @@ function createScriptActionSequence({
 
                 return result;
             } catch (error) {
-                console.error('Script action error', {
+                scriptDebugger?.errorLog('Script action error', {
                     scriptAction: JSON.stringify(scriptAction, function replacer(key, value) {
                         if (typeof value === 'function') {
                             return value.toString().replaceAll(/\s/gm, '').replace('function', '');
@@ -273,8 +271,6 @@ export function createScriptRunner({
     loopOnError,
     tweenGroup,
     onStateChange,
-    onPaused,
-    onUnpaused,
     scriptDebugger,
     defaultEasing,
 }: CreateScriptRunnerParams): ScriptRunner {
@@ -284,7 +280,6 @@ export function createScriptRunner({
     const rowExpandedState = createRowExpandedState(gridOptions);
 
     const setPausedState = (scriptIndex: number) => {
-        onPaused && onPaused();
         pausedState = {
             scriptIndex,
             columnState: gridOptions.columnApi?.getColumnState()!,
@@ -303,7 +298,6 @@ export function createScriptRunner({
     const playAgain = () => {
         let pausedScriptIndex;
         if (pausedState) {
-            onUnpaused && onUnpaused();
             gridOptions.columnApi?.applyColumnState({
                 state: pausedState.columnState,
                 applyOrder: true,
@@ -337,11 +331,15 @@ export function createScriptRunner({
         const sequence = createActionSequenceRunner({
             actionSequence: actionSequence.slice(startIndex),
             onPreAction({ index }) {
-                const scriptAction = scriptFromStartIndex[index];
-                const stepName =
-                    scriptAction.name ||
-                    (scriptAction.type === 'agAction' ? scriptAction.actionType : scriptAction.type);
-                scriptDebugger?.updateStep({ step: index, stepName });
+                if (runScriptState !== 'stopped') {
+                    const scriptAction = scriptFromStartIndex[index];
+                    const stepName =
+                        scriptAction.name ||
+                        (scriptAction.type === 'agAction' ? scriptAction.actionType : scriptAction.type);
+                    // NOTE: Starting from 1
+                    scriptDebugger?.updateStep({ step: index + 1, numSteps: scriptFromStartIndex.length, stepName });
+                }
+
                 if (runScriptState === 'stopping') {
                     updateState('stopped');
                     return { shouldCancel: true };
@@ -358,7 +356,7 @@ export function createScriptRunner({
                 }
             },
             onError({ error, index }) {
-                console.error('Action error (stopping)', {
+                scriptDebugger?.errorLog('Action error (stopping)', {
                     index,
                     error,
                 });
@@ -385,7 +383,7 @@ export function createScriptRunner({
                 }
             })
             .catch((error) => {
-                console.error('Action sequence error', error);
+                scriptDebugger?.errorLog('Action sequence error', error);
                 stop();
             });
     };
@@ -408,6 +406,10 @@ export function createScriptRunner({
     };
 
     const play: ScriptRunner['play'] = ({ loop } = {}) => {
+        if (runScriptState === 'playing') {
+            return;
+        }
+
         loopScript = loop === undefined ? loopScript : Boolean(loop);
 
         playAgain();
