@@ -5,15 +5,15 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { createAutomatedRowGrouping } from '../../../components/automated-examples/examples/row-grouping';
+import { ROW_GROUPING_ID } from '../../../components/automated-examples/lib/constants';
 import { OverlayButton } from '../../../components/automated-examples/OverlayButton';
 import { ToggleAutomatedExampleButton } from '../../../components/automated-examples/ToggleAutomatedExampleButton';
 import { UpdateSpeedSlider } from '../../../components/automated-examples/UpdateSpeedSlider';
 import LogoMark from '../../../components/LogoMark';
-import { isProductionBuild, localPrefix } from '../../../utils/consts';
+import { hostPrefix, isProductionBuild, localPrefix } from '../../../utils/consts';
 import { useIntersectionObserver } from '../../../utils/use-intersection-observer';
 import styles from './AutomatedRowGrouping.module.scss';
-
-const EXAMPLE_ID = 'row-grouping';
+import FeaturesList from './FeaturesList';
 
 const helmet = [];
 if (!isProductionBuild()) {
@@ -43,13 +43,8 @@ if (!isProductionBuild()) {
     );
 }
 
-function AutomatedRowGrouping({
-    automatedExampleManager,
-    scriptDebuggerManager,
-    useStaticData,
-    runOnce,
-    visibilityThreshold,
-}) {
+function AutomatedRowGrouping({ automatedExampleManager, useStaticData, runOnce, visibilityThreshold }) {
+    const exampleId = ROW_GROUPING_ID;
     const gridClassname = 'automated-row-grouping-grid';
     const gridRef = useRef(null);
     const exampleRef = useRef(null);
@@ -57,10 +52,11 @@ function AutomatedRowGrouping({
     const [gridIsReady, setGridIsReady] = useState(false);
     const [gridIsHoveredOver, setGridIsHoveredOver] = useState(false);
     const [frequency, setFrequency] = useState(1);
+    const debuggerManager = automatedExampleManager?.getDebuggerManager();
 
     const setAllScriptEnabledVars = (isEnabled) => {
         setScriptIsEnabled(isEnabled);
-        automatedExampleManager.setEnabled({ id: EXAMPLE_ID, isEnabled });
+        automatedExampleManager.setEnabled({ id: exampleId, isEnabled });
     };
     const updateFrequency = useCallback((value) => {
         if (!exampleRef.current) {
@@ -74,9 +70,11 @@ function AutomatedRowGrouping({
         elementRef: gridRef,
         onChange: ({ isIntersecting }) => {
             if (isIntersecting) {
-                automatedExampleManager.start(EXAMPLE_ID);
+                debuggerManager.log(`${exampleId} intersecting - start`);
+                automatedExampleManager.start(exampleId);
             } else {
-                automatedExampleManager.inactive(EXAMPLE_ID);
+                debuggerManager.log(`${exampleId} not intersecting - inactive`);
+                automatedExampleManager.inactive(exampleId);
             }
         },
         threshold: visibilityThreshold,
@@ -87,14 +85,24 @@ function AutomatedRowGrouping({
         let params = {
             gridClassname,
             mouseMaskClassname: styles.mouseMask,
-            scriptDebuggerManager,
+            scriptDebuggerManager: debuggerManager,
             suppressUpdates: useStaticData,
             useStaticData,
             runOnce,
+            additionalContextMenuItems: [
+                {
+                    name: 'Replay Demo',
+                    action: () => {
+                        setAllScriptEnabledVars(true);
+                        automatedExampleManager.start(exampleId);
+                    },
+                    icon: `<img src="${hostPrefix}/images/homepage/replay-demo-icon.svg" />`,
+                },
+            ],
             onStateChange(state) {
-                // Catch errors, and allow the user to use the grid
-                if (state === 'stopping') {
+                if (state === 'errored') {
                     setAllScriptEnabledVars(false);
+                    automatedExampleManager.errored(exampleId);
                 }
             },
             onGridReady() {
@@ -105,7 +113,7 @@ function AutomatedRowGrouping({
 
         exampleRef.current = createAutomatedRowGrouping(params);
         automatedExampleManager.add({
-            id: EXAMPLE_ID,
+            id: exampleId,
             automatedExample: exampleRef.current,
         });
     }, []);
@@ -114,9 +122,10 @@ function AutomatedRowGrouping({
         <>
             <header className={styles.sectionHeader}>
                 <h2 className="font-size-gargantuan">Feature Packed, Incredible Performance</h2>
-                <p className="font-size-large">
-                    All the features your users expect and more. Out of the box performance that can handle any data you
-                    can throw&nbsp;at&nbsp;it.
+                <p className="font-size-extra-large">
+                    Millions of rows, thousands of updates per second? No problem!
+                    <br />
+                    Out of the box performance that can handle any data you can throw at it.
                 </p>
             </header>
 
@@ -129,23 +138,23 @@ function AutomatedRowGrouping({
                     onPointerOut={() => setGridIsHoveredOver(false)}
                     onClick={() => {
                         setAllScriptEnabledVars(false);
-                        automatedExampleManager.stop(EXAMPLE_ID);
+                        automatedExampleManager.stop(exampleId);
                     }}
                 />
                 {!gridIsReady && !useStaticData && <LogoMark isSpinning />}
             </div>
 
             <footer className={styles.sectionFooter}>
-                <div className={classNames(styles.exploreButtonOuter, 'font-size-large')}>
+                <div className={classNames(styles.exploreButtonOuter, 'font-size-extra-large')}>
                     <span className="text-secondary">Live example:</span>
                     <ToggleAutomatedExampleButton
                         onClick={() => {
                             if (scriptIsEnabled) {
                                 setAllScriptEnabledVars(false);
-                                automatedExampleManager.stop(EXAMPLE_ID);
+                                automatedExampleManager.stop(exampleId);
                             } else {
                                 setAllScriptEnabledVars(true);
-                                automatedExampleManager.start(EXAMPLE_ID);
+                                automatedExampleManager.start(exampleId);
                             }
                         }}
                         isHoveredOver={gridIsHoveredOver}
@@ -154,7 +163,7 @@ function AutomatedRowGrouping({
                 </div>
 
                 <UpdateSpeedSlider
-                    min={0.1}
+                    min={0}
                     max={4}
                     step={0.1}
                     value={frequency}
@@ -162,6 +171,8 @@ function AutomatedRowGrouping({
                     setValue={updateFrequency}
                 />
             </footer>
+
+            <FeaturesList />
         </>
     );
 }

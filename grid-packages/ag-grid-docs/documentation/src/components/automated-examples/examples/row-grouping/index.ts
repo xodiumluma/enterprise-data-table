@@ -6,11 +6,13 @@
 // to prevent AG Grid from loading the code twice
 
 import { Easing, Group } from '@tweenjs/tween.js';
-import { ColDef, GridOptions } from 'ag-grid-community';
+import { ColDef, GridOptions, MenuItemDef } from 'ag-grid-community';
 import { CATEGORIES, PORTFOLIOS } from '../../data/constants';
 import { createDataWorker } from '../../data/createDataWorker';
+import { ROW_GROUPING_ID } from '../../lib/constants';
 import { createMouse } from '../../lib/createMouse';
 import { isInViewport } from '../../lib/dom';
+import { getAdditionalContextMenuItems } from '../../lib/getAdditionalContextMenuItems';
 import { ScriptDebuggerManager } from '../../lib/scriptDebugger';
 import { RunScriptState, ScriptRunner } from '../../lib/scriptRunner';
 import { AutomatedExample } from '../../types';
@@ -27,6 +29,7 @@ let restartScriptTimeout;
 interface CreateAutomatedRowGroupingParams {
     gridClassname: string;
     mouseMaskClassname: string;
+    additionalContextMenuItems?: (string | MenuItemDef)[];
     onStateChange?: (state: RunScriptState) => void;
     onGridReady?: () => void;
     suppressUpdates?: boolean;
@@ -58,9 +61,22 @@ const columnDefs: ColDef[] = [
         chartDataType: 'category',
         enableRowGroup: true,
     },
-    { field: 'previous', enableRowGroup: true },
-    { field: 'current', type: 'measure', enableRowGroup: true },
-    { headerName: 'Gain-DX', field: 'gainDx', type: 'measure', enableRowGroup: true },
+    {
+        field: 'previous',
+        enableRowGroup: true,
+        type: 'numericColumn',
+    },
+    {
+        field: 'current',
+        type: ['measure', 'numericColumn'],
+        enableRowGroup: true,
+    },
+    {
+        headerName: 'Gain-DX',
+        field: 'gainDx',
+        type: ['measure', 'numericColumn'],
+        enableRowGroup: true,
+    },
     { field: 'dealType', enableRowGroup: true },
     { field: 'portfolio', enableRowGroup: true },
 ];
@@ -81,11 +97,11 @@ const gridOptions: GridOptions = {
         measure: {
             aggFunc: 'sum',
             chartDataType: 'series',
-            cellClass: 'number',
             valueFormatter: numberCellFormatter,
             cellRenderer: 'agAnimateShowChangeCellRenderer',
         },
     },
+    chartThemes: ['ag-default-dark'],
     animateRows: true,
     enableCharts: true,
     enableRangeSelection: true,
@@ -136,6 +152,7 @@ function stopWorkerMessages() {
 export function createAutomatedRowGrouping({
     gridClassname,
     mouseMaskClassname,
+    additionalContextMenuItems,
     onStateChange,
     onGridReady,
     suppressUpdates,
@@ -157,6 +174,9 @@ export function createAutomatedRowGrouping({
             gridOptions.rowData = fixtureData;
         }
 
+        if (additionalContextMenuItems) {
+            gridOptions.getContextMenuItems = () => getAdditionalContextMenuItems(additionalContextMenuItems);
+        }
         gridOptions.onGridReady = () => {
             if (suppressUpdates) {
                 return;
@@ -167,11 +187,12 @@ export function createAutomatedRowGrouping({
             startWorkerMessages();
 
             const scriptDebugger = scriptDebuggerManager.add({
-                id: 'Row Grouping',
+                id: ROW_GROUPING_ID,
                 containerEl: gridDiv,
             });
 
-            const mouse = createMouse({ containerEl: gridDiv, mouseMaskClassname });
+            // Add it to the body, so it can sit on top of drag and drop target
+            const mouse = createMouse({ containerEl: document.body, mouseMaskClassname });
             const tweenGroup = new Group();
 
             if (scriptRunner) {
@@ -179,6 +200,7 @@ export function createAutomatedRowGrouping({
             }
 
             scriptRunner = createScriptRunner({
+                id: ROW_GROUPING_ID,
                 containerEl: gridDiv,
                 mouse,
                 onStateChange(state) {
