@@ -1,7 +1,10 @@
 import {
     Autowired,
-    Bean, BeanStub, IImmutableService,
+    Bean,
+    BeanStub,
+    IImmutableService,
     IRowModel,
+    ISelectionService,
     PostConstruct,
     RowDataTransaction,
     RowNode, RowRenderer, _
@@ -14,6 +17,7 @@ export class ImmutableService extends BeanStub implements IImmutableService {
 
     @Autowired('rowModel') private rowModel: IRowModel;
     @Autowired('rowRenderer') private rowRenderer: RowRenderer;
+    @Autowired('selectionService') private selectionService: ISelectionService;
 
     private clientSideRowModel: ClientSideRowModel;
 
@@ -21,20 +25,19 @@ export class ImmutableService extends BeanStub implements IImmutableService {
     private postConstruct(): void {
         if (this.rowModel.getType() === 'clientSide') {
             this.clientSideRowModel = this.rowModel as ClientSideRowModel;
+
+            this.addManagedPropertyListener('rowData', () => this.onRowDataUpdated());
         }
     }
 
     public isActive(): boolean {
-        // we used to have a property immutableData for this. however this was deprecated
-        // in favour of having Immutable Data on by default when getRowId is provided
-        const getRowIdProvided = this.gridOptionsService.exists('getRowId');
-        const immutableData = this.gridOptionsService.is('immutableData');
+        const getRowIdProvided = this.gridOptionsService.exists('getRowId');        
         // this property is a backwards compatibility property, for those who want
         // the old behaviour of Row ID's but NOT Immutable Data.
-        const resetRowDataOnUpdate = this.gridOptionsService.is('resetRowDataOnUpdate');
+        const resetRowDataOnUpdate = this.gridOptionsService.get('resetRowDataOnUpdate');
 
         if (resetRowDataOnUpdate) { return false; }
-        return getRowIdProvided || immutableData;
+        return getRowIdProvided;
     }
 
     public setRowData(rowData: any[]): void {
@@ -52,7 +55,7 @@ export class ImmutableService extends BeanStub implements IImmutableService {
             return;
         }
 
-        const getRowIdFunc = this.gridOptionsService.getRowIdFunc();
+        const getRowIdFunc = this.gridOptionsService.getCallback('getRowId');
         if (getRowIdFunc == null) {
             console.error('AG Grid: ImmutableService requires getRowId() callback to be implemented, your row data needs IDs!');
             return;
@@ -67,7 +70,7 @@ export class ImmutableService extends BeanStub implements IImmutableService {
 
         const existingNodesMap: { [id: string]: RowNode | undefined } = this.clientSideRowModel.getCopyOfNodesMap();
 
-        const suppressSortOrder = this.gridOptionsService.is('suppressMaintainUnsortedOrder');
+        const suppressSortOrder = this.gridOptionsService.get('suppressMaintainUnsortedOrder');
         const orderMap: { [id: string]: number } | undefined = suppressSortOrder ? undefined : {};
 
         if (_.exists(rowData)) {
@@ -108,4 +111,15 @@ export class ImmutableService extends BeanStub implements IImmutableService {
         return [transaction, orderMap];
     }
 
+    private onRowDataUpdated(): void {
+        const rowData = this.gridOptionsService.get('rowData');
+        if (!rowData) { return; }
+
+        if (this.isActive()) {
+            this.setRowData(rowData);
+        } else {
+            this.selectionService.reset('rowDataChanged');
+            this.clientSideRowModel.setRowData(rowData);
+        }
+    }
 }

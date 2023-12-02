@@ -23,21 +23,25 @@
     }
 
     blockquote {
-        --background-color: var(--light-water-blue);
+        --background-color: #d9f0fa;
 
         position: relative;
         margin-bottom: $size-3;
         padding: $size-2 $size-3;
         background-color: var(--background-color);
         border-radius: var(--border-radius);
+
+        #{$darkmode-selector} & {
+            --background-color: #121f29;
+        }
     }
 
     figure {
         max-width: 40em;
-        margin-bottom: $size-6 !important; // !important for .ag-styles specificity
+        margin-bottom: $size-6;
 
         li:last-child & {
-            margin-bottom: 0 !important; // !important for .ag-styles specificity
+            margin-bottom: 0;
         }
     }
 

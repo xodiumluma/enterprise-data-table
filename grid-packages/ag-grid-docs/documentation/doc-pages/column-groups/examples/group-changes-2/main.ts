@@ -1,6 +1,6 @@
-import { Grid, GridOptions } from '@ag-grid-community/core'
+import { GridApi, createGrid, GridOptions, ColDef, ColGroupDef } from '@ag-grid-community/core';
 
-function createNormalColDefs() {
+function createNormalColDefs(): (ColDef | ColGroupDef)[] {
   return [
     {
       headerName: 'Athlete Details',
@@ -22,7 +22,7 @@ function createNormalColDefs() {
   ]
 }
 
-function createExtraColDefs() {
+function createExtraColDefs(): (ColDef | ColGroupDef)[] {
   return [
     {
       headerName: 'Athlete Details',
@@ -48,16 +48,17 @@ function createExtraColDefs() {
 }
 
 function onBtNormalCols() {
-  gridOptions.api!.setColumnDefs(createNormalColDefs())
+  gridApi!.setGridOption('columnDefs', createNormalColDefs())
 }
 
 function onBtExtraCols() {
-  gridOptions.api!.setColumnDefs(createExtraColDefs())
+  gridApi!.setGridOption('columnDefs', createExtraColDefs())
 }
+
+let gridApi: GridApi<IOlympicData>;
 
 const gridOptions: GridOptions<IOlympicData> = {
   defaultColDef: {
-    resizable: true,
     width: 150,
   },
   // debug: true,
@@ -68,9 +69,9 @@ const gridOptions: GridOptions<IOlympicData> = {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
   const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
-    .then((data: IOlympicData[]) => gridOptions.api!.setRowData(data))
+    .then((data: IOlympicData[]) => gridApi!.setGridOption('rowData', data))
 })

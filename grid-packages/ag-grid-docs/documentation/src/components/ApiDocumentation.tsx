@@ -1,6 +1,7 @@
 import classnames from 'classnames';
 import { Icon } from 'components/Icon';
 import React, { useEffect, useRef, useState } from 'react';
+import { trackApiDocumentation } from '../utils/analytics';
 import styles from './ApiDocumentation.module.scss';
 import {
     ApiProps,
@@ -18,7 +19,6 @@ import {
 } from './ApiDocumentation.types';
 import Code from './Code';
 import {
-    addMoreLink,
     convertMarkdown,
     convertUrl,
     escapeGenericCode,
@@ -30,6 +30,7 @@ import {
     getLongestNameLength,
     getTypeUrl,
     inferType,
+    removeDefaultValue,
     sortAndFilterProperties,
     writeAllInterfaces,
 } from './documentation-helpers';
@@ -105,7 +106,7 @@ export const InterfaceDocumentation: React.FC<any> = ({
             })
         );
         const escapedLines = escapeGenericCode(lines);
-        return <Code code={escapedLines} className={styles['reference__code-sample']} keepMarkup={true} />;
+        return <Code code={escapedLines} keepMarkup={true} />;
     }
 
     let props = {};
@@ -211,7 +212,7 @@ export const ApiDocumentation: React.FC<ApiProps> = ({
     let codeSrcProvided = [];
     configs.forEach((c) => {
         if (c == undefined) {
-            console.warn(`_config_ property missing from source ${source || (sources || []).join()}.`);
+            console.warn(`<api-documentation>: _config_ property missing from source ${source || (sources || []).join()}.`);
             return;
         }
         if (c.codeSrc) {
@@ -253,8 +254,8 @@ export const ApiDocumentation: React.FC<ApiProps> = ({
             current.map((x) => {
                 const prop = x[key];
                 if (!prop) {
-                    //console.warn(`Could not find a prop ${key} under source ${source} and section ${section}!`)
-                    throw new Error(`Could not find a prop ${key} under source ${source} and section ${section}!`);
+                    console.warn(`<api-documentation>: Could not find a prop ${key} under source ${source} and section ${section}!`)
+                    throw new Error(`<api-documentation>: Could not find a prop ${key} under source ${source} and section ${section}!`); //spl todo
                 }
                 return prop;
             }),
@@ -311,7 +312,7 @@ const Section: React.FC<SectionProps> = ({
                 {!config.hideHeader && (
                     <HeaderTag id={`reference-${id}`} style={{ position: 'relative' }}>
                         {displayName}
-                        <a href={`#reference-${id}`} className="docs-header-icon ag-styles">
+                        <a href={`#reference-${id}`} className="docs-header-icon">
                             <Icon name="link" />
                         </a>
                     </HeaderTag>
@@ -391,7 +392,7 @@ const Section: React.FC<SectionProps> = ({
         names.forEach((n) => {
             if (!processed.has(n)) {
                 throw new Error(
-                    `Failed to find a property named ${n} that we requested under section ${title}. Check if you passed the correct name or if the name appears in the source json file that you are using.`
+                    `<api-documentation>: Failed to find a property named ${n} that we requested under section ${title}. Check if you passed the correct name or if the name appears in the source json file that you are using.`
                 );
             }
         });
@@ -400,18 +401,14 @@ const Section: React.FC<SectionProps> = ({
     const wrap = !!config.maxLeftColumnWidth;
 
     return (
-        <>
+        <div className={styles.apiReferenceOuter}>
             {header}
             <table
-                className={styles['reference']}
+                className={classnames(styles.reference, styles.apiReference, 'no-zebra')}
                 style={config.overrideBottomMargin ? { marginBottom: config.overrideBottomMargin } : {}}
             >
                 <colgroup>
-                    <col className={styles['reference__expander-cell']}></col>
-                    <col
-                        className={wrap ? styles['reference__name-cell__wrap'] : undefined}
-                        style={{ width: leftColumnWidth + 'ch' }}
-                    ></col>
+                    <col></col>
                     <col></col>
                 </colgroup>
                 <tbody>{rows}</tbody>
@@ -426,7 +423,7 @@ const Section: React.FC<SectionProps> = ({
                     breadcrumbs={{ ...breadcrumbs }}
                 />
             ))}
-        </>
+        </div>
     );
 };
 
@@ -457,18 +454,11 @@ const Property: React.FC<PropertyCall> = ({ framework, id, name, definition, con
         );
     }
 
-    let propDescription = definition.description || (gridParams && gridParams.description) || undefined;
+    let propDescription = definition.description || (gridParams && gridParams.meta.comment) || undefined;
     if (propDescription) {
         propDescription = formatJsDocString(propDescription);
         // process property object
         description = convertMarkdown(propDescription, framework);
-
-        const { more } = definition;
-
-        if (more != null && more.url && !config.hideMore) {
-            const seeMore = ` See <a href="${convertUrl(more.url, framework)}">${more.name}</a>.`;
-            description = addMoreLink(description, seeMore);
-        }
     } else {
         // this must be the parent of a child object
         if (definition.meta != null && definition.meta.description != null) {
@@ -478,9 +468,14 @@ const Property: React.FC<PropertyCall> = ({ framework, id, name, definition, con
         isObject = true;
     }
 
+    // Default may or may not be on a new line in JsDoc but in both cases we want the default to be on the next line
+    const jsdocDefault = gridParams?.meta?.tags?.find((t) => t.name === 'default');
+    const defaultValue = definition.default ?? jsdocDefault?.comment;
+    const isInitial = gridParams?.meta?.tags?.some(t => t.name === 'initial') ?? false;
+
     let displayName = name;
     if (!!definition.isRequired) {
-        displayName += `&nbsp;<span class="${styles['reference__required']}" title="Required">&ast;</span>`;
+        displayName += `&nbsp;<span class="${styles.required}" title="Required">&ast;</span>`;
     }
 
     if (!!definition.strikeThrough) {
@@ -495,9 +490,10 @@ const Property: React.FC<PropertyCall> = ({ framework, id, name, definition, con
         if (gridParams && gridParams.type) {
             type = gridParams.type;
 
-            if (gridParams.description && gridParams.description.includes('@deprecated')) {
-                console.warn(`Docs include a property: ${name} that has been marked as deprecated.`);
-                console.warn(gridParams.description);
+            const isDeprecated = gridParams.meta?.tags?.some((t) => t.name === 'deprecated');
+            if (isDeprecated) {
+                console.warn(`<api-documentation>: Docs include a property: ${name} that has been marked as deprecated.`);
+                console.warn('<api-documentation>: ' + gridParams.meta?.all);
             }
 
             const anyInterfaces = extractInterfaces(
@@ -543,73 +539,103 @@ const Property: React.FC<PropertyCall> = ({ framework, id, name, definition, con
 
     const wrap = !!config.maxLeftColumnWidth;
 
+    // Split display name on capital letter, add <wbr> to improve text splitting across lines
+    let displayNameSplit: string;
+
+    const { more, isRequired, strikeThrough } = definition;
+    // displayName is hardCoded for isRequired and strikeThrough
+    if (isRequired || strikeThrough) {
+        displayNameSplit = displayName;
+    } else {
+        displayNameSplit = displayName
+            .split(/(?=[A-Z])/)
+            .reverse()
+            .reduce((acc, cv) => {
+                return `${cv}<wbr />` + acc;
+            });
+    }
+
+    const formattedDefaultValue = Array.isArray(defaultValue)
+        ? '[' +
+          defaultValue.map((v, i) => {
+              return i === 0 ? `"${v}"` : ` "${v}"`;
+          }) +
+          ']'
+        : defaultValue;
+
     return (
+        <>
         <tr ref={propertyRef}>
-            <td
-                className={styles['reference__expander-cell']}
-                onClick={() => setExpanded(!isExpanded)}
-                role="presentation"
-            >
-                {showAdditionalDetails && (
-                    <div className={classnames(styles['reference__expander'], { [styles.isExpanded]: isExpanded })}>
-                        <Icon name="chevronRight" />
-                    </div>
-                )}
-            </td>
-            <td role="presentation">
-                <h6 id={idName} style={{ display: 'inline-flex' }} className="side-menu-exclude">
-                    <code
+            <td role="presentation" className={styles.leftColumn}>
+                <h6 id={idName} className={classnames(styles.name, 'side-menu-exclude')}>
+                    <span
                         onClick={() => setExpanded(!isExpanded)}
-                        dangerouslySetInnerHTML={{ __html: displayName }}
-                        className={
-                            wrap
-                                ? `${styles['reference__name']} ${styles['reference__name__wrap']}`
-                                : styles['reference__name']
-                        }
-                    ></code>
-                    <a href={`#${idName}`} className="docs-header-icon ag-styles" style={{ fontSize: 'small' }}>
+                        dangerouslySetInnerHTML={{ __html: displayNameSplit }}
+                    ></span>
+                    <a href={`#${idName}`} className="docs-header-icon">
                         <Icon name="link" />
                     </a>
                 </h6>
 
-                <div
-                    title={typeUrl && isObject ? getInterfaceName(name) : propertyType}
-                    className={styles['reference__property']}
-                    onClick={() => setExpanded(!isExpanded)}
-                >
-                    {typeUrl ? (
-                        <a
-                            className={styles['reference__property-type']}
-                            href={typeUrl}
-                            target={typeUrl.startsWith('http') ? '_blank' : '_self'}
-                            rel="noreferrer"
-                        >
-                            {isObject ? getInterfaceName(name) : propertyType}
-                        </a>
-                    ) : (
-                        <span className={styles['reference__property-type']}>{propertyType}</span>
+                <div className={styles.metaList}>
+                    <div
+                        title={typeUrl && isObject ? getInterfaceName(name) : propertyType}
+                        className={styles.metaItem}
+                        onClick={() => setExpanded(!isExpanded)}
+                    >
+                        <span className={styles.metaLabel}>Type</span>
+                        {typeUrl ? (
+                            <a
+                                className={styles.metaValue}
+                                href={typeUrl}
+                                target={typeUrl.startsWith('http') ? '_blank' : '_self'}
+                                rel="noreferrer"
+                            >
+                                {isObject ? getInterfaceName(name) : propertyType}
+                            </a>
+                        ) : (
+                            <span className={styles.metaValue}>{propertyType}</span>
+                        )}
+                    </div>
+                    {formattedDefaultValue != null && (
+                        <div className={styles.metaItem}>
+                            <span className={styles.metaLabel}>Default</span>
+                            <span className={styles.metaValue}>{formattedDefaultValue}</span>
+                        </div>
+                    )}
+                    {isInitial && (
+                        <div className={styles.metaItem}>
+                            {config.initialLink ? (
+                                <a
+                                    className={styles.metaLabel}
+                                    href={config.initialLink}
+                                >
+                                    Initial
+                                </a>
+                            ) : (
+                                <span className={styles.metaLabel}>Initial</span>
+                            )}
+                        </div>
                     )}
                 </div>
             </td>
-            <td>
+            <td className={styles.rightColumn}>
                 <div
                     onClick={() => setExpanded(!isExpanded)}
                     role="presentation"
-                    className={classnames(styles['reference__description'], {
-                        [styles['reference__description--expanded']]: isExpanded,
-                    })}
-                    dangerouslySetInnerHTML={{ __html: description }}
+                    className={styles.description}
+                    dangerouslySetInnerHTML={{ __html: removeDefaultValue(description) }}
                 ></div>
                 {isObject && (
                     <div>
                         See <a href={`#reference-${id}.${name}`}>{name}</a> for more details.
                     </div>
                 )}
-                {definition.default != null && (
-                    <div>
-                        Default: <code>{formatJson(definition.default)}</code>
-                    </div>
-                )}
+                {isInitial && config.showInitialDescription && (<div
+                    onClick={() => setExpanded(!isExpanded)}
+                    className={styles.description} 
+                >This property will only be read on initialisation.</div>)}
+
                 {definition.options != null && (
                     <div>
                         Options:{' '}
@@ -621,9 +647,54 @@ const Property: React.FC<PropertyCall> = ({ framework, id, name, definition, con
                         ))}
                     </div>
                 )}
-                {showAdditionalDetails && <div className={isExpanded ? '' : 'd-none'}>{codeSection}</div>}
+                <div className={styles.actions}>
+                    {showAdditionalDetails && (
+                        <button
+                            className={classnames(styles.seeMore, 'button-as-link')}
+                            onClick={() => {
+                                setExpanded(!isExpanded);
+                                trackApiDocumentation({
+                                    type: isExpanded ? 'propertyHideDetails' : 'propertyShowDetails',
+                                    framework,
+                                    id,
+                                    name,
+                                });
+                            }}
+                            role="presentation"
+                        >
+                            {!isExpanded ? 'More' : 'Hide'} details{' '}
+                            <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} />
+                        </button>
+                    )}
+                    {more != null && more.url && !config.hideMore && (
+                        <span>
+                            <span className="text-secondary">See:</span>{' '}
+                            <a
+                                href={convertUrl(more.url, framework)}
+                                onClick={() => {
+                                    trackApiDocumentation({
+                                        type: 'seeMoreLink',
+                                        framework,
+                                        id,
+                                        name,
+                                        seeMoreName: more.name,
+                                    });
+                                }}
+                            >
+                                {more.name}
+                            </a>
+                        </span>
+                    )}
+                </div>
             </td>
         </tr>
+            {showAdditionalDetails && isExpanded &&
+                <tr className={classnames(styles.expandedContent)}>
+                    <td colSpan={2}>
+                        <div >{codeSection}</div>
+                    </td>
+                </tr>}
+        </>
     );
 };
 
@@ -657,7 +728,7 @@ const Breadcrumbs = ({ breadcrumbs }) => {
         index++;
     });
 
-    return <div className={styles['breadcrumbs']}>{links}</div>;
+    return <div className={styles.breadcrumbs}>{links}</div>;
 };
 
 const ObjectCodeSample: React.FC<ObjectCode> = ({ framework, id, breadcrumbs, properties }) => {
@@ -725,7 +796,7 @@ const ObjectCodeSample: React.FC<ObjectCode> = ({ framework, id, breadcrumbs, pr
     return <Code code={escapedLines} keepMarkup={true} />;
 };
 
-const getInterfaceName = (name) => `${name.substr(0, 1).toUpperCase()}${name.substr(1)}`;
+const getInterfaceName = (name) => `${name.substring(0, 1).toUpperCase()}${name.substring(1)}`;
 
 function isGridOptionEvent(gridProp: InterfaceEntry): gridProp is IEvent {
     return gridProp && gridProp.meta && gridProp.meta.isEvent;
@@ -736,7 +807,7 @@ function isCallSig(gridProp: InterfaceEntry): gridProp is ICallSignature {
 
 const FunctionCodeSample: React.FC<FunctionCode> = ({ framework, name, type, config }) => {
     if (typeof type == 'string') {
-        console.log('type is a string!', type);
+        console.log('<api-documentation>: type is a string!', type);
     }
 
     type = type || {};
@@ -847,7 +918,7 @@ const FunctionCodeSample: React.FC<FunctionCode> = ({ framework, name, type, con
 
     return (
         <>
-            <Code code={escapedLines} className={styles['reference__code-sample']} keepMarkup={true} />
+            <Code code={escapedLines} keepMarkup={true} />
             {customHTML ?? customHTML}
         </>
     );

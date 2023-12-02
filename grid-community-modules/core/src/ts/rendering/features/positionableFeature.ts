@@ -1,7 +1,7 @@
 import { BeanStub } from "../../context/beanStub";
 import { Autowired } from "../../context/context";
 import { DragListenerParams, DragService } from "../../dragAndDrop/dragService";
-import { getAbsoluteHeight, getAbsoluteWidth, setFixedHeight, setFixedWidth } from "../../utils/dom";
+import { getAbsoluteHeight, getAbsoluteWidth, isVisible, setFixedHeight, setFixedWidth } from "../../utils/dom";
 import { PopupService } from "../../widgets/popupService";
 import { ResizeObserverService } from "../../misc/resizeObserverService";
 
@@ -128,8 +128,8 @@ export class PositionableFeature extends BeanStub {
 
         // here we don't use the main offset parent but the element's offsetParent
         // in order to calculated the minWidth and minHeight correctly
-        const isVisible = !!this.element.offsetParent;
-        if (isVisible) {
+        const isElementVisible = isVisible(this.element);
+        if (isElementVisible) {
             const boundaryEl = this.findBoundaryElement();
             const offsetParentComputedStyles = window.getComputedStyle(boundaryEl);
             if (offsetParentComputedStyles.minWidth != null) {
@@ -162,14 +162,28 @@ export class PositionableFeature extends BeanStub {
             this.center();
         } else if (x || y) {
             this.offsetElement(x!, y!);
-        } else if (isVisible && forcePopupParentAsOffsetParent && this.boundaryEl) {
-            const top = parseFloat(this.boundaryEl.style.top!);
-            const left = parseFloat(this.boundaryEl.style.left!);
+        } else if (isElementVisible && forcePopupParentAsOffsetParent) {
+            let boundaryEl: HTMLElement | null = this.boundaryEl;
+            let initialisedDuringPositioning = true;
 
-            this.offsetElement(
-                isNaN(left) ? 0 : left,
-                isNaN(top) ? 0 : top
-            );
+            if (!boundaryEl) {
+                boundaryEl = this.findBoundaryElement();
+                initialisedDuringPositioning = false;
+            }
+
+            if (boundaryEl) {
+                const top = parseFloat(boundaryEl.style.top);
+                const left = parseFloat(boundaryEl.style.left);
+
+                if (initialisedDuringPositioning) {
+                    this.offsetElement(
+                        isNaN(left) ? 0 : left,
+                        isNaN(top) ? 0 : top
+                    );
+                } else {
+                    this.setPosition(left, top);
+                }
+            }
         }
 
         this.positioned = !!this.offsetParent;
@@ -288,12 +302,14 @@ export class PositionableFeature extends BeanStub {
             setFixedHeight(eGui, height);
             height = getAbsoluteHeight(eGui);
             isPercent = true;
-        } else if (this.positioned) {
+        } else {
             height = Math.max(this.minHeight!, height as number);
-            const availableHeight = this.getAvailableHeight();
+            if (this.positioned) {
+                const availableHeight = this.getAvailableHeight();
 
-            if (availableHeight && height > availableHeight) {
-                height = availableHeight;
+                if (availableHeight && height > availableHeight) {
+                    height = availableHeight;
+                }
             }
         }
 
@@ -385,7 +401,10 @@ export class PositionableFeature extends BeanStub {
     }
 
     public offsetElement(x = 0, y = 0) {
-        const ePopup = this.config.forcePopupParentAsOffsetParent ? this.boundaryEl! : this.element;
+        const { forcePopupParentAsOffsetParent } = this.config;
+        const ePopup = forcePopupParentAsOffsetParent ? this.boundaryEl : this.element;
+
+        if (!ePopup) { return; }
 
         this.popupService.positionPopup({
             ePopup,
@@ -395,8 +414,8 @@ export class PositionableFeature extends BeanStub {
         });
 
         this.setPosition(
-            parseFloat(ePopup.style.left!),
-            parseFloat(ePopup.style.top!)
+            parseFloat(ePopup.style.left),
+            parseFloat(ePopup.style.top)
         );
     }
 

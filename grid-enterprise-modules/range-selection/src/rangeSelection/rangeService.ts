@@ -23,7 +23,10 @@ import {
     WithoutGridCommon,
     DragService,
     CellCtrl,
-    _
+    _,
+    ClearCellRangeParams,
+    RangeDeleteStartEvent,
+    RangeDeleteEndEvent
 } from "@ag-grid-community/core";
 
 @Bean('rangeService')
@@ -170,13 +173,13 @@ export class RangeService extends BeanStub implements IRangeService {
     }
 
     public setRangeToCell(cell: CellPosition, appendRange = false): void {
-        if (!this.gridOptionsService.isEnableRangeSelection()) { return; }
+        if (!this.gridOptionsService.get('enableRangeSelection')) { return; }
 
         const columns = this.calculateColumnsBetween(cell.column, cell.column);
 
         if (!columns) { return; }
 
-        const suppressMultiRangeSelections = this.gridOptionsService.is('suppressMultiRangeSelection');
+        const suppressMultiRangeSelections = this.gridOptionsService.get('suppressMultiRangeSelection');
 
         // if not appending, then clear previous range selections
         if (suppressMultiRangeSelections || !appendRange || _.missing(this.cellRanges)) {
@@ -305,7 +308,7 @@ export class RangeService extends BeanStub implements IRangeService {
     }
 
     public setCellRange(params: CellRangeParams): void {
-        if (!this.gridOptionsService.isEnableRangeSelection()) {
+        if (!this.gridOptionsService.get('enableRangeSelection')) {
             return;
         }
 
@@ -337,7 +340,22 @@ export class RangeService extends BeanStub implements IRangeService {
         this.newestRangeStartCell = position;
     }
 
-    public clearCellRangeCellValues(cellRanges?: CellRange[], source: string = 'rangeService'): void {
+    public clearCellRangeCellValues(params: ClearCellRangeParams): void {
+        let { cellRanges } = params;
+        const {
+            cellEventSource = 'rangeService',
+            dispatchWrapperEvents,
+            wrapperEventSource = 'deleteKey'
+        } = params;
+
+        if (dispatchWrapperEvents) {
+            const startEvent: WithoutGridCommon<RangeDeleteStartEvent> = {
+                type: Events.EVENT_RANGE_DELETE_START,
+                source: wrapperEventSource
+            };
+            this.eventService.dispatchEvent(startEvent);
+        }
+
         if (!cellRanges) { cellRanges = this.cellRanges; }
 
         cellRanges.forEach(cellRange => {
@@ -347,10 +365,18 @@ export class RangeService extends BeanStub implements IRangeService {
                 for (let i = 0; i < cellRange.columns.length; i++) {
                     const column = this.columnModel.getGridColumn(cellRange.columns[i]);
                     if (!column || !column.isCellEditable(rowNode)) { return; }
-                    rowNode.setDataValue(column, null, source);
+                    rowNode.setDataValue(column, null, cellEventSource);
                 }
             });
         });
+
+        if (dispatchWrapperEvents) {
+            const endEvent: WithoutGridCommon<RangeDeleteEndEvent> = {
+                type: Events.EVENT_RANGE_DELETE_END,
+                source: wrapperEventSource
+            };
+            this.eventService.dispatchEvent(endEvent);
+        }
     }
 
     public createCellRangeFromCellRangeParams(params: CellRangeParams): CellRange | undefined {
@@ -397,7 +423,7 @@ export class RangeService extends BeanStub implements IRangeService {
     }
 
     public addCellRange(params: CellRangeParams): void {
-        if (!this.gridOptionsService.isEnableRangeSelection()) {
+        if (!this.gridOptionsService.get('enableRangeSelection')) {
             return;
         }
 
@@ -580,17 +606,17 @@ export class RangeService extends BeanStub implements IRangeService {
     }
 
     public onDragStart(mouseEvent: MouseEvent): void {
-        if (!this.gridOptionsService.isEnableRangeSelection()) { return; }
+        if (!this.gridOptionsService.get('enableRangeSelection')) { return; }
 
         const { ctrlKey, metaKey, shiftKey } = mouseEvent;
 
         // ctrlKey for windows, metaKey for Apple
-        const multiKeyPressed = ctrlKey || metaKey;
-        const allowMulti = !this.gridOptionsService.is('suppressMultiRangeSelection');
-        const multiSelectKeyPressed = allowMulti ? multiKeyPressed : false;
+        const isMultiKey = ctrlKey || metaKey;
+        const allowMulti = !this.gridOptionsService.get('suppressMultiRangeSelection');
+        const isMultiSelect = allowMulti ? isMultiKey : false;
         const extendRange = shiftKey && _.existsAndNotEmpty(this.cellRanges);
 
-        if (!multiSelectKeyPressed && (!extendRange || _.exists(_.last(this.cellRanges)!.type))) {
+        if (!isMultiSelect && (!extendRange || _.exists(_.last(this.cellRanges)!.type))) {
             this.removeAllCellRanges(true);
         }
 
@@ -606,7 +632,7 @@ export class RangeService extends BeanStub implements IRangeService {
 
         this.dragging = true;
         this.lastMouseEvent = mouseEvent;
-        this.intersectionRange = multiSelectKeyPressed && this.getCellRangeCount(this.lastCellHovered) > 1;
+        this.intersectionRange = isMultiSelect && this.getCellRangeCount(this.lastCellHovered) > 1;
 
         if (!extendRange) {
             this.setNewestRangeStartCell(this.lastCellHovered);
@@ -643,7 +669,7 @@ export class RangeService extends BeanStub implements IRangeService {
         // when ranges are created due to a mouse click without drag (happens in cellMouseListener)
         // this method will be called with `fromMouseClick=true`.
         if (fromMouseClick && this.dragging) { return; }
-        if (this.gridOptionsService.is('suppressMultiRangeSelection')) { return; }
+        if (this.gridOptionsService.get('suppressMultiRangeSelection')) { return; }
         if (this.isEmpty()) { return; }
         
         const lastRange = _.last(this.cellRanges);

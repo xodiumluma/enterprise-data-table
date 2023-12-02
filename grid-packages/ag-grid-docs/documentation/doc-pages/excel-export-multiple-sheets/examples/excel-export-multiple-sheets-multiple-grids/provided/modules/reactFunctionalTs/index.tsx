@@ -6,7 +6,9 @@ import { CsvExportModule } from '@ag-grid-community/csv-export';
 import { ExcelExportModule, exportMultipleSheetsAsExcel } from '@ag-grid-enterprise/excel-export';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import './styles.css';
+
 
 import { ColDef, ColumnApi, GetRowIdParams, GridApi, GridReadyEvent, ICellRendererParams, ModuleRegistry, RowDragEndEvent } from '@ag-grid-community/core';
 // Register the required feature modules with the Grid
@@ -61,9 +63,7 @@ const rightColumns: ColDef[] = [
 const defaultColDef: ColDef = {
     flex: 1,
     minWidth: 100,
-    sortable: true,
     filter: true,
-    resizable: true
 };
 
 const GridExample = () => {
@@ -168,7 +168,6 @@ const GridExample = () => {
                     defaultColDef={defaultColDef}
                     getRowId={getRowId}
                     rowDragManaged={true}
-                    animateRows={true}
                     rowSelection={id === 0 ? "multiple" : undefined}
                     rowDragMultiRow={id === 0}
                     suppressMoveWhenRowDragging={id === 0}
@@ -176,8 +175,7 @@ const GridExample = () => {
                     rowData={id === 0 ? leftRowData : rightRowData}
                     columnDefs={id === 0 ? leftColumns : rightColumns}
                     onGridReady={(params) => onGridReady(params, id)}
-                >
-                </AgGridReact>
+                />
             </div>
         </div>
     )
@@ -185,7 +183,7 @@ const GridExample = () => {
     return (
         <div className="top-container">
             {getTopToolBar()}
-            <div className="grid-wrapper ag-theme-alpine">
+            <div className={'grid-wrapper ' + /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                 {getGridWrapper(0)}
                 {getGridWrapper(1)}
             </div>

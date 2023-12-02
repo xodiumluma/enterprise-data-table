@@ -20,6 +20,15 @@
         min-width: unset;
     }
 
+    .ag-button {
+        border-radius: 0px;
+        color: var(--ag-foreground-color);
+    }
+
+    .ag-button:hover {
+        background-color: transparent;
+    }
+
     .ag-label-align-right .ag-label {
         @include ag.unthemed-rtl((margin-left: var(--ag-grid-size)));
     }
@@ -38,6 +47,7 @@
         font-size: inherit;
         line-height: inherit;
         color: inherit;
+        font-family: inherit;
 
         border: var(--ag-borders-input) var(--ag-input-border-color);
 
@@ -58,7 +68,7 @@
         }
     }
 
-    input[class^='ag-'][type='number'] {
+    input[class^='ag-'][type='number']:not(.ag-number-field-input-stepper) {
         -moz-appearance: textfield;
         &::-webkit-outer-spin-button,
         &::-webkit-inner-spin-button {
@@ -94,6 +104,8 @@
         background-color: var(--ag-background-color);
         overflow-y: auto;
         overflow-x: hidden;
+        border-radius: var(--ag-border-radius);
+        border: var(--ag-borders) var(--ag-border-color);
     }
 
     .ag-list-item {
@@ -109,10 +121,9 @@
     }
 
     .ag-select-list-item {
-        padding-left: 4px;
-        padding-right: 4px;
-        cursor: default;
+        @include ag.unthemed-rtl(( padding-left: calc(var(--ag-cell-horizontal-padding) / 2) ));
         @include ag.selectable(none);
+        cursor: default;
         span {
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -120,83 +131,9 @@
         }
     }
 
-    .ag-select {
-        .ag-picker-field-wrapper {
-            background-color: var(--ag-background-color);
-            min-height: var(--ag-list-item-height);
-            cursor: default;
-        }
-
-        &.ag-disabled .ag-picker-field-wrapper:focus {
-            box-shadow: none;
-        }
-
-        &:not(.ag-cell-editor, .ag-label-align-top) {
-            height: var(--ag-list-item-height);
-        }
-        .ag-picker-field-display {
-            margin: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .ag-picker-field-icon {
-            display: flex;
-            align-items: center;
-        }
-        &.ag-disabled {
-            opacity: 0.5;
-        }
-    }
-
-    ////////////////////////////////////////
-    // Rich Select
-    ////////////////////////////////////////
-    .ag-rich-select {
-        background-color: var(--ag-control-panel-background-color);
-    }
-
-    .ag-rich-select-list {
-        width: 100%;
-        min-width: 200px;
-        height: calc(var(--ag-row-height) * 6.5); // intentional
-    }
-
-    .ag-rich-select-value {
-        height: var(--ag-row-height);
-        border-bottom: var(--ag-borders-secondary) var(--ag-secondary-border-color);
-        padding-top: 0;
-        padding-bottom: 0;
-        @include ag.unthemed-rtl(( padding-left: var(--ag-cell-horizontal-padding) ));
-        @include ag.unthemed-rtl(( padding-right: var(--ag-grid-size) ));
-    }
-
-    .ag-rich-select-virtual-list-item {
-        cursor: default;
-        height: var(--ag-list-item-height);
-
-        .ag-keyboard-focus &:focus::after {
-            content: none
-        }
-
-        &:hover {
-            background-color: var(--ag-row-hover-color);
-        }
-    }
-
-    .ag-rich-select-row {
-        @include ag.unthemed-rtl(( padding-left: var(--ag-cell-horizontal-padding) ));
-    }
-
-    .ag-rich-select-row-selected {
-        background-color: var(--ag-selected-row-background-color);
-    }
-
     ////////////////////////////////////////
     // Selection checkbox
     ////////////////////////////////////////
-
-
     .ag-row-drag,
     .ag-selection-checkbox,
     .ag-group-expanded,
@@ -293,11 +230,22 @@
     }
 
     .ag-picker-field-wrapper {
-        border: 1px solid;
+        border: var(--ag-borders);
         border-color: var(--ag-border-color);
         border-radius: 5px;
-        &:focus {
+        background-color: var(--ag-background-color);
+
+        &:disabled {
+            color: var(--ag-disabled-foreground-color);
+            background-color: var(--ag-input-disabled-background-color);
+            border-color: var(--ag-input-disabled-border-color);
+        }
+
+        &.ag-picker-has-focus,
+        &:focus-within {
+            outline: none;
             box-shadow: var(--ag-input-focus-box-shadow);
+            border-color: var(--ag-input-focus-border-color);
         }
     }
 
@@ -312,6 +260,11 @@
 
     .ag-color-picker .ag-picker-field-display {
         height: var(--ag-icon-size);
+    }
+
+    .ag-color-picker .ag-picker-field-wrapper {
+        max-width: 45px;
+        min-width: 45px;
     }
 
     .ag-color-panel {
@@ -377,6 +330,14 @@
         }
     }
 
+    .ag-spectrum-color,
+    .ag-spectrum-slider,
+    .ag-recent-color {
+        &:focus-visible:not(:disabled):not([readonly]) {
+            box-shadow: var(--ag-input-focus-box-shadow);
+        }
+    }
+
     ////////////////////////////////////////
     // Ghost Element (Drag and Drop)
     ////////////////////////////////////////
@@ -398,17 +359,143 @@
         color: var(--ag-foreground-color);
     }
 
-    ////////////////////////////////////////
-    // Popup
-    ////////////////////////////////////////
+    // Popups
     .ag-popup-child:not(.ag-tooltip-custom) {
         box-shadow: var(--ag-popup-shadow);
     }
 
     ////////////////////////////////////////
+    // Select
+    ////////////////////////////////////////
+    .ag-select {
+        .ag-picker-field-wrapper {
+            min-height: var(--ag-list-item-height);
+            @include ag.unthemed-rtl(( padding-left: calc(var(--ag-cell-horizontal-padding) / 2) ));
+            @include ag.unthemed-rtl(( padding-right: var(--ag-grid-size) ));
+            cursor: default;
+        }
+
+        &.ag-disabled .ag-picker-field-wrapper:focus {
+            box-shadow: none;
+        }
+
+        &:not(.ag-cell-editor, .ag-label-align-top) {
+            min-height: var(--ag-list-item-height);
+        }
+
+        .ag-picker-field-display {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ag-picker-field-icon {
+            display: flex;
+            align-items: center;
+        }
+
+        &.ag-disabled {
+            opacity: 0.5;
+        }
+    }
+
+    ////////////////////////////////////////
+    // Rich Select
+    ////////////////////////////////////////
+    .ag-rich-select-value,
+    .ag-rich-select-list {
+        background-color: var(--ag-background-color);
+    }
+
+    .ag-rich-select-list {
+        width: 100%;
+        height: auto;
+        border-radius: var(--ag-border-radius);
+        border: var(--ag-borders) var(--ag-border-color);
+        .ag-loading-text {
+            padding: var(--ag-widget-vertical-spacing) var(--ag-widget-horizontal-spacing);
+        }
+    }
+
+    .ag-rich-select-value {
+        border-bottom: var(--ag-borders-secondary) var(--ag-secondary-border-color);
+        padding-top: 0;
+        padding-bottom: 0;
+        @include ag.unthemed-rtl(( padding-left: calc(var(--ag-cell-horizontal-padding) / 2) ));
+        @include ag.unthemed-rtl(( padding-right: var(--ag-grid-size) ));
+    }
+
+    .ag-rich-select-field-input {
+        @include ag.unthemed-rtl(( left: calc(var(--ag-cell-horizontal-padding)) ));
+    }
+
+    .ag-popup-editor .ag-rich-select-value {
+        height: var(--ag-row-height);
+        min-width: 200px;
+    }
+
+    .ag-rich-select-virtual-list-item {
+        cursor: default;
+        height: var(--ag-list-item-height);
+
+        &:focus-visible::after {
+            content: none
+        }
+
+        &:hover {
+            background-color: var(--ag-row-hover-color);
+        }
+    }
+
+    .ag-rich-select-row {
+        @include ag.unthemed-rtl(( padding-left: calc(var(--ag-cell-horizontal-padding) / 2) ));
+    }
+
+    .ag-rich-select-row-selected {
+        background-color: var(--ag-selected-row-background-color);
+    }
+
+    .ag-rich-select-row-text-highlight {
+        font-weight: bold;
+    }
+
+    ////////////////////////////////////////
+    // Autocomplete
+    ////////////////////////////////////////
+    .ag-autocomplete {
+        width: 100%;
+    }
+
+    .ag-autocomplete-list {
+        width: 100%;
+        min-width: 200px;
+        height: calc(var(--ag-row-height) * 6.5); // intentional
+    }
+
+    .ag-autocomplete-virtual-list-item {
+        cursor: default;
+        height: var(--ag-list-item-height);
+
+        &:focus-visible::after {
+            content: none
+        }
+
+        &:hover {
+            background-color: var(--ag-row-hover-color);
+        }
+    }
+
+    .ag-autocomplete-row-label {
+        margin: 0px var(--ag-widget-container-horizontal-padding);
+    }
+
+    .ag-autocomplete-row-selected {
+        background-color: var(--ag-selected-row-background-color);
+    }
+
+    ////////////////////////////////////////
     // Dialog
     ////////////////////////////////////////
-
     .ag-dragging-range-handle .ag-dialog,
     .ag-dragging-fill-handle .ag-dialog {
         opacity: 0.7;
@@ -418,6 +505,7 @@
     .ag-dialog {
         border-radius: var(--ag-border-radius);
         border: var(--ag-borders) var(--ag-border-color);
+        box-shadow: var(--ag-popup-shadow);
     }
 
     .ag-panel {
@@ -445,14 +533,11 @@
         padding: var(--ag-grid-size);
         border: var(--ag-borders) var(--ag-border-color);
         border-radius: var(--ag-card-radius);
-        transition: opacity 1s;
         white-space: normal;
-        &.ag-tooltip-hiding {
-            opacity: 0;
-        }
     }
 
-    .ag-tooltip-custom {
+    .ag-tooltip.ag-tooltip-animate,
+    .ag-tooltip-custom.ag-tooltip-animate {
         transition: opacity 1s;
         &.ag-tooltip-hiding {
             opacity: 0;
@@ -512,5 +597,10 @@
 
     .ag-column-select-virtual-list-item {
         padding: 0 var(--ag-widget-container-horizontal-padding);
+    }
+
+    .ag-checkbox-edit {
+        padding-left: var(--ag-cell-horizontal-padding);
+        padding-right: var(--ag-cell-horizontal-padding);
     }
 }

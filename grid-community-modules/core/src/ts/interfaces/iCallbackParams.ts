@@ -24,6 +24,11 @@ export interface GetMainMenuItemsParams<TData = any, TContext = any> extends AgG
     defaultItems: string[];
 }
 
+export interface ProcessUnpinnedColumnsParams<TData = any, TContext = any> extends AgGridCommon<TData, TContext> {
+    columns: Column[],
+    viewportWidth: number
+}
+
 export interface PostProcessPopupParams<TData = any, TContext = any> extends AgGridCommon<TData, TContext> {
     /** If popup is for a column, this gives the Column */
     column?: Column | null;
@@ -135,9 +140,6 @@ export interface GetServerSideGroupLevelParamsParams extends AgGridCommon<any, a
     pivotMode: boolean;
 }
 
-/** @deprecated use GetServerSideGroupLevelParamsParams instead */
-export interface GetServerSideStoreParamsParams extends GetServerSideGroupLevelParamsParams { }
-
 export interface IsServerSideGroupOpenByDefaultParams extends AgGridCommon<any, any> {
     data: any;
     rowNode: IRowNode;
@@ -148,8 +150,6 @@ export interface IsApplyServerSideTransactionParams extends AgGridCommon<any, an
     transaction: ServerSideTransaction;
     /** The parent RowNode, if transaction is applied to a group. */
     parentNode: IRowNode;
-    /** @deprecated use groupLevelInfo instead */
-    storeInfo: any;
     /** Store info, if any, as passed via the success() callback when loading data. */
     groupLevelInfo: any;
 }
@@ -224,5 +224,9 @@ export interface GetLocaleTextParams<TData = any, TContext = any> extends AgGrid
 }
 
 export interface GetGroupAggFilteringParams<TData = any, TContext = any> extends AgGridCommon<TData, TContext> {
+    node: IRowNode<TData>;
+}
+
+export interface GetGroupIncludeFooterParams<TData = any, TContext = any> extends AgGridCommon<TData, TContext> {
     node: IRowNode<TData>;
 }

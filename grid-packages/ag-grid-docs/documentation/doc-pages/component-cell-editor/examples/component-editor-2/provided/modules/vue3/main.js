@@ -1,6 +1,6 @@
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import '@ag-grid-community/styles/ag-grid.css';
-import '@ag-grid-community/styles/ag-theme-alpine.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
 import { AgGridVue } from '@ag-grid-community/vue3';
 import { RichSelectModule } from '@ag-grid-enterprise/rich-select';
 import { createApp } from 'vue';
@@ -16,7 +16,7 @@ ModuleRegistry.registerModules([ClientSideRowModelModule, RichSelectModule]);
 class CountryCellRenderer {
     init(params) {
         this.eGui = document.createElement('div');
-        this.eGui.innerHTML = `${params.value.name}`;
+        this.eGui.innerHTML = `<span style="overflow: hidden; text-overflow: ellipsis">${params.value.name}</span>`;
     }
 
     getGui() {
@@ -34,7 +34,7 @@ const VueExample = {
             <ag-grid-vue
                 
                 style="width: 100%; height: 100%;"
-                class="ag-theme-alpine"
+                :class="themeClass"
                 :columnDefs="columnDefs"
                 @grid-ready="onGridReady"
                 :rowData="rowData"
@@ -70,7 +70,6 @@ const VueExample = {
                     editable: true,
                     cellRenderer: 'GenderRenderer',
                     cellEditor: 'agRichSelectCellEditor',
-                    cellEditorPopup: true,
                     cellEditorParams: {
                         cellRenderer: 'GenderRenderer',
                         values: ['Male', 'Female'],
@@ -94,7 +93,6 @@ const VueExample = {
                     field: 'country',
                     width: 110,
                     cellEditor: 'agRichSelectCellEditor',
-                    cellEditorPopup: true,
                     cellRenderer: CountryCellRenderer,
                     keyCreator: (params) => {
                         return params.value.name;
@@ -108,6 +106,7 @@ const VueExample = {
                         ],
                     },
                     editable: true,
+                    cellDataType: false,
                 },
                 {
                     field: 'address',
@@ -118,16 +117,14 @@ const VueExample = {
                 },
             ],
             gridApi: null,
-            columnApi: null,
             defaultColDef: {
                 editable: true,
-                sortable: true,
                 flex: 1,
                 minWidth: 100,
                 filter: true,
-                resizable: true,
             },
-            rowData: null
+            rowData: null,
+            themeClass: /** DARK MODE START **/document.documentElement.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/,
         };
     },
     created() {
@@ -136,7 +133,6 @@ const VueExample = {
     methods: {
         onGridReady(params) {
             this.gridApi = params.api;
-            this.gridColumnApi = params.columnApi;
         },
     },
 };

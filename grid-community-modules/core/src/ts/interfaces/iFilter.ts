@@ -15,13 +15,11 @@ export interface IFilterDef {
     /**
      * Filter component to use for this column.
      * - Set to `true` to use the default filter.
-     * - Set to the name of a provided filter: `set`, `number`, `text`, `date`.
+     * - Set to the name of a provided filter: `agNumberColumnFilter`, `agTextColumnFilter`, `agDateColumnFilter`, `agMultiColumnFilter`, `agSetColumnFilter`.
      * - Set to a `IFilterComp`.
      */
     filter?: any;
-    /** @deprecated Provided a custom framework filter to use for this column. As of v27, you can use filter instead for Framework Components.  */
-    filterFramework?: any;
-    /** Params to be passed to the filter component specified in `filter` or `filterFramework`. */
+    /** Params to be passed to the filter component specified in `filter`. */
     filterParams?: any;
 
     /**
@@ -29,9 +27,7 @@ export interface IFilterDef {
      * If none is specified the default AG Grid is used.
      */
     floatingFilterComponent?: any;
-    /** @deprecated Floating filter framework component to use for this column. As of v27, you can use floatingFilterComponent instead for Framework Components. */
-    floatingFilterComponentFramework?: any;
-    /** Params to be passed to `floatingFilterComponent` or `floatingFilterComponentFramework`. */
+    /** Params to be passed to `floatingFilterComponent`. */
     floatingFilterComponentParams?: any;
 }
 
@@ -83,6 +79,24 @@ export interface IFilter {
     getModelAsString?(model: any): string;
 
     /**
+     * This method is called when the filter parameters change.
+     * The result returned by this method will determine if the filter should be refreshed and reused,
+     * or if a new filter instance should be created.
+     *
+     * This method should return `true` if the filter should be refreshed and reused instead of being destroyed.
+     * This is useful if the new params passed are compatible with the existing filter instance.
+     *
+     * When `false` is returned, the existing filter will be destroyed and a new filter will be created.
+     * This should be done if the new params passed are not compatible with the existing filter instance.
+     *
+     * @param newParams {IFilterParams} - New filter params.
+     *
+     * @returns {boolean} - `true` means that the filter should be refreshed and kept.
+     * `false` means that the filter will be destroyed and a new filter instance will be created.
+     */
+    refresh?(newParams: IFilterParams): boolean;
+
+    /**
      * A hook to perform any necessary operation just after the GUI for this component has been rendered on the screen.
      * If a parent popup is closed and reopened (e.g. for filters), this method is called each time the component is shown.
      * This is useful for any logic that requires attachment before executing, such as putting focus on a particular DOM element.
@@ -120,10 +134,6 @@ export interface IFilterOptionDef {
     predicate?: (filterValues: any[], cellValue: any) => boolean;
     /** Number of inputs to display for this option. Defaults to `1` if unspecified. */
     numberOfInputs?: 0 | 1 | 2;
-    /** @deprecated v26.2 use `predicate` instead. */
-    test?: (filterValue: any, cellValue: any) => boolean;
-    /** @deprecated v26.2 use `numberOfInputs: 0` instead. */
-    hideFilterInput?: boolean;
 }
 
 /**
@@ -161,13 +171,15 @@ export interface IFilterParams<TData = any, TContext = any> extends AgGridCommon
     filterModifiedCallback: () => void;
 
     /**
-     * A function callback for the filter to get cell values from provided row data. Called with a
-     * `ValueGetterParams` to get the value for this filter's column for the provided row data.
-     *
-     * The callback takes care of selecting the right column definition and deciding whether to use
-     * the column `valueGetter` or raw field etc.
+     * @deprecated v31 Use `getValue` instead
      */
     valueGetter: ValueGetterFunc<TData>;
+
+    /**
+     * Get the cell value for the given row node and column, which can be the column ID, definition, or `Column` object.
+     * If no column is provided, the column this filter is on will be used.
+     */
+    getValue: <TValue = any>(node: IRowNode<TData>, column?: string | ColDef<TData, TValue> | Column<TValue>) => TValue | null | undefined;
 
     /**
      * A function callback, call with a node to be told whether the node passes all filters except the current filter.
@@ -177,3 +189,5 @@ export interface IFilterParams<TData = any, TContext = any> extends AgGridCommon
      */
     doesRowPassOtherFilter: (rowNode: IRowNode<TData>) => boolean; // TODO: this method should be "doesRowPassOtherFilters"
 }
+
+export interface FilterModel { [colId: string]: any; };

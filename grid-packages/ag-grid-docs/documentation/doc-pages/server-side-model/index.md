@@ -27,7 +27,7 @@ The simplest approach is to send all row data to the browser in response to a si
 
 This scenario is illustrated below where 10,000 records are loaded directly into the browser:
 
-<img src="resources/in-memory-row-model.png" alt="in-memory-row-model" style="width: 90%" />
+<image-caption src="server-side-model/resources/in-memory-row-model.png" alt="in-memory-row-model" constrained="true" centered="true" filterdarkmode="true"></image-caption>
 
 Once the data is loaded into the grid using the Client-Side Row Model, the grid can then do sorting, filtering, grouping etc. on the data inside the grid without requiring further assistance from the application.
 
@@ -41,7 +41,7 @@ This is precisely the problem the SSRM addresses, along with delegating server-s
 
 The following diagram shows the approach used by the SSRM. Here there are 10 million records, however the number of records is only constrained by the limits of the server-side:
 
-<img src="resources/enterprise-row-model.png" alt="enterprise-row-model" style="width: 90%; margin-bottom: 1rem;" />
+<image-caption src="server-side-model/resources/enterprise-row-model.png" alt="enterprise-row-model" constrained="true" centered="true" filterdarkmode="true"></image-caption>
 
 As the user performs operations such as expanding groups, the grid issues requests to the server for more data.
 
@@ -54,16 +54,16 @@ You may benefit from the combination of all these features or just be interested
 - **Infinite Scrolling:** Rows are read back from the server in blocks to provide the experience of infinite scrolling. This allows viewing very large datasets in the browser by only bringing back data one block of data at a time.
 
 - **Server-Side Grouping, Pivot and Aggregation:** Because the data is coming back from the server one group level at
-a time, this allows you to do aggregation on the server, returning the aggregated results for the top level parent
-rows. For example, you could include 'employee count' as an attribute on the returned manager record, to say how many
-employees a manager manages.
+    a time, this allows you to do aggregation on the server, returning the aggregated results for the top level parent
+    rows. For example, you could include 'employee count' as an attribute on the returned manager record, to say how many
+    employees a manager manages.
 
 - **Slice and Dice:** Assuming your server-side can build the data query, you can allow the user to use the Grid UI
-to drag columns around to select what columns you want to group by and aggregate on. What the user selects will then
-be forwarded to your datasource as part of the request. This feature is advanced and will require some difficult
-server-side coding from you, however when done your users will have an experience of slicing and dicing large data in
-real time, something previously only available in expensive reporting tools, which you can now embed into your
-JavaScript application.
+    to drag columns around to select what columns you want to group by and aggregate on. What the user selects will then
+    be forwarded to your datasource as part of the request. This feature is advanced and will require some difficult
+    server-side coding from you, however when done your users will have an experience of slicing and dicing large data in
+    real time, something previously only available in expensive reporting tools, which you can now embed into your
+    JavaScript application.
 
 ## Full Stack Examples
 

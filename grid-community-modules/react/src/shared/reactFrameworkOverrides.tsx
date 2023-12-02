@@ -4,11 +4,9 @@ import DetailCellRenderer from "../reactUi/cellRenderer/detailCellRenderer";
 
 export class ReactFrameworkOverrides extends VanillaFrameworkOverrides {
 
-    private readonly reactUi: boolean;
-
-    constructor(reactUi: boolean) {
-        super();
-        this.reactUi = reactUi;
+    constructor() {
+        super('react');
+        this.renderingEngine = 'react';
     }
 
     private frameworkComponents: any = {
@@ -18,7 +16,6 @@ export class ReactFrameworkOverrides extends VanillaFrameworkOverrides {
     };
 
     public frameworkComponent(name: string): any {
-        if (!this.reactUi) { return; }
         return this.frameworkComponents[name];
     }
 

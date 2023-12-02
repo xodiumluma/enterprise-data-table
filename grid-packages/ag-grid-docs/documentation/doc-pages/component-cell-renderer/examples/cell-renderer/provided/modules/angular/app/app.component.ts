@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 import { DaysFrostRenderer } from './days-frost-renderer.component';
 import { ColDef, GridApi, ICellRenderer, ICellRendererParams, IRowNode } from '@ag-grid-community/core';
 
@@ -77,7 +77,7 @@ class RainPerTenMmRenderer implements ICellRenderer {
         <ag-grid-angular
                 #agGrid
                 style="width: 100%; height: 100%;"
-                class="ag-theme-alpine"
+                [class]="themeClass"
                 [columnDefs]="columnDefs"
                 [defaultColDef]="defaultColDef"
                 (gridReady)="onGridReady($event)"
@@ -87,6 +87,7 @@ class RainPerTenMmRenderer implements ICellRenderer {
 })
 
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
 
     private gridApi!: GridApi;
 
@@ -95,7 +96,7 @@ export class AppComponent {
             headerName: "Month",
             field: "Month",
             width: 75,
-            cellStyle: { color: "darkred" }
+            cellStyle: { backgroundColor: "#CC222244" }
         },
         {
             headerName: "Max Temp (\u02DAC)",
@@ -134,11 +135,10 @@ export class AppComponent {
 
     public defaultColDef: ColDef = {
         editable: true,
-        sortable: true,
         flex: 1,
         minWidth: 100,
         filter: true,
-        resizable: true
+        
     };
 
     constructor(private http: HttpClient) {
@@ -160,7 +160,7 @@ export class AppComponent {
     onGridReady(params: any) {
         this.gridApi = params.api;
 
-        this.http.get('https://www.ag-grid.com/example-assets/weather-se-england.json').subscribe(data => params.api.setRowData(data));
+        this.http.get('https://www.ag-grid.com/example-assets/weather-se-england.json').subscribe(data => params.api.setGridOption('rowData', data));
     }
 }
 

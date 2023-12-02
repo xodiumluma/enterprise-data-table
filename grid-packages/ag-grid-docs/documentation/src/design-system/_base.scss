@@ -1,3 +1,5 @@
+@use './core' as *;
+
 *,
 *::before,
 *::after {
@@ -6,5 +8,61 @@
 }
 
 html {
-    color: var(--text-color);
+    --color-scheme: light;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
+    font-weight: var(--font-weight);
+    background-color: var(--default-background-color);
+    color: var(--default-text-color);
+    scroll-padding-top: var(--scroll-offset);
+}
+
+.doc-content a:not(.button) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: #3892f977;
+    transition: text-decoration-color $default-transition-timing;
+}
+#{$darkmode-selector} {
+    .doc-content h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: var(--default-text-color);
+    }
+
+    .doc-content {
+        color: #c3cad3;
+    }
+
+    .doc-content a:not(.button) {
+        color: var(--brilliant-azure);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-color: #3892f977;
+        transition: text-decoration-color $default-transition-timing;
+    }
+
+    .doc-content a:hover {
+        color: var(--brilliant-azure);
+        text-decoration-color: #60aafe;
+    }
+
+    nav::-webkit-scrollbar {
+        background-color: var(--dark-bg-new);
+    }
+    
+    nav::-webkit-scrollbar-thumb {
+        background-color: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        border: 4px solid var(--dark-bg-new);
+    }
+
 }

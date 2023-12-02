@@ -10,6 +10,7 @@ import {
     RefSelector,
 } from "@ag-grid-community/core";
 import { AgChartLegendPosition } from "ag-charts-community";
+// import { AgChartLegendPosition } from "ag-charts-enterprise";
 import { Font, FontPanel, FontPanelParams } from "../fontPanel";
 import { ChartTranslationService } from "../../../services/chartTranslationService";
 import { ChartOptionsService } from "../../../services/chartOptionsService";
@@ -86,7 +87,7 @@ export class LegendPanel extends Component {
         this.legendPositionSelect
             .setLabel(this.chartTranslationService.translate("position"))
             .setLabelWidth("flex")
-            .setInputWidth(80)
+            .setInputWidth('flex')
             .addOptions(positions.map(position => ({
                 value: position,
                 text: this.chartTranslationService.translate(position)

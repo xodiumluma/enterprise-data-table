@@ -1,9 +1,32 @@
-import { ExcelOOXMLTemplate } from '@ag-grid-community/core';
+import { ExcelOOXMLTemplate, _ } from '@ag-grid-community/core';
 import { NumberFormat } from '../../../assets/excelInterfaces';
+
+function prepareString(str: string): string {
+    const split = str.split(/(\[[^\]]*\])/);
+
+    for (let i = 0; i < split.length; i++) {
+        // excel formulas require symbols to be escaped. Excel also requires $ to be 
+        // placed in quotes but only when the $ is not wrapped inside of square brackets.
+        let currentString = split[i];
+        if (!currentString.length) { continue; }
+        if (!currentString.startsWith('[')) {
+            currentString = currentString.replace(/\$/g, '"$"');
+         }
+
+         split[i] = _.escapeString(currentString) as string;
+    }
+
+    return split.join('');
+}
 
 const numberFormatFactory: ExcelOOXMLTemplate = {
     getTemplate(numberFormat: NumberFormat) {
-        const {formatCode, numFmtId} = numberFormat;
+        let { formatCode, numFmtId } = numberFormat;
+
+        
+        if (formatCode.length) {
+            formatCode = prepareString(formatCode);
+        }
 
         return {
             name: "numFmt",

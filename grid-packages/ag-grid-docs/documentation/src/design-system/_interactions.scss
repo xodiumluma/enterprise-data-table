@@ -1,0 +1,17 @@
+.collapse:not(.show) {
+    display: none;
+}
+
+.collapsing {
+    position: relative;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.35s ease;
+}
+
+.no-transitions,
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+    transition: none !important;
+}

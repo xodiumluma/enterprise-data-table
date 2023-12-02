@@ -2,8 +2,8 @@ import { Component, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
-import { ColDef, ColGroupDef, FirstDataRenderedEvent, GridOptions } from '@ag-grid-community/core';
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import { ColDef, ColGroupDef, GridOptions } from '@ag-grid-community/core';
 
 
 import { ModuleRegistry } from '@ag-grid-community/core';
@@ -19,14 +19,11 @@ ModuleRegistry.registerModules([ClientSideRowModelModule])
         <ag-grid-angular
                 style='width: 100%; height: 45%'
                 #topGrid
-                class='ag-theme-alpine'
-                (firstDataRendered)='onFirstDataRendered($event)'
-                [defaultColDef]='{
-                    resizable: true
-                }'
+                [class]="themeClass"
                 [rowData]='rowData'
                 [gridOptions]='topOptions'
-                [columnDefs]='columnDefs'>
+                [columnDefs]='columnDefs'
+                [alignedGrids]="[bottomGrid]">
         </ag-grid-angular>
 
         <div style='height: 5%'></div>
@@ -34,51 +31,42 @@ ModuleRegistry.registerModules([ClientSideRowModelModule])
         <ag-grid-angular
                 style='width: 100%; height: 45%'
                 #bottomGrid
-                class='ag-theme-alpine'
-                (firstDataRendered)='onFirstDataRendered($event)'
-                [defaultColDef]='{
-                    resizable: true
-                }'
+                [class]="themeClass"
                 [rowData]='rowData'
                 [gridOptions]='bottomOptions'
-                [columnDefs]='columnDefs'>
+                [columnDefs]='columnDefs'
+                [alignedGrids]="[topGrid]">
         </ag-grid-angular>
     `
 })
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     columnDefs!: (ColDef | ColGroupDef)[];
     rowData!: any[];
     topOptions: GridOptions = {
-        alignedGrids: [],
         defaultColDef: {
-            editable: true,
-            sortable: true,
-            resizable: true,
-            filter: true,
+
             flex: 1,
-            minWidth: 100
-        }
+            minWidth: 120
+        },
+        autoSizeStrategy: {
+            type: 'fitGridWidth'
+        },
     };
     bottomOptions: GridOptions = {
-        alignedGrids: [],
         defaultColDef: {
-            editable: true,
-            sortable: true,
-            resizable: true,
-            filter: true,
+
             flex: 1,
-            minWidth: 100
+            minWidth: 120
         }
     };
 
-    @ViewChild('topGrid') topGrid!: AgGridAngular<IOlympicData>;
-    @ViewChild('bottomGrid') bottomGrid!: AgGridAngular<IOlympicData>;
+    @ViewChild('topGrid') topGrid!: AgGridAngular;
 
     constructor(private http: HttpClient) {
         this.columnDefs = [
             {
                 headerName: 'Group 1',
-                headerClass: 'blue',
                 groupId: 'Group1',
                 children: [
                     { field: 'athlete', pinned: true, width: 100 },
@@ -93,7 +81,6 @@ export class AppComponent {
             },
             {
                 headerName: 'Group 2',
-                headerClass: 'green',
                 groupId: 'Group2',
                 children: [
                     { field: 'athlete', pinned: true, width: 100 },
@@ -107,9 +94,6 @@ export class AppComponent {
                 ]
             }
         ];
-
-        this.topOptions.alignedGrids!.push(this.bottomOptions);
-        this.bottomOptions.alignedGrids!.push(this.topOptions);
     }
 
     ngOnInit() {
@@ -118,12 +102,8 @@ export class AppComponent {
                 this.rowData = data as any[];
 
                 // mix up some columns
-                this.topGrid.columnApi.moveColumnByIndex(11, 4);
-                this.topGrid.columnApi.moveColumnByIndex(11, 4);
+                this.topGrid.api.moveColumnByIndex(11, 4);
+                this.topGrid.api.moveColumnByIndex(11, 4);
             });
-    }
-
-    onFirstDataRendered(params: FirstDataRenderedEvent) {
-        this.topGrid.api.sizeColumnsToFit();
     }
 }

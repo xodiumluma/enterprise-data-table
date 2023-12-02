@@ -1,48 +1,41 @@
-import {
-  FirstDataRenderedEvent,
-  Grid,
-  GridOptions, ValueParserParams
-} from '@ag-grid-community/core';
-import { getData } from "./data";
+import {createGrid, FirstDataRenderedEvent, GridApi, GridOptions, GridReadyEvent,} from '@ag-grid-community/core';
+import {AgAxisCaptionFormatterParams} from 'ag-charts-community';
+import {getData} from "./data";
 
+let gridApi: GridApi;
 
 const gridOptions: GridOptions = {
   columnDefs: [
     { field: 'day', maxWidth: 90 },
     { field: 'month', chartDataType: 'category' },
-    { field: 'rain', chartDataType: 'series', valueParser: numberParser },
-    { field: 'pressure', chartDataType: 'series', valueParser: numberParser },
-    { field: 'temp', chartDataType: 'series', valueParser: numberParser },
-    { field: 'wind', chartDataType: 'series', valueParser: numberParser },
+    { field: 'rain', chartDataType: 'series' },
+    { field: 'pressure', chartDataType: 'series' },
+    { field: 'temp', chartDataType: 'series' },
+    { field: 'wind', chartDataType: 'series' },
   ],
   defaultColDef: {
     flex: 1,
     minWidth: 100,
     editable: true,
-    sortable: true,
     filter: true,
-    resizable: true,
   },
-  rowData: getData(),
-  onFirstDataRendered: onFirstDataRendered,
   enableRangeSelection: true,
-  chartThemes: ['ag-pastel', 'ag-vivid'],
   enableCharts: true,
   popupParent: document.body,
   chartThemeOverrides: {
     common: {
-      legend: {
-        position: 'bottom',
-      },
       axes: {
         number: {
           title: {
-            enabled: true
+            enabled: true,
+            formatter: (params: AgAxisCaptionFormatterParams)  => {
+              return params.boundSeries.map(s => s.name).join(' / ');
+            }
           }
         }
       }
     },
-    column: {
+    bar: {
       series: {
         strokeWidth: 2,
         fillOpacity: 0.8,
@@ -55,10 +48,16 @@ const gridOptions: GridOptions = {
       },
     },
   },
+  onGridReady : (params: GridReadyEvent) => {
+    getData().then(rowData => params.api.setGridOption('rowData', rowData));
+  },
+  onFirstDataRendered,
 };
 
+
+
 function onFirstDataRendered(params: FirstDataRenderedEvent) {
-  params.api!.createRangeChart({
+  params.api.createRangeChart({
     chartType: 'customCombo',
     cellRange: {
       columns: ['month', 'rain', 'pressure', 'temp'],
@@ -74,17 +73,7 @@ function onFirstDataRendered(params: FirstDataRenderedEvent) {
   });
 }
 
-function numberParser(params: ValueParserParams) {
-  const value = params.newValue;
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-  return parseFloat(value);
-}
-
-
 // set up the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
-  const gridDiv = document.querySelector<HTMLElement>('#myGrid')!;
-  new Grid(gridDiv, gridOptions);
+  gridApi = createGrid(document.querySelector<HTMLElement>('#myGrid')!, gridOptions);
 });

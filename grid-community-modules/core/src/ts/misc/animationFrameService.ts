@@ -43,7 +43,7 @@ export class AnimationFrameService extends BeanStub {
     private cancelledTasks = new Set();
 
     public setScrollTop(scrollTop: number): void {
-        const isPaginationActive = this.gridOptionsService.is('pagination');
+        const isPaginationActive = this.gridOptionsService.get('pagination');
         this.scrollGoingDown = scrollTop >= this.lastScrollTop;
 
         if (isPaginationActive && scrollTop === 0) {
@@ -59,7 +59,7 @@ export class AnimationFrameService extends BeanStub {
 
     @PostConstruct
     private init(): void {
-        this.useAnimationFrame = !this.gridOptionsService.is('suppressAnimationFrame');
+        this.useAnimationFrame = !this.gridOptionsService.get('suppressAnimationFrame');
     }
 
     public isOn(): boolean {
@@ -188,13 +188,16 @@ export class AnimationFrameService extends BeanStub {
         // check for the existence of requestAnimationFrame, and if
         // it's missing, then we polyfill it with setTimeout()
         const callback = this.executeFrame.bind(this, 60);
-        const eDocument = this.gridOptionsService.getDocument();
-        const win = (eDocument.defaultView || window) as any;
+        this.requestAnimationFrame(callback);
+    }
+
+    public requestAnimationFrame(callback: any) {
+        const win = this.gridOptionsService.getWindow();
 
         if (win.requestAnimationFrame) {
             win.requestAnimationFrame(callback);
-        } else if (win.webkitRequestAnimationFrame) {
-            win.webkitRequestAnimationFrame(callback);
+        } else if ((win as any).webkitRequestAnimationFrame) {
+            (win as any).webkitRequestAnimationFrame(callback);
         } else {
             win.setTimeout(callback, 0);
         }

@@ -6,11 +6,11 @@ var ClientSideRowModelModule = require('../../grid-community-modules/client-side
 var GridCoreModule = require('../../grid-community-modules/core');
 var CsvExportModule = require('../../grid-community-modules/csv-export');
 var InfiniteRowModelModule = require('../../grid-community-modules/infinite-row-model');
-var agGrid = require('./dist/esm/es5/main');
+var agGrid = require('./dist/esm/es6/main');
 Object.keys(agGrid).forEach(function(key) {
     exports[key] = agGrid[key];
 });
 agGrid.ModuleRegistry.register(ClientSideRowModelModule.ClientSideRowModelModule);
 agGrid.ModuleRegistry.register(CsvExportModule.CsvExportModule);
 agGrid.ModuleRegistry.register(InfiniteRowModelModule.InfiniteRowModelModule);
-agGrid.ModuleRegistry.setIsBundled();
+agGrid.ModuleRegistry.__setIsBundled();

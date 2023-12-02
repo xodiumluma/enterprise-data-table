@@ -38,6 +38,7 @@ export class MultiFilter extends TabGuardComp implements IFilterComp, IMultiFilt
     private lastOpenedInContainer?: ContainerType;
     private activeFilterIndices: number[] = [];
     private lastActivatedMenuItem: AgMenuItemComponent | null = null;
+    private hidePopup?: () => void;
 
     private afterFiltersReadyFuncs: (() => void)[] = [];
 
@@ -186,9 +187,11 @@ export class MultiFilter extends TabGuardComp implements IFilterComp, IMultiFilt
         group.toggleGroupExpand(false);
 
         if (filter.afterGuiAttached) {
-            const params: IAfterGuiAttachedParams = { container: this.lastOpenedInContainer!, suppressFocus: true };
-
-            group.addManagedListener(group, AgGroupComponent.EVENT_EXPANDED, () => filter.afterGuiAttached!(params));
+            group.addManagedListener(group, AgGroupComponent.EVENT_EXPANDED, () => filter.afterGuiAttached!({
+                container: this.lastOpenedInContainer!,
+                suppressFocus: true,
+                hidePopup: this.hidePopup
+            }));
         }
 
         return group;
@@ -302,7 +305,10 @@ export class MultiFilter extends TabGuardComp implements IFilterComp, IMultiFilt
 
     public afterGuiAttached(params?: IAfterGuiAttachedParams): void {
         if (params) {
+            this.hidePopup = params.hidePopup;
             this.refreshGui(params.container!);
+        } else {
+            this.hidePopup = undefined;
         }
 
         const { filters } = this.params;
@@ -343,6 +349,7 @@ export class MultiFilter extends TabGuardComp implements IFilterComp, IMultiFilt
 
         this.filters!.length = 0;
         this.destroyChildren();
+        this.hidePopup = undefined;
 
         super.destroy();
     }
@@ -418,13 +425,11 @@ export class MultiFilter extends TabGuardComp implements IFilterComp, IMultiFilt
         });
     }
 
-    protected onFocusIn(e: FocusEvent): boolean {
+    protected onFocusIn(e: FocusEvent): void {
         if (this.lastActivatedMenuItem != null && !this.lastActivatedMenuItem.getGui().contains(e.target as HTMLElement)) {
             this.lastActivatedMenuItem.deactivate();
             this.lastActivatedMenuItem = null;
         }
-
-        return true;
     }
 
     getModelAsString(model: IMultiFilterModel): string {

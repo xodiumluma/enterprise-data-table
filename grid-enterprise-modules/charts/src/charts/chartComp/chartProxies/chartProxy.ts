@@ -1,5 +1,14 @@
-import { _, ChartType, AgChartTheme as GridAgChartTheme, SeriesChartType } from "@ag-grid-community/core";
-import { AgChart, AgChartTheme, AgChartThemeOverrides, AgChartThemePalette, AgChartInstance, _Theme, AgChartOptions, AgChartPaddingOptions } from "ag-charts-community";
+import { _, AgChartTheme as GridAgChartTheme, ChartType, SeriesChartType } from "@ag-grid-community/core";
+import {
+    _Theme,
+    AgCharts,
+    AgChartInstance,
+    AgChartOptions,
+    AgChartTheme,
+    AgChartThemeOverrides,
+    AgChartThemePalette
+} from "ag-charts-community";
+
 import { CrossFilteringContext } from "../../chartService";
 import { ChartSeriesType, getSeriesType } from "../utils/seriesTypeMapper";
 import { deproxy } from "../utils/integration";
@@ -32,7 +41,7 @@ export interface FieldDefinition {
     displayName: string | null;
 }
 
-export interface UpdateChartParams {
+export interface UpdateParams {
     data: any[];
     grouping: boolean;
     category: {
@@ -44,6 +53,7 @@ export interface UpdateChartParams {
     chartId?: string;
     getCrossFilteringContext: () => CrossFilteringContext,
     seriesChartTypes: SeriesChartType[];
+    updatedOverrides?: AgChartThemeOverrides;
 }
 
 export abstract class ChartProxy {
@@ -64,7 +74,7 @@ export abstract class ChartProxy {
         this.standaloneChartType = getSeriesType(this.chartType);
 
         if (this.chart == null) {
-            this.chart = AgChart.create(this.getCommonChartOptions());
+            this.chart = AgCharts.create(this.getCommonChartOptions());
         } else {
             // On chart change, reset formatting panel changes.
             this.clearThemeOverrides = true;
@@ -73,7 +83,7 @@ export abstract class ChartProxy {
 
     public abstract crossFilteringReset(): void;
 
-    public abstract update(params: UpdateChartParams): void;
+    public abstract update(params: UpdateParams): void;
 
     public getChart() {
         return deproxy(this.chart);
@@ -89,7 +99,7 @@ export abstract class ChartProxy {
         const imageFileName = fileName || (rawChart.title ? rawChart.title.text : 'chart');
         const { width, height } = dimensions || {};
 
-        AgChart.download(chart, { width, height, fileName: imageFileName, fileFormat });
+        AgCharts.download(chart, { width, height, fileName: imageFileName, fileFormat });
     }
 
     public getChartImageDataURL(type?: string) {
@@ -115,7 +125,7 @@ export abstract class ChartProxy {
         // the first column is used for X and every other column is treated as Y
         // (or alternates between Y and size for bubble)
         const seriesType = getSeriesType(this.chartProxyParams.chartType);
-        AgChart.updateDelta(this.chart, { theme: { overrides: { [seriesType]: { paired }}}});
+        AgCharts.updateDelta(this.chart, { theme: { overrides: { [seriesType]: { paired }}}});
     }
 
     public isPaired(): boolean {
@@ -144,7 +154,7 @@ export abstract class ChartProxy {
         return data;
     }
 
-    protected getCommonChartOptions() {
+    protected getCommonChartOptions(updatedOverrides?: AgChartThemeOverrides) {
         // Only apply active overrides if chart is initialised.
         const existingOptions: any = this.clearThemeOverrides ? {} : this.chart?.getOptions() ?? {};
         const formattingPanelOverrides = this.chart != null ?
@@ -155,7 +165,7 @@ export abstract class ChartProxy {
             ...existingOptions,
             theme: {
                 ...createAgChartTheme(this.chartProxyParams, this),
-                ...formattingPanelOverrides,
+                ...(updatedOverrides ? { overrides: updatedOverrides } : formattingPanelOverrides),
             },
             container: this.chartProxyParams.parentElement,
             mode: 'integrated',
@@ -168,9 +178,7 @@ export abstract class ChartProxy {
         }
 
         const inUseTheme = this.chart?.getOptions().theme as AgChartTheme;
-        const overrides = inUseTheme?.overrides ?? {};
-        
-        return overrides;
+        return inUseTheme?.overrides ?? {};
     }
 
     public destroy({ keepChartInstance = false } = {}): AgChartInstance | undefined {

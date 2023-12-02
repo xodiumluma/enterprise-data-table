@@ -71,6 +71,7 @@ export class CellComp extends Component implements TooltipParentComp {
         this.rowNode = cellCtrl.getRowNode();
         this.rowCtrl = cellCtrl.getRowCtrl();
         this.eRow = eRow;
+        this.cellCtrl = cellCtrl;
 
         this.setTemplate(/* html */`<div comp-id="${this.getCompId()}"/>`);
 
@@ -80,24 +81,26 @@ export class CellComp extends Component implements TooltipParentComp {
 
         this.refreshWrapper(false);
 
-        const setAttribute = (name: string, value: string | null | undefined, element?: HTMLElement) => {
-            const actualElement = element ? element : eGui;
+        const setAttribute = (name: string, value: string | null | undefined) => {
             if (value != null && value != '') {
-                actualElement.setAttribute(name, value);
+                eGui.setAttribute(name, value);
             } else {
-                actualElement.removeAttribute(name);
+                eGui.removeAttribute(name);
             }
         };
+
+        setAriaRole(eGui, cellCtrl.getCellAriaRole());
+        setAttribute('col-id', cellCtrl.getColumnIdSanitised());
+        const tabIndex = cellCtrl.getTabIndex();
+        if (tabIndex !== undefined) {
+            setAttribute('tabindex', tabIndex.toString());
+        }
 
         const compProxy: ICellComp = {
             addOrRemoveCssClass: (cssClassName, on) => this.addOrRemoveCssClass(cssClassName, on),
             setUserStyles: (styles: CellStyle) => addStylesToElement(eGui, styles),
             getFocusableElement: () => this.getFocusableElement(),
-            setTabIndex: tabIndex => setAttribute('tabindex', tabIndex.toString()),
-            setRole: role => setAriaRole(eGui, role),
-            setColId: colId => setAttribute('col-id', colId),
-            setTitle: title => setAttribute('title', title),
-
+            
             setIncludeSelection: include => this.includeSelection = include,
             setIncludeRowDrag: include => this.includeRowDrag = include,
             setIncludeDndSource: include => this.includeDndSource = include,
@@ -112,7 +115,6 @@ export class CellComp extends Component implements TooltipParentComp {
             getParentOfValue: () => this.getParentOfValue()
         };
 
-        this.cellCtrl = cellCtrl;
         cellCtrl.setComp(compProxy, this.getGui(), this.eCellWrapper, printLayout, editingRow);
     }
 
@@ -319,7 +321,7 @@ export class CellComp extends Component implements TooltipParentComp {
         // never use task service if animation frame service is turned off.
         // and lastly we never use it if doing auto-height, as the auto-height service checks the
         // row height directly after the cell is created, it doesn't wait around for the tasks to complete        
-        const suppressAnimationFrame = this.beans.gridOptionsService.is('suppressAnimationFrame');
+        const suppressAnimationFrame = this.beans.gridOptionsService.get('suppressAnimationFrame');
         const useTaskService = !suppressAnimationFrame;
 
         const displayComponentVersionCopy = this.rendererVersion;
@@ -470,7 +472,7 @@ export class CellComp extends Component implements TooltipParentComp {
 
         const popupService = this.beans.popupService;
 
-        const useModelPopup = this.beans.gridOptionsService.is('stopEditingWhenCellsLoseFocus');
+        const useModelPopup = this.beans.gridOptionsService.get('stopEditingWhenCellsLoseFocus');
 
         // see if position provided by colDef, if not then check old way of method on cellComp
         const positionToUse: 'over' | 'under' | undefined = position != null 
@@ -478,7 +480,7 @@ export class CellComp extends Component implements TooltipParentComp {
             : cellEditor.getPopupPosition 
                 ? cellEditor.getPopupPosition() 
                 : 'over';
-        const isRtl = this.beans.gridOptionsService.is('enableRtl');
+        const isRtl = this.beans.gridOptionsService.get('enableRtl');
 
         const positionParams = {
             ePopup: ePopupGui,

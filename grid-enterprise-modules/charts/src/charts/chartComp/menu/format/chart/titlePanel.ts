@@ -1,8 +1,16 @@
-import { _, Autowired, Component, PostConstruct, ChartMenuOptions,GetChartToolbarItemsParams, WithoutGridCommon, AgSlider, AgGroupComponent, RefSelector, AgGroupComponentParams } from "@ag-grid-community/core";
+import {
+    _,
+    AgSlider,
+    Autowired,
+    ChartMenuOptions,
+    Component,
+    GetChartToolbarItemsParams,
+    PostConstruct,
+    WithoutGridCommon
+} from "@ag-grid-community/core";
 import { Font, FontPanel, FontPanelParams } from "../fontPanel";
 import { ChartTranslationService } from "../../../services/chartTranslationService";
 import { ChartOptionsService } from "../../../services/chartOptionsService";
-import { PaddingPanel } from "./paddingPanel";
 
 export default class TitlePanel extends Component {
 
@@ -89,7 +97,8 @@ export default class TitlePanel extends Component {
 
     private createSpacingSlicer() {
         const spacingSlider = this.createBean(new AgSlider());
-        const currentValue = this.chartOptionsService.getChartOption<number>('title.spacing');
+        const currentValue = this.chartOptionsService.getChartOption<number>('title.spacing') || 10;
+
         spacingSlider.setLabel(this.chartTranslationService.translate('spacing'))
             .setMaxValue(Math.max(currentValue, 100))
             .setValue(`${currentValue}`)

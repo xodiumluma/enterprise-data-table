@@ -1,4 +1,4 @@
-import { Grid, ColDef, GridOptions } from '@ag-grid-community/core'
+import { GridApi, createGrid, ColDef, GridOptions, IRowNode } from '@ag-grid-community/core';
 
 const columnDefs: ColDef[] = [
   { field: 'athlete', minWidth: 200 },
@@ -11,11 +11,11 @@ const columnDefs: ColDef[] = [
   { field: 'silver' },
 ]
 
+let gridApi: GridApi<IOlympicData>;
+
 const gridOptions: GridOptions<IOlympicData> = {
   defaultColDef: {
-    sortable: true,
     filter: true,
-    resizable: true,
     minWidth: 100,
     flex: 1,
   },
@@ -27,34 +27,35 @@ const gridOptions: GridOptions<IOlympicData> = {
 function onBtExport() {
   var spreadsheets: string[] = []
 
-  gridOptions.api!.forEachNode((node, index) => {
-    if (index % 100 === 0) {
-      gridOptions.api!.deselectAll()
-    }
-
-    node.setSelected(true)
+  let nodesToExport: IRowNode[] = [];
+  gridApi!.forEachNode((node, index) => {
+    nodesToExport.push(node);
 
     if (index % 100 === 99) {
+      gridApi!.setNodesSelected({ nodes: nodesToExport, newValue: true });
       spreadsheets.push(
-        gridOptions.api!.getSheetDataForExcel({
+        gridApi!.getSheetDataForExcel({
           onlySelected: true,
         })!
       )
+
+      gridApi!.deselectAll()
+      nodesToExport = [];
     }
   })
 
   // check if the last page was exported
 
-  if (gridOptions.api!.getSelectedNodes().length) {
+  if (gridApi!.getSelectedNodes().length) {
     spreadsheets.push(
-      gridOptions.api!.getSheetDataForExcel({
+      gridApi!.getSheetDataForExcel({
         onlySelected: true,
       })!
     )
-    gridOptions.api!.deselectAll()
+    gridApi!.deselectAll()
   }
 
-  gridOptions.api!.exportMultipleSheetsAsExcel({
+  gridApi!.exportMultipleSheetsAsExcel({
     data: spreadsheets,
     fileName: 'ag-grid.xlsx'
   })
@@ -63,9 +64,9 @@ function onBtExport() {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
   var gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
-    .then((data: IOlympicData[]) => gridOptions.api!.setRowData(data))
+    .then((data: IOlympicData[]) => gridApi!.setGridOption('rowData', data))
 })

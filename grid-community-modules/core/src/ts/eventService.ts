@@ -36,13 +36,19 @@ export class EventService implements IEventEmitter {
         @Qualifier('loggerFactory') loggerFactory: LoggerFactory,
         @Qualifier('gridOptionsService') gridOptionsService: GridOptionsService,
         @Qualifier('frameworkOverrides') frameworkOverrides: IFrameworkOverrides,
-        @Qualifier('globalEventListener') globalEventListener: Function | null = null) {
+        @Qualifier('globalEventListener') globalEventListener: Function | null = null,
+        @Qualifier('globalSyncEventListener') globalSyncEventListener: Function | null = null
+    ) {
         this.frameworkOverrides = frameworkOverrides;
         this.gridOptionsService = gridOptionsService;
 
         if (globalEventListener) {
             const async = gridOptionsService.useAsyncEvents();
             this.addGlobalListener(globalEventListener, async);
+        }
+
+        if (globalSyncEventListener) {
+            this.addGlobalListener(globalSyncEventListener, false);
         }
     }
 
@@ -126,7 +132,11 @@ export class EventService implements IEventEmitter {
             }
         }
 
-        const processEventListeners = (listeners: Set<Function>) => listeners.forEach(listener => {
+        const processEventListeners = (listeners: Set<Function>, originalListeners: Set<Function>) => listeners.forEach(listener => {
+            if (!originalListeners.has(listener)) {
+                // A listener could have been removed by a previously processed listener. In this case we don't want to call 
+                return;
+            }
             if (async) {
                 this.dispatchAsync(() => listener(event));
             } else {
@@ -134,12 +144,14 @@ export class EventService implements IEventEmitter {
             }
         });
 
-        const listeners = this.getListeners(eventType, async, false);
-        if (listeners) {
-            processEventListeners(listeners);
+        const originalListeners = this.getListeners(eventType, async, false) ?? new Set();
+        // create a shallow copy to prevent listeners cyclically adding more listeners to capture this event
+        const listeners = new Set(originalListeners);
+        if (listeners.size > 0) {
+            processEventListeners(listeners, originalListeners);
         }
 
-        const globalListeners = async ? this.globalAsyncListeners : this.globalSyncListeners;
+        const globalListeners = new Set(async ? this.globalAsyncListeners : this.globalSyncListeners);
 
         globalListeners.forEach(listener => {
             if (async) {

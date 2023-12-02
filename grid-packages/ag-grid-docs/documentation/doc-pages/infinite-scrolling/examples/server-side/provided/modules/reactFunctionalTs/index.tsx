@@ -8,7 +8,7 @@ import { SetFilterModule } from '@ag-grid-enterprise/set-filter';
 import { MenuModule } from '@ag-grid-enterprise/menu';
 import { ColumnsToolPanelModule } from '@ag-grid-enterprise/column-tool-panel';
 import '@ag-grid-community/styles/ag-grid.css';
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 
 import { ColDef, GetRowIdParams, GridReadyEvent, ICellRendererParams, IDatasource, ModuleRegistry } from '@ag-grid-community/core';
 // Register the required feature modules with the Grid
@@ -146,8 +146,6 @@ const GridExample = () => {
         return {
             flex: 1,
             minWidth: 150,
-            sortable: true,
-            resizable: true,
             floatingFilter: true,
         }
     }, []);
@@ -185,7 +183,7 @@ const GridExample = () => {
                         }, 500);
                     },
                 };
-                params.api.setDatasource(dataSource);
+                params.api.setGridOption('datasource', dataSource);
             });
     }, []);
 
@@ -193,7 +191,7 @@ const GridExample = () => {
     return (
         <div style={containerStyle}>
 
-            <div style={gridStyle} className="ag-theme-alpine">
+            <div style={gridStyle} className={/** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                 <AgGridReact
                     columnDefs={columnDefs}
                     defaultColDef={defaultColDef}
@@ -206,8 +204,7 @@ const GridExample = () => {
                     maxBlocksInCache={2}
                     getRowId={getRowId}
                     onGridReady={onGridReady}
-                >
-                </AgGridReact>
+                />
             </div>
 
         </div>

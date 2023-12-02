@@ -8,7 +8,9 @@ import { SetFilterModule } from '@ag-grid-enterprise/set-filter';
 import { MenuModule } from '@ag-grid-enterprise/menu';
 import { FiltersToolPanelModule } from '@ag-grid-enterprise/filter-tool-panel';
 import '@ag-grid-community/styles/ag-grid.css';
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import './styles.css';
+
 
 import { ModuleRegistry } from '@ag-grid-community/core';
 
@@ -71,7 +73,6 @@ const GridExample = () => {
             flex: 1,
             minWidth: 225,
             cellRenderer: colourCellRenderer,
-            resizable: true,
             floatingFilter: true,
         }
     }, []);
@@ -134,7 +135,7 @@ const GridExample = () => {
                     </div>
                 </div>
 
-                <div style={gridStyle} className="ag-theme-alpine">
+                <div style={gridStyle} className={/** DARK MODE START **/document.documentElement.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                     <AgGridReact
                         ref={gridRef}
                         rowData={rowData}
@@ -142,8 +143,7 @@ const GridExample = () => {
                         defaultColDef={defaultColDef}
                         sideBar={'filters'}
                         onFirstDataRendered={onFirstDataRendered}
-                    >
-                    </AgGridReact>
+                    />
                 </div>
             </div>
         </div>

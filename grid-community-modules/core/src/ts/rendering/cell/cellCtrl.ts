@@ -1,12 +1,13 @@
 import { Beans } from "./../beans";
 import { Column } from "../../entities/column";
-import { CellStyle, NewValueParams } from "../../entities/colDef";
+import { CellStyle } from "../../entities/colDef";
 import { RowNode } from "../../entities/rowNode";
 import { CellChangedEvent } from "../../interfaces/iRowNode";
 import { CellPosition } from "../../entities/cellPositionUtils";
 import {
     CellContextMenuEvent,
     CellEditingStartedEvent,
+    CellEditingStoppedEvent,
     CellEvent,
     CellFocusedEvent,
     Events,
@@ -29,11 +30,12 @@ import { KeyCode } from "../../constants/keyCode";
 import { UserCompDetails } from "../../components/framework/userComponentFactory";
 import { CheckboxSelectionComponent } from "../checkboxSelectionComponent";
 import { DndSourceComp } from "../dndSourceComp";
-import { doOnce } from "../../utils/function";
+import { warnOnce } from "../../utils/function";
 import { RowDragComp } from "../row/rowDragComp";
 import { getValueUsingField } from "../../utils/object";
 import { getElementSize } from "../../utils/dom";
 import { setAriaColIndex } from "../../utils/aria";
+import { CssClassApplier } from "../../headerRendering/cells/cssClassApplier";
 
 const CSS_CELL = 'ag-cell';
 const CSS_AUTO_HEIGHT = 'ag-cell-auto-height';
@@ -49,11 +51,6 @@ export interface ICellComp {
     addOrRemoveCssClass(cssClassName: string, on: boolean): void;
     setUserStyles(styles: CellStyle): void;
     getFocusableElement(): HTMLElement;
-
-    setTabIndex(tabIndex: number): void;
-    setRole(role: string): void;
-    setColId(colId: string): void;
-    setTitle(title: string | undefined): void;
 
     setIncludeSelection(include: boolean): void;
     setIncludeRowDrag(include: boolean): void;
@@ -82,6 +79,8 @@ export class CellCtrl extends BeanStub {
     private rowNode: RowNode;
     private rowCtrl: RowCtrl;
 
+    private focusEventToRestore: CellFocusedEvent | undefined;
+
     private printLayout: boolean;
 
     private value: any;
@@ -95,12 +94,15 @@ export class CellCtrl extends BeanStub {
     private cellKeyboardListenerFeature: CellKeyboardListenerFeature | null = null;
 
     private cellPosition: CellPosition;
-
     private editing: boolean;
-
+    
+    private isCellRenderer: boolean;
     private includeSelection: boolean;
     private includeDndSource: boolean;
     private includeRowDrag: boolean;
+    private colIdSanitised: string;
+    private tabIndex: number | undefined;
+    private isAutoHeight: boolean;
 
     private suppressRefreshCell = false;
 
@@ -119,9 +121,22 @@ export class CellCtrl extends BeanStub {
         // unique id to this instance, including the column ID to help with debugging in React as it's used in 'key'
         this.instanceId = column.getId() + '-' + instanceIdSequence++;
 
+        const colDef = this.column.getColDef();
+        this.colIdSanitised = escapeString(this.column.getId())!;
+        if (!this.beans.gridOptionsService.get('suppressCellFocus')) {
+            this.tabIndex = -1;
+        }
+        this.isCellRenderer = colDef.cellRenderer != null || colDef.cellRendererSelector != null;
+
         this.createCellPosition();
         this.addFeatures();
+        this.updateAndFormatValue(false);
     }
+
+    public shouldRestoreFocus(): boolean {
+        return this.beans.focusService.shouldRestoreFocus(this.cellPosition);
+    }
+
 
     private addFeatures(): void {
         this.cellPositionFeature = new CellPositionFeature(this, this.beans);
@@ -136,18 +151,19 @@ export class CellCtrl extends BeanStub {
         this.cellKeyboardListenerFeature = new CellKeyboardListenerFeature(this, this.beans, this.column, this.rowNode, this.rowCtrl);
         this.addDestroyFunc(() => { this.cellKeyboardListenerFeature?.destroy(); this.cellKeyboardListenerFeature = null; });
 
-        const rangeSelectionEnabled = this.beans.rangeService && this.beans.gridOptionsService.isEnableRangeSelection();
+        if (this.column.isTooltipEnabled()) {
+            this.enableTooltipFeature();
+            this.addDestroyFunc(() => { this.disableTooltipFeature(); });
+        }
+
+        const rangeSelectionEnabled = this.beans.rangeService && this.beans.gridOptionsService.get('enableRangeSelection');
         if (rangeSelectionEnabled) {
             this.cellRangeFeature = new CellRangeFeature(this.beans, this);
             this.addDestroyFunc(() => { this.cellRangeFeature?.destroy(); this.cellRangeFeature = null; });
         }
-
-        if (this.column.isTooltipEnabled()) {
-            this.addTooltipFeature();
-        }
     }
 
-    private addTooltipFeature(): void {
+    private enableTooltipFeature(): void {
         const getTooltipValue = () => {
             const colDef = this.column.getColDef();
             const data = this.rowNode.data;
@@ -191,7 +207,13 @@ export class CellCtrl extends BeanStub {
         };
 
         this.tooltipFeature = new TooltipFeature(tooltipCtrl, this.beans);
-        this.addDestroyFunc(() => { this.tooltipFeature?.destroy(); this.tooltipFeature = null; });
+    }
+
+    private disableTooltipFeature() {
+        if (!this.tooltipFeature) { return; }
+
+        this.tooltipFeature.destroy();
+        this.tooltipFeature = null;
     }
 
     public setComp(
@@ -205,13 +227,9 @@ export class CellCtrl extends BeanStub {
         this.eGui = eGui;
         this.printLayout = printLayout;
 
-        // we force to make sure formatter gets called at least once,
-        // even if value has not changed (is is undefined)
-        this.updateAndFormatValue(true);
-
         this.addDomData();
 
-        this.onCellFocused();
+        this.onCellFocused(this.focusEventToRestore);
         this.applyStaticCssClasses();
         this.setWrapText();
 
@@ -220,23 +238,14 @@ export class CellCtrl extends BeanStub {
         this.onColumnHover();
         this.setupControlComps();
 
-        if (eCellWrapper) {
-            this.setupAutoHeight(eCellWrapper);
-        }
+        this.setupAutoHeight(eCellWrapper);
 
-        this.setAriaColIndex();
-
-        if (!this.beans.gridOptionsService.is('suppressCellFocus')) {
-            this.cellComp.setTabIndex(-1);
-        }
-
-        const colIdSanitised = escapeString(this.column.getId());
-        this.cellComp.setColId(colIdSanitised!);
-        this.cellComp.setRole('gridcell');
+        this.refreshFirstAndLastStyles();
+        this.refreshAriaColIndex();
 
         this.cellPositionFeature?.setComp(eGui);
         this.cellCustomStyleFeature?.setComp(comp);
-        this.tooltipFeature?.setComp(comp);
+        this.tooltipFeature?.setComp(eGui);
         this.cellKeyboardListenerFeature?.setComp(this.eGui);
 
         if (this.cellRangeFeature) { this.cellRangeFeature.setComp(comp, eGui); }
@@ -251,10 +260,11 @@ export class CellCtrl extends BeanStub {
             this.onCellCompAttachedFuncs.forEach(func => func());
             this.onCellCompAttachedFuncs = [];
         }
-}
+    }
 
-    private setupAutoHeight(eCellWrapper: HTMLElement): void {
-        if (!this.column.isAutoHeight()) { return; }
+    private setupAutoHeight(eCellWrapper?: HTMLElement): void {
+        this.isAutoHeight = this.column.isAutoHeight();
+        if (!this.isAutoHeight || !eCellWrapper) { return; }
 
         const eParentCell = eCellWrapper.parentElement!;
         // taking minRowHeight from getRowHeightForNode means the getRowHeight() callback is used,
@@ -306,14 +316,42 @@ export class CellCtrl extends BeanStub {
         });
     }
 
+    public getCellAriaRole(): string {
+        return this.column.getColDef().cellAriaRole ?? 'gridcell';
+    }
+
     public getInstanceId(): string {
         return this.instanceId;
     }
+    public getIncludeSelection(): boolean {
+        return this.includeSelection;
+    }
+    public getIncludeRowDrag(): boolean {
+        return this.includeRowDrag;
+    }
+    public getIncludeDndSource(): boolean {
+        return this.includeDndSource;
+    }
+    public getColumnIdSanitised(): string {
+        return this.colIdSanitised;
+    }
+    public getTabIndex(): number | undefined {
+        return this.tabIndex;
+    }
+    public getIsCellRenderer(): boolean {
+        return this.isCellRenderer;
+    }
+    public getValueToDisplay(): any {
+        return this.valueFormatted != null ? this.valueFormatted : this.value;
+    }
 
     private showValue(forceNewCellRendererInstance = false): void {
-        const valueToDisplay = this.valueFormatted != null ? this.valueFormatted : this.value;
-        const params = this.createCellRendererParams();
-        const compDetails = this.beans.userComponentFactory.getCellRendererDetails(this.column.getColDef(), params);
+        const valueToDisplay = this.getValueToDisplay();
+        let compDetails: UserCompDetails | undefined;
+        if (this.isCellRenderer) {
+            const params = this.createCellRendererParams();
+            compDetails = this.beans.userComponentFactory.getCellRendererDetails(this.column.getColDef(), params);
+        }
         this.cellComp.setRenderDetails(compDetails, valueToDisplay, forceNewCellRendererInstance);
         this.refreshHandle();
     }
@@ -331,7 +369,7 @@ export class CellCtrl extends BeanStub {
 
     public isForceWrapper(): boolean {
         // text selection requires the value to be wrapped in another element
-        const forceWrapper = this.beans.gridOptionsService.is('enableCellTextSelection') || this.column.isAutoHeight();
+        const forceWrapper = this.beans.gridOptionsService.get('enableCellTextSelection') || this.column.isAutoHeight();
         return forceWrapper;
     }
 
@@ -343,7 +381,7 @@ export class CellCtrl extends BeanStub {
         return res;
     }
 
-    public refreshShouldDestroy(): boolean {
+    private refreshShouldDestroy(): boolean {
         const colDef = this.column.getColDef();
         const selectionChanged = this.includeSelection != this.isIncludeControl(colDef.checkboxSelection);
         const rowDragChanged = this.includeRowDrag != this.isIncludeControl(colDef.rowDrag);
@@ -353,17 +391,17 @@ export class CellCtrl extends BeanStub {
     }
 
     // either called internally if single cell editing, or called by rowRenderer if row editing
-    public startEditing(key: string | null = null, charPress: string | null = null, cellStartedEdit = false, event: KeyboardEvent | MouseEvent | null = null): void {
+    public startEditing(key: string | null = null, cellStartedEdit = false, event: KeyboardEvent | MouseEvent | null = null): void {
         if (!this.isCellEditable() || this.editing) { return; }
 
         // because of async in React, the cellComp may not be set yet, if no cellComp then we are
         // yet to initialise the cell, so we re-schedule this operation for when celLComp is attached
         if (!this.cellComp) {
-            this.onCellCompAttachedFuncs.push(() => { this.startEditing(key, charPress, cellStartedEdit, event); });
+            this.onCellCompAttachedFuncs.push(() => { this.startEditing(key, cellStartedEdit, event); });
             return;
         }
 
-        const editorParams = this.createCellEditorParams(key, charPress, cellStartedEdit);
+        const editorParams = this.createCellEditorParams(key, cellStartedEdit);
         const colDef = this.column.getColDef();
         const compDetails = this.beans.userComponentFactory.getCellEditorDetails(colDef, editorParams);
 
@@ -388,7 +426,7 @@ export class CellCtrl extends BeanStub {
     // pass in 'true' to cancel the editing.
     public stopRowOrCellEdit(cancel: boolean = false) {
         if (this.beans.gridOptionsService.get('editType') === 'fullRow') {
-            this.rowCtrl.stopRowEditing(cancel);
+            this.rowCtrl.stopEditing(cancel);
         } else {
             this.stopEditing(cancel);
         }
@@ -459,7 +497,7 @@ export class CellCtrl extends BeanStub {
         this.setEditing(false);
         this.cellComp.setEditDetails(); // passing nothing stops editing
 
-        this.updateAndFormatValue();
+        this.updateAndFormatValue(false);
         this.refreshCell({ forceRefresh: true, suppressFlash: true });
         this.dispatchEditingStoppedEvent(oldValue, newValue, !cancel && !!valueChanged);
 
@@ -467,7 +505,7 @@ export class CellCtrl extends BeanStub {
     }
 
     private dispatchEditingStoppedEvent(oldValue: any, newValue: any, valueChanged: boolean): void {
-        const editingStoppedEvent = {
+        const editingStoppedEvent: CellEditingStoppedEvent = {
             ...this.createEvent(null, Events.EVENT_CELL_EDITING_STOPPED),
             oldValue,
             newValue,
@@ -477,11 +515,10 @@ export class CellCtrl extends BeanStub {
         this.beans.eventService.dispatchEvent(editingStoppedEvent);
     }
 
-    private createCellEditorParams(key: string | null, charPress: string | null, cellStartedEdit: boolean): ICellEditorParams {
+    private createCellEditorParams(key: string | null, cellStartedEdit: boolean): ICellEditorParams {
         return {
             value: this.rowNode.getValueFromValueService(this.column),
             eventKey: key,
-            charPress: charPress,
             column: this.column,
             colDef: this.column.getColDef(),
             rowIndex: this.getCellPosition().rowIndex,
@@ -528,28 +565,7 @@ export class CellCtrl extends BeanStub {
     }
 
     private parseValue(newValue: any): any {
-        const colDef = this.column.getColDef();
-        const params: NewValueParams = {
-            node: this.rowNode,
-            data: this.rowNode.data,
-            oldValue: this.getValue(),
-            newValue: newValue,
-            colDef: colDef,
-            column: this.column,
-            api: this.beans.gridOptionsService.api,
-            columnApi: this.beans.gridOptionsService.columnApi,
-            context: this.beans.gridOptionsService.context
-        };
-
-        const valueParser = colDef.valueParser;
-
-        if (exists(valueParser)) {
-            if (typeof valueParser === 'function') {
-                return valueParser(params);
-            }
-            return this.beans.expressionService.evaluate(valueParser, params);
-        }
-        return newValue;
+        return this.beans.valueParserService.parseValue(this.column, this.rowNode, newValue, this.getValue());
     }
 
     public setFocusOutOnEditor(): void {
@@ -579,14 +595,18 @@ export class CellCtrl extends BeanStub {
     }
 
     public onCellChanged(event: CellChangedEvent): void {
-        // because of async in React, the cellComp may not be set yet, if no cellComp then we are
-        // yet to initialise the cell, so no need to refresh.
-        if (!this.cellComp) { return; }
-
         const eventImpactsThisCell = event.column === this.column;
 
         if (eventImpactsThisCell) {
             this.refreshCell({});
+        }
+    }
+
+    public refreshOrDestroyCell(params?: { suppressFlash?: boolean, newData?: boolean, forceRefresh?: boolean; }): void {
+        if (this.refreshShouldDestroy()) {
+            this.rowCtrl?.refreshCell(this);
+        } else {
+            this.refreshCell(params);
         }
     }
 
@@ -600,11 +620,6 @@ export class CellCtrl extends BeanStub {
         // if we are in the middle of 'stopEditing', then we don't refresh here, as refresh gets called explicitly
         if (this.suppressRefreshCell || this.editing) { return; }
 
-        // In React, due to async, it's possible a refresh was asked for before the CellComp
-        // has been set. If this happens, we skip the refresh, as the cell is going to be
-        // initialised anyway once the CellComp is set.
-        if (!this.cellComp) { return; }
-
         const colDef = this.column.getColDef();
         const newData = params != null && !!params.newData;
         const suppressFlash = (params != null && !!params.suppressFlash) || !!colDef.suppressCellFlash;
@@ -617,8 +632,16 @@ export class CellCtrl extends BeanStub {
         const noValueProvided = colDef.field == null && colDef.valueGetter == null && colDef.showRowGroup == null;
         const forceRefresh = (params && params.forceRefresh) || noValueProvided || newData;
 
-        const valuesDifferent = this.updateAndFormatValue();
+        const isCellCompReady = !!this.cellComp;
+        // Only worth comparing values if the cellComp is ready
+        const valuesDifferent = this.updateAndFormatValue(isCellCompReady);
         const dataNeedsUpdating = forceRefresh || valuesDifferent;
+
+        // In React, due to async, it's possible a refresh was asked for before the CellComp was created and calls setComp()
+        // So we do not run the cell comp refresh logic at this point in time.
+        if (!isCellCompReady) {
+            return;
+        }
 
         if (dataNeedsUpdating) {
 
@@ -632,7 +655,7 @@ export class CellCtrl extends BeanStub {
             const processingFilterChange = this.beans.filterManager.isSuppressFlashingCellsBecauseFiltering();
 
             const flashCell = !suppressFlash && !processingFilterChange &&
-                (this.beans.gridOptionsService.is('enableCellChangeFlash') || colDef.enableCellChangeFlash);
+                (this.beans.gridOptionsService.get('enableCellChangeFlash') || colDef.enableCellChangeFlash);
 
             if (flashCell) {
                 this.flashCell();
@@ -651,24 +674,21 @@ export class CellCtrl extends BeanStub {
 
     // cell editors call this, when they want to stop for reasons other
     // than what we pick up on. eg selecting from a dropdown ends editing.
-    public stopEditingAndFocus(suppressNavigateAfterEdit = false): void {
+    public stopEditingAndFocus(suppressNavigateAfterEdit = false, shiftKey: boolean = false): void {
         this.stopRowOrCellEdit();
         this.focusCell(true);
 
         if (!suppressNavigateAfterEdit) {
-            this.navigateAfterEdit();
+            this.navigateAfterEdit(shiftKey);
         }
     }
 
-    private navigateAfterEdit(): void {
-        const fullRowEdit = this.beans.gridOptionsService.get('editType') === 'fullRow';
+    private navigateAfterEdit(shiftKey: boolean): void {
+        const enterNavigatesVerticallyAfterEdit = this.beans.gridOptionsService.get('enterNavigatesVerticallyAfterEdit');
 
-        if (fullRowEdit) { return; }
-
-        const enterMovesDownAfterEdit = this.beans.gridOptionsService.is('enterMovesDownAfterEdit');
-
-        if (enterMovesDownAfterEdit) {
-            this.beans.navigationService.navigateToNextCell(null, KeyCode.DOWN, this.getCellPosition(), false);
+        if (enterNavigatesVerticallyAfterEdit) {
+            const key = shiftKey ? KeyCode.UP : KeyCode.DOWN;
+            this.beans.navigationService.navigateToNextCell(null, key, this.getCellPosition(), false);
         }
     }
 
@@ -681,16 +701,18 @@ export class CellCtrl extends BeanStub {
     }
 
     private animateCell(cssName: string, flashDelay?: number | null, fadeDelay?: number | null): void {
+        if (!this.cellComp) { return; }
+
         const fullName = `ag-cell-${cssName}`;
         const animationFullName = `ag-cell-${cssName}-animation`;
         const { gridOptionsService } = this.beans;
 
         if (!flashDelay) {
-            flashDelay = gridOptionsService.getNum('cellFlashDelay') ?? 500;
+            flashDelay = gridOptionsService.get('cellFlashDelay');
         }
 
         if (!exists(fadeDelay)) {
-            fadeDelay = gridOptionsService.getNum('cellFadeDelay') ?? 1000;
+            fadeDelay = gridOptionsService.get('cellFadeDelay');
         }
 
         // we want to highlight the cells, without any animation
@@ -731,25 +753,24 @@ export class CellCtrl extends BeanStub {
     }
 
     private formatValue(value: any): any {
-        const res = this.callValueFormatter(value);
-        return res != null ? res : value;
+        return this.callValueFormatter(value) ?? value;
     }
 
     private callValueFormatter(value: any): any {
         return this.beans.valueFormatterService.formatValue(this.column, this.rowNode, value);
     }
 
-    private updateAndFormatValue(force = false): boolean {
+    private updateAndFormatValue(compareValues: boolean): boolean {
         const oldValue = this.value;
         const oldValueFormatted = this.valueFormatted;
 
         this.value = this.rowNode.getValueFromValueService(this.column);
         this.valueFormatted = this.callValueFormatter(this.value);
 
-        const valuesDifferent = force ? true :
-            !this.valuesAreEqual(oldValue, this.value) || this.valueFormatted != oldValueFormatted;
-
-        return valuesDifferent;
+        if (compareValues) {
+            return !this.valuesAreEqual(oldValue, this.value) || this.valueFormatted != oldValueFormatted;
+        }
+        return true;
     }
 
     private valuesAreEqual(val1: any, val2: any): boolean {
@@ -796,8 +817,8 @@ export class CellCtrl extends BeanStub {
         return event;
     }
 
-    public onKeyPress(event: KeyboardEvent): void {
-        this.cellKeyboardListenerFeature?.onKeyPress(event);
+    public processCharacter(event: KeyboardEvent): void {
+        this.cellKeyboardListenerFeature?.processCharacter(event);
     }
 
     public onKeyDown(event: KeyboardEvent): void {
@@ -827,10 +848,16 @@ export class CellCtrl extends BeanStub {
 
     public onDisplayedColumnsChanged(): void {
         if (!this.eGui) { return; }
-        this.setAriaColIndex();
+        this.refreshAriaColIndex();
+        this.refreshFirstAndLastStyles();
     }
 
-    private setAriaColIndex(): void {
+    private refreshFirstAndLastStyles(): void {
+        const { cellComp, column, beans } = this;
+        CssClassApplier.refreshFirstAndLastStyles(cellComp, column, beans.columnModel);
+    }
+
+    private refreshAriaColIndex(): void {
         const colIdx = this.beans.columnModel.getAriaColumnIndex(this.column);
         setAriaColIndex(this.getGui(), colIdx); // for react, we don't use JSX, as it slowed down column moving
     }
@@ -878,12 +905,12 @@ export class CellCtrl extends BeanStub {
     }
 
     // called by rowRenderer when user navigates via tab key
-    public startRowOrCellEdit(key?: string | null, charPress?: string | null, event: KeyboardEvent | MouseEvent | null = null): void {
+    public startRowOrCellEdit(key?: string | null, event: KeyboardEvent | MouseEvent | null = null): void {
         if (!this.cellComp) { return; }
         if (this.beans.gridOptionsService.get('editType') === 'fullRow') {
-            this.rowCtrl.startRowEditing(key, charPress, this);
+            this.rowCtrl.startRowEditing(key, this);
         } else {
-            this.startEditing(key, charPress, true, event);
+            this.startEditing(key, true, event);
         }
     }
 
@@ -950,9 +977,21 @@ export class CellCtrl extends BeanStub {
     }
 
     public onCellFocused(event?: CellFocusedEvent): void {
-        if (!this.cellComp || this.beans.gridOptionsService.is('suppressCellFocus')) { return; }
-
+        if (this.beans.gridOptionsService.get('suppressCellFocus')) {
+            return;
+        }
         const cellFocused = this.beans.focusService.isCellFocused(this.cellPosition);
+
+        if (!this.cellComp) {
+            if (cellFocused && event?.forceBrowserFocus) {
+                // The cell comp has not been rendered yet, but the browser focus is being forced for this cell
+                // so lets save the event to apply it when setComp is called in the next turn.
+                this.focusEventToRestore = event;
+            }
+            return;
+        }
+        // Clear the saved focus event
+        this.focusEventToRestore = undefined;
 
         this.cellComp.addOrRemoveCssClass(CSS_CELL_FOCUS, cellFocused);
 
@@ -993,7 +1032,7 @@ export class CellCtrl extends BeanStub {
 
     public onColumnHover(): void {
         if (!this.cellComp) { return; }
-        if (!this.beans.gridOptionsService.is('columnHoverHighlight')) { return; }
+        if (!this.beans.gridOptionsService.get('columnHoverHighlight')) { return; }
 
         const isHovered = this.beans.columnHoverService.isHovered(this.column);
         this.cellComp.addOrRemoveCssClass(CSS_COLUMN_HOVER, isHovered);
@@ -1002,10 +1041,25 @@ export class CellCtrl extends BeanStub {
     public onColDefChanged(): void {
         if (!this.cellComp) { return; }
 
+        const isAutoHeight = this.column.isAutoHeight();
+        if (isAutoHeight !== this.isAutoHeight) {
+            // auto height uses wrappers, so need to destroy
+            this.rowCtrl?.refreshCell(this);
+        }
+
+        const isTooltipEnabled = this.column.isTooltipEnabled();
+        if (isTooltipEnabled) {
+            this.disableTooltipFeature();
+            this.enableTooltipFeature();
+            this.tooltipFeature?.setComp(this.eGui);
+        } else {
+            this.disableTooltipFeature();
+        }
+
         this.setWrapText();
 
         if (!this.editing) {
-            this.refreshCell({forceRefresh: true, suppressFlash: true});
+            this.refreshOrDestroyCell({ forceRefresh: true, suppressFlash: true });
         }
     }
 
@@ -1051,7 +1105,7 @@ export class CellCtrl extends BeanStub {
     }
 
     public createDndSource(): DndSourceComp {
-        const dndSourceComp = new DndSourceComp(this.rowNode, this.column, this.beans, this.eGui);
+        const dndSourceComp = new DndSourceComp(this.rowNode, this.column, this.eGui);
         this.beans.context.createBean(dndSourceComp);
 
         return dndSourceComp;
@@ -1081,23 +1135,19 @@ export class CellCtrl extends BeanStub {
         dragStartPixels?: number,
         suppressVisibilityChange?: boolean
     ): RowDragComp | undefined {
-        const pagination = this.beans.gridOptionsService.is('pagination');
-        const rowDragManaged = this.beans.gridOptionsService.is('rowDragManaged');
+        const pagination = this.beans.gridOptionsService.get('pagination');
+        const rowDragManaged = this.beans.gridOptionsService.get('rowDragManaged');
         const clientSideRowModelActive = this.beans.gridOptionsService.isRowModelType('clientSide');
 
         if (rowDragManaged) {
             // row dragging only available in default row model
             if (!clientSideRowModelActive) {
-                doOnce(() => console.warn('AG Grid: managed row dragging is only allowed in the Client Side Row Model'),
-                    'CellComp.addRowDragging');
-
+                warnOnce('managed row dragging is only allowed in the Client Side Row Model');
                 return;
             }
 
             if (pagination) {
-                doOnce(() => console.warn('AG Grid: managed row dragging is not possible when doing pagination'),
-                    'CellComp.addRowDragging');
-
+                warnOnce('managed row dragging is not possible when doing pagination');
                 return;
             }
         }

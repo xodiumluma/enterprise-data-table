@@ -19,7 +19,7 @@ Cross-Filter charts are created programmatically using `createCrossFilterChart(p
 The following snippet shows how a cross-filtering pie chart can be created:
 
 <snippet>
-| gridOptions.api.createCrossFilterChart({
+| api.createCrossFilterChart({
 |     chartType: 'pie',
 |     cellRange: {
 |         columns: ['salesRep', 'sale'],
@@ -41,8 +41,9 @@ A corresponding column configuration for the chart above is shown in the followi
 | }
 </snippet>
 
-[[note]]
-| Cross-filtering requires that grid filtering is enabled with either a [Set Filter](/filter-set/) or [Multi Filter](/filter-multi/) configured on the category column used in the chart. It is also important to define the [Chart Data Type](/integrated-charts-range-chart/#coldefchartdatatype) as it's not possible to infer the type when all data is filtered out..
+<note>
+Cross-filtering requires that grid filtering is enabled with either a [Set Filter](../filter-set/) or [Multi Filter](../filter-multi/) configured on the category column used in the chart. It is also important to define the [Chart Data Type](../integrated-charts-range-chart/#coldefchartdatatype) as it's not possible to infer the type when all data is filtered out..
+</note>
 
 The following example shows how to create a simple cross-filtering pie chart. Note the following:
 
@@ -58,6 +59,8 @@ The cross-filter api shares a similar api to [Range Chart](/integrated-charts-ap
 different defaults which make sense for cross-filtering.
 
 <api-documentation source='grid-api/api.json' section='charts' names='["createCrossFilterChart"]'></api-documentation>
+
+<br>
 
 <interface-documentation interfaceName='CreateCrossFilterChartParams' overrideSrc='integrated-charts-api-cross-filter-chart/resources/cross-filter-api.json' ></interface-documentation>
 
@@ -79,4 +82,4 @@ The following examples show the different chart types that support cross-filteri
 
 ## Next Up
 
-Continue to the next section to learn about: [Time Series Chart](/integrated-charts-time-series/).
+Continue to the next section to learn about: [Chart Tool Panels](/integrated-charts-chart-tool-panels/).

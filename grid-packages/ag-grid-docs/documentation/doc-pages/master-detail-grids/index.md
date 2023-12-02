@@ -21,7 +21,7 @@ The example below shows configuring a Detail Grid with some additional Grid Opti
 
 - The `detailGridOptions` is provided inside the `detailCellRendererParams`.
 - The Detail Grid Options has the following properties set: `rowSelection=multiple`, `suppressRowClickSelection=true`, `enableRangeSelection=true`, `pagination=true` and `paginationAutoPageSize=true`.
-- The Detail Grid Options is provided with a Default Column Definition (`defaultColDef`) that makes all columns sortable and use Flex for sizing.
+- The Detail Grid Options is provided with a Default Column Definition (`defaultColDef`) that makes all columns use Flex for sizing.
 - The first Column Definition is configured to use Checkbox Selection.
 
 <grid-example title='Detail Grid Options' name='grid-options' type='generated' options='{ "enterprise": true, "modules": ["clientside", "masterdetail", "menu", "columnpanel", "range"] }'></grid-example>
@@ -34,7 +34,7 @@ Row data is provided to the Detail Grid by implementing the `getDetailRowData` c
 
 The `successCallback` can be called immediately in a synchronous fashion (typical if the data is already available) or asynchronously at a later time (typical if the data needs to be fetched remotely).
 
-The Master Grid in turn will call `api.setRowData(data)` on the Detail Grid with the data provided.
+The Master Grid in turn will call `api.setGridOption('rowData', data)` on the Detail Grid with the data provided.
 
 All the previous examples on Master Detail provided the result synchronously and as such another specific example is not given here.
 
@@ -46,7 +46,7 @@ Below shows an example using `setTimeout()` to simulate lazying loading of data 
 
 ## Dynamic Definitions
 
-There will be many instances of Detail Grids within one Master Grid, as each time you expand a Master Row, a new Detail Grid instance is created. It is possible to dynamically create Detail Cell Renderer Params so each Detail Grid gets it's own version of the params, allowing each Detail Grid to be configured differently.
+There will be many instances of Detail Grids within one Master Grid, as each time you expand a Master Row, a new Detail Grid instance is created. It is possible to dynamically create Detail Cell Renderer Params so each Detail Grid gets its own version of the params, allowing each Detail Grid to be configured differently.
 
 This is done by providing a function to `detailCellRendererParams` that in turn returns the params to use for that Detail Grid.
 
@@ -57,13 +57,13 @@ Below shows an example of this, where the Detail Grids are configured with diffe
 
 <grid-example title='Dynamic Params' name='dynamic-params' type='generated' options='{ "enterprise": true, "modules": ["clientside", "masterdetail", "menu", "columnpanel"] }'></grid-example>
 
-md-include:changing-the-template.md
+md-include:changing-the-template.md 
 
 ## Accessing Detail Grids
 
 The Master Grid manages all the Detail Grid instances. You can access the API of the underlying Detail Grids to call API methods directly on those grids. The Master Grid stores references to the Detail Grid API's in Detail Grid Info objects.
 
-The Detail Grid Info objects contain a reference to the underlying [Grid API](/grid-api/) and [Column API](/column-api/) for each detail grid. The interface for Detail Grid Info is as follows:
+The Detail Grid Info objects contain a reference to the underlying [Grid API](/grid-api/) for each detail grid. The interface for Detail Grid Info is as follows:
 
 <interface-documentation interfaceName='DetailGridInfo' ></interface-documentation>
 
@@ -73,7 +73,7 @@ The Detail Grid Info objects are accessed via the Master Grid's API via the foll
 
 <snippet>
 // lookup a specific DetailGridInfo by id, and then call stopEditing() on it
-const detailGridInfo = gridOptions.api.getDetailGridInfo('detail_someId');
+const detailGridInfo = api.getDetailGridInfo('detail_someId');
 detailGridInfo.api.flashCells();
 </snippet>
 
@@ -83,7 +83,7 @@ The grid generates IDs for detail grids by prefixing the parent row's ID with `d
 
 <snippet>
 // iterate over all DetailGridInfos, and call stopEditing() on each one
-| gridOptions.api.forEachDetailGridInfo(detailGridInfo => {
+| api.forEachDetailGridInfo(detailGridInfo => {
 |     detailGridInfo.api.flashCells();
 | });
 </snippet>
@@ -118,11 +118,13 @@ The example below demonstrates keeping Detail Rows. Note the following:
 
 <!-- Below we don't show 'template' for React, hence listing the properties twice -->
 
-[[only-javascript-or-angular-or-vue]]
-|<interface-documentation interfaceName='IDetailCellRendererParams' names='["detailGridOptions", "getDetailRowData", "template", "refreshStrategy"]' ></interface-documentation>
+<framework-specific-section frameworks="javascript,angular,vue">
+<interface-documentation interfaceName='IDetailCellRendererParams' names='["detailGridOptions", "getDetailRowData", "template", "refreshStrategy"]' ></interface-documentation>
+</framework-specific-section>
 
-[[only-react]]
-|<interface-documentation interfaceName='IDetailCellRendererParams' names='["detailGridOptions", "getDetailRowData", "refreshStrategy"]' ></interface-documentation>
+<framework-specific-section frameworks="react">
+<interface-documentation interfaceName='IDetailCellRendererParams' names='["detailGridOptions", "getDetailRowData", "refreshStrategy"]' ></interface-documentation>
+</framework-specific-section>
 
 The pattern of setting components such as Cell Renderers and providing parameters to those components is consistent across the grid and explained in [Grid Components](/components/).
 

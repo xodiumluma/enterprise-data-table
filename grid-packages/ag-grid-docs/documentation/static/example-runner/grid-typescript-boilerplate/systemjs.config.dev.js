@@ -1,11 +1,10 @@
-
 (function (global) {
     System.config({
         // DEMO ONLY! REAL CODE SHOULD NOT TRANSPILE IN THE BROWSER
         transpiler: "ts",
         typescriptOptions: {
             // Copy of compiler options in standard tsconfig.json
-            target: "es5",
+            target: "es2015",
             module: "system", //gets rid of console warning
             moduleResolution: "node",
             sourceMap: true,
@@ -19,7 +18,7 @@
             typescript: {
                 exports: "ts"
             },
-            '*.css': { loader: 'css' }
+            '*.css': {loader: 'css'}
         },
         paths: {
             // paths serve as alias
@@ -45,6 +44,14 @@
                 main: "./main.ts",
                 defaultExtension: "ts",
             },
+            'ag-charts-community': {
+                main: './dist/package/main.cjs.js',
+                defaultExtension: 'js'
+            },
+            // 'ag-charts-enterprise': {
+            //     main: './dist/package/main.cjs.js',
+            //     defaultExtension: 'js'
+            // },
             'ag-grid-community': {
                 main: './dist/ag-grid-community.cjs.js',
                 defaultExtension: 'js'
@@ -83,7 +90,7 @@
                 main: './dist/cjs/es5/main.js',
                 defaultExtension: 'js'
             },
-            'ag-charts-community': {
+            '@ag-grid-enterprise/advanced-filter': {
                 main: './dist/cjs/es5/main.js',
                 defaultExtension: 'js'
             },
@@ -168,3 +175,6 @@
     });
 })(this);
 
+window.addEventListener('error', e => {
+    console.error('ERROR', e.message, e.filename)
+});

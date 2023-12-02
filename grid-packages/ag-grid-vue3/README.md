@@ -71,7 +71,7 @@ import { AgGridVue } from "ag-grid-vue3";
 
 ```ts
 import "ag-grid-community/styles//ag-grid.css";
-import "ag-grid-community/styles//ag-theme-alpine.css";
+import "ag-grid-community/styles//ag-theme-quartz.css";
 ```
 
 ### Set the grid's configuration in the parent component
@@ -104,7 +104,7 @@ export default {
 ```html
   <ag-grid-vue
     style="width: 500px; height: 200px"
-    class="ag-theme-alpine"
+    class="ag-theme-quartz"
     :columnDefs="columnDefs"
     :rowData="rowData">
   </ag-grid-vue>
@@ -116,7 +116,7 @@ export default {
 <template>
   <ag-grid-vue
     style="width: 500px; height: 200px"
-    class="ag-theme-alpine"
+    class="ag-theme-quartz"
     :columnDefs="columnDefs"
     :rowData="rowData"
   >
@@ -125,7 +125,7 @@ export default {
 
 <script>
 import "ag-grid-community/styles//ag-grid.css";
-import "ag-grid-community/styles//ag-theme-alpine.css";
+import "ag-grid-community/styles//ag-theme-quartz.css";
 import { AgGridVue } from "ag-grid-vue3";
 
 export default {
@@ -159,7 +159,7 @@ Look for similar problems on [StackOverflow](https://stackoverflow.com/questions
 
 ## Contributing
 
-AG Grid is developed by a team of co-located developers in London. If you want to join the team check out our [jobs board](https://www.ag-grid.com/ag-grid-jobs-board/?utm_source=ag-grid-vue3-readme&utm_medium=repository&utm_campaign=github) or send your application to info@ag-grid.com.
+AG Grid is developed by a team of co-located developers in London. If you want to join the team send your application to info@ag-grid.com.
 
 ## License
 

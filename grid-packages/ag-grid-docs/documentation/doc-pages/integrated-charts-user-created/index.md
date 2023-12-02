@@ -8,7 +8,7 @@ applications such as Excel, but fully integrated inside your applications.
 
 Users can select a range of cells in the grid and create a chart from the context menu, as shown below:
 
-<gif src="chart-showcase.gif" alt="Chart Showcase"></gif>
+<gif src="chart-showcase.gif" alt="Chart Showcase" toggledarkmode="true"></gif>
 
 Notice that Chart Ranges appear in the grid after a chart is created. These provide useful visual feedback for users by
 highlighting the charted category and series data in the grid.
@@ -42,9 +42,7 @@ const gridOptions = {
 
 ## User Created Charts
 
-
-
-The animation above highlights a number of charting features. For more details on each feature follow the links provided below:
+The video above highlights a number of charting features. For more details on each feature follow the links provided below:
 
 <div style="display: flex; margin-bottom: 25px; margin-top: 25px;">
     <div style="flex: 1 1 0;">
@@ -54,13 +52,13 @@ The animation above highlights a number of charting features. For more details o
         </ul>
     </div>
     <div style="flex: 1 1 0;">
-        <img src="resources/category-range-fill-handle.png" alt="Range Handle" />
+        <image-caption src="integrated-charts-user-created/resources/category-range-fill-handle.png" alt="Range Handle" maxWidth="90%" constrained="true" centered="true" toggledarkmode="true"></image-caption>
     </div>
 </div>
 
 <div style="display: flex; margin-bottom: 25px; margin-top: 25px; margin-left: 40px;">
     <div style="flex: 1 1 0;">
-        <img src="resources/chart-tool-panels.png" alt="Open Chart Tool Panel" />
+        <image-caption src="integrated-charts-user-created/resources/chart-tool-panels.png" alt="Open Chart Tool Panel" maxWidth="90%" constrained="true" centered="true"  toggledarkmode="true"></image-caption>
     </div>
     <div style="flex: 1 1 0;">
         <ul class="content">
@@ -90,7 +88,7 @@ The animation above highlights a number of charting features. For more details o
         </ul>
     </div>
     <div style="flex: 1 1 0;">
-        <img src="resources/chart-toolbar.png" alt="Chart Toolbar" />
+        <image-caption src="integrated-charts-user-created/resources/chart-toolbar.png" alt="Chart Toolbar" maxWidth="90%" constrained="true" centered="true"  toggledarkmode="true"></image-caption>
     </div>
 </div>
 
@@ -98,8 +96,9 @@ By default, user created charts are displayed inside the grid's own popup window
 
 It is also possible to display user created charts in a location or application dialog. For more details see the section on [providing a chart container](/integrated-charts-container/).
 
-[[note]]
-| If using the grid's own popup window, you will probably want to use the grid option `popupParent` so that the popup windows are not constrained to the bounds of the grid. Typically, users set `popupParent=document.body` to achieve this.
+<note>
+If using the grid's own popup window, you will probably want to use the grid option `popupParent` so that the popup windows are not constrained to the bounds of the grid. Typically, users set `popupParent=document.body` to achieve this.
+</note>
 
 ## Next Up
 

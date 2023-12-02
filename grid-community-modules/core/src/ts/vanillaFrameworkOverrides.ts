@@ -2,11 +2,15 @@ import { IFrameworkOverrides } from "./interfaces/iFrameworkOverrides";
 import { includes } from "./utils/array";
 import { AgPromise } from "./utils";
 
-const OUTSIDE_ANGULAR_EVENTS = ['mouseover', 'mouseout', 'mouseenter', 'mouseleave'];
+const OUTSIDE_ANGULAR_EVENTS = ['mouseover', 'mouseout', 'mouseenter', 'mouseleave', 'mousemove'];
 const PASSIVE_EVENTS = ['touchstart', 'touchend', 'touchmove', 'touchcancel'];
 
 /** The base frameworks, eg React & Angular, override this bean with implementations specific to their requirement. */
 export class VanillaFrameworkOverrides implements IFrameworkOverrides {
+
+    public renderingEngine: 'vanilla' | 'react' = "vanilla";
+
+    constructor(private frameworkName: 'javascript' | 'angular' | 'react' | 'vue' | 'solid' = 'javascript') {}
 
     // for Vanilla JS, we use simple timeout
     public setTimeout(action: any, timeout?: any): void {
@@ -42,5 +46,10 @@ export class VanillaFrameworkOverrides implements IFrameworkOverrides {
 
     isFrameworkComponent(comp: any): boolean {
         return false;
+    }
+
+    getDocLink(path?: string): string {
+        const framework = this.frameworkName === 'solid' ? 'react' : this.frameworkName;
+        return `https://www.ag-grid.com/${framework}-data-grid${path ? `/${path}` : ''}`;
     }
 }

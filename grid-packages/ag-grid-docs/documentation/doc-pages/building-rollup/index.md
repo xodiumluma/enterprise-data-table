@@ -5,9 +5,10 @@ frameworks: ["javascript"]
 
 We walk through the main steps required when using AG Grid with Rollup.js. We use AG Grid modules to only include the code that we require with the aim of keeping bundle size to a minimum.
 
-[[note]]
-| A full working example of using Rollup.js with AG Grid can be found on
-| [Github](https://github.com/seanlandsman/ag-grid-rollup).
+<note>
+A full working example of using Rollup.js with AG Grid can be found on
+[Github](https://github.com/seanlandsman/ag-grid-rollup).
+</note>
 
 ## Initialise Project
 
@@ -69,7 +70,7 @@ var gridOptions = {
 var eGridDiv = document.querySelector('#myGrid');
 
 // create the grid passing in the div to use together with the columns & data we want to use
-new Grid(eGridDiv, gridOptions);
+var api = createGrid(eGridDiv, gridOptions);
 ```
 
 ```html
@@ -78,7 +79,7 @@ new Grid(eGridDiv, gridOptions);
 <head>
 </head>
 <body>
-<div id="myGrid" style="height: 200px;width:500px;" class="ag-theme-alpine"></div>
+<div id="myGrid" style="height: 200px;width:500px;" class="ag-theme-quartz"></div>
 
 <script src="./dist/ag-bundle.js"></script>
 </body>
@@ -125,6 +126,4 @@ rollup -c rollup.ag-grid.config.js
 
 The resulting bundle will be available in `./dist/ag-bundle.js`
 
-If we now serve `index-ag-grid.html` our grid will be rendered as expected:
-
-<image-caption src="building-rollup/resources/bundled-grid.png" width="33rem" alt="Bundled Grid" centered="true" constrained="true"></image-caption>
+If we now serve `index-ag-grid.html` our grid will be rendered as expected.

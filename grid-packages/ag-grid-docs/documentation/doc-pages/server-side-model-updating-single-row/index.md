@@ -9,11 +9,12 @@ This section demonstrates updating rows directly while using the Server-Side Row
 
 You can update a single row by using the row node `updateData` or `setData` functions.
 
-<api-documentation source='row-object/resources/methods.json' section='rowNodeMethods' names='["updateData", "setData"]'></api-documentation>
+<api-documentation source='row-object/resources/reference.json' section='data' names='["updateData", "setData"]'></api-documentation>
 
-[[note]]
-| Setting row data will NOT change the row node ID, so if you are using `getRowId()`
-| and the data changes such that the ID will be different, the `rowNode` will not have its ID updated.
+<note>
+Setting row data will NOT change the row node ID, so if you are using `getRowId()`
+and the data changes such that the ID will be different, the `rowNode` will not have its ID updated.
+</note>
 
 ## Updating Rows Example
 
@@ -30,7 +31,7 @@ The example below demonstrates a basic example, using the API's `forEachNode` fu
 The following code snippet outlines the general approach of iterating through all loaded row nodes and then updating target rows with `rowNode.updateData(data)`:
 
 <snippet>
-| gridOptions.api.forEachNode(rowNode => {
+| api.forEachNode(rowNode => {
 |     if (idsToUpdate.indexOf(rowNode.data.id) >= 0) {
 |         // arbitrarily update some data
 |         const updated = rowNode.data;

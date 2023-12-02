@@ -26,8 +26,6 @@ export class DetailCellRendererCtrl extends BeanStub implements IDetailCellRende
 
     private loadRowDataVersion = 0;
 
-    private needRefresh = false;
-
     private refreshStrategy: 'rows' | 'everything' | 'nothing';
 
     public init(comp: IDetailCellRenderer, params: IDetailCellRendererParams): void {
@@ -42,10 +40,6 @@ export class DetailCellRendererCtrl extends BeanStub implements IDetailCellRende
         this.addThemeToDetailGrid();
         this.createDetailGrid();
         this.loadRowData();
-
-        this.addManagedListener(params.node.parent!, RowNode.EVENT_DATA_CHANGED, () => {
-            this.needRefresh = true;
-        });
 
         this.addManagedListener(this.eventService, Events.EVENT_FULL_WIDTH_ROW_FOCUSED, this.onFullWidthRowFocused.bind(this));
     }
@@ -62,7 +56,7 @@ export class DetailCellRendererCtrl extends BeanStub implements IDetailCellRende
     }
 
     private setAutoHeightClasses(): void {
-        const autoHeight = this.gridOptionsService.is('detailRowAutoHeight');
+        const autoHeight = this.gridOptionsService.get('detailRowAutoHeight');
 
         const parentClass = autoHeight ? 'ag-details-row-auto-height' : 'ag-details-row-fixed-height';
         const detailClass =  autoHeight ? 'ag-details-grid-auto-height' : 'ag-details-grid-fixed-height';
@@ -104,7 +98,7 @@ export class DetailCellRendererCtrl extends BeanStub implements IDetailCellRende
             return;
         }
 
-        const autoHeight = this.gridOptionsService.is('detailRowAutoHeight');
+        const autoHeight = this.gridOptionsService.get('detailRowAutoHeight');
 
         // we clone the detail grid options, as otherwise it would be shared
         // across many instances, and that would be a problem because we set
@@ -146,7 +140,6 @@ export class DetailCellRendererCtrl extends BeanStub implements IDetailCellRende
     }
 
     private loadRowData(): void {
-
         // in case a refresh happens before the last refresh completes (as we depend on async
         // application logic) we keep track on what the latest call was.
         this.loadRowDataVersion++;
@@ -181,24 +174,15 @@ export class DetailCellRendererCtrl extends BeanStub implements IDetailCellRende
         const GET_GRID_TO_REFRESH = false;
         const GET_GRID_TO_DO_NOTHING = true;
 
-        // if we return true, it means we pretend to the grid
-        // that we have refreshed, so refresh will never happen.
-        const doNotRefresh = !this.needRefresh || this.refreshStrategy === 'nothing';
-        if (doNotRefresh) {
-            // we do nothing in this refresh method, and also tell the grid to do nothing
-            return GET_GRID_TO_DO_NOTHING;
+        switch (this.refreshStrategy) {
+            // ignore this refresh, make grid think we've refreshed but do nothing
+            case 'nothing': return GET_GRID_TO_DO_NOTHING;
+            // grid will destroy and recreate the cell
+            case 'everything': return GET_GRID_TO_REFRESH;
         }
 
-        // reset flag, so don't refresh again until more data changes.
-        this.needRefresh = false;
-
-        if (this.refreshStrategy === 'everything') {
-            // we want full refresh, so tell the grid to destroy and recreate this cell
-            return GET_GRID_TO_REFRESH;
-        } else {
-            // do the refresh here, and tell the grid to do nothing
-            this.loadRowData();
-            return GET_GRID_TO_DO_NOTHING;
-        }
+        // do the refresh here, and tell the grid to do nothing
+        this.loadRowData();
+        return GET_GRID_TO_DO_NOTHING;
     }
 }

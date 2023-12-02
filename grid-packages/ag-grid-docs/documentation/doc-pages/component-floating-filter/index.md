@@ -2,23 +2,15 @@
 title: "Floating Filter Component"
 ---
 
-[[only-javascript-or-angular-or-vue]]
+<framework-specific-section frameworks="javascript,angular,vue">
 |Floating Filter Components allow you to add your own floating filter types to AG Grid. You can create a Custom Floating Filter Component to work alongside one of the grid's Provided Filters, or alongside a Custom Filter.
+</framework-specific-section>
 
-[[only-react]]
-|<video-section id="CxwfX4KodaM" title="React Floating Filters" header="true">
-|Floating Filter Components allow you to add your own floating filter types to AG Grid. You can create a Custom Floating Filter Component to work alongside one of the grid's Provided Filters, or alongside a Custom Filter.
-|</video-section>
-
-
-This page focuses on writing your own floating filter components. To see general information about floating filters in AG Grid see [floating filters](/floating-filters/).
-
-## Simple Floating Filter 
- 
-md-include:simple-floating-filter-javascript.md
-md-include:simple-floating-filter-angular.md
-md-include:simple-floating-filter-react.md
-md-include:simple-floating-filter-vue.md
+<framework-specific-section frameworks="react">
+<video-section id="CxwfX4KodaM" title="React Floating Filters" header="true">
+Floating Filter Components allow you to add your own floating filter types to AG Grid. You can create a Custom Floating Filter Component to work alongside one of the grid's Provided Filters, or alongside a Custom Filter.
+</video-section>
+</framework-specific-section>
 
 ## Example: Custom Floating Filter
 
@@ -39,7 +31,7 @@ Note that in this example:
 
 1. Since these floating filters are providing a subset of the functionality of their parent filter, which can filter for other conditions which are not `'greaterThan'`, the user is prevented from seeing the parent filter by adding `suppressFilterButton: true` in the `floatingFilterComponentParams` and `suppressMenu: true` in the `colDef`
 
-1. `floatingFilterComponentParams` for all the medal columns have an additional param that is used to customise the font colour of the floating filter input text box.
+1. `floatingFilterComponentParams` for all the medal columns have an additional param that is used to customise the border colour of the floating filter input text box.
 
 <grid-example title='Custom Floating Filter' name='custom-floating-filter' type='generated' options='{ "includeNgFormsModule" : true}'></grid-example>
 
@@ -96,29 +88,40 @@ This example uses the previous custom filter but implementing the `getModelAsStr
 
 <grid-example title='Custom Filter Only' name='custom-filter' type='generated'></grid-example>
 
-[[only-angular]]
+<framework-specific-section frameworks="angular">
 | ## Sliding Floating Filters
 |
 | The below example shows how to create a custom floating filter re-using the out-of-the-box Number filter with Angular.
-|
-| <grid-example title='Angular Floating Filter Component' name='floating-filter-component' type='generated' options='{ "exampleHeight": 370, "extras": ["bootstrap"], "includeNgFormsModule" : true }'></grid-example>
+</framework-specific-section>
 
-[[only-react]]
+<framework-specific-section frameworks="angular">
+<grid-example title='Angular Floating Filter Component' name='floating-filter-component' type='generated' options='{ "exampleHeight": 370, "includeNgFormsModule" : true }'></grid-example>
+</framework-specific-section>
+
+<framework-specific-section frameworks="react">
 | ## Sliding Floating Filters
 |
 | The below example shows how to create a custom floating filter re-using the out-of-the-box Number filter with React.
-|
-| <grid-example title='React Floating Filter Component' name='floating-filter-component' type='generated' options='{ "exampleHeight": 370, "onlyShow": "react", "extras": ["bootstrap"] }'></grid-example>
-|
-| Note that in this example we make use of `useImperativeHandle` for lifecycle methods - please
-| see [here](/react-hooks/) for more information.
+</framework-specific-section>
 
-[[only-vue]]
+<framework-specific-section frameworks="react">
+<grid-example title='React Floating Filter Component' name='floating-filter-component' type='generated' options='{ "exampleHeight": 370, "onlyShow": "react" }'></grid-example>
+</framework-specific-section>
+
+<framework-specific-section frameworks="react">
+| Note that in this example we make use of `useImperativeHandle` for lifecycle methods - please
+| see [here](../react-hooks/) for more information.
+</framework-specific-section>
+
+<framework-specific-section frameworks="vue">
 | ## Sliding  Floating Filters
 |
 | The below example shows how to create a custom floating filter re-using the out-of-the-box Number filter with Vue.
-|
-| <grid-example title='Vue Floating Filter Component' name='floating-filter-component' type='generated' options='{ "exampleHeight": 370, "extras": ["bootstrap"] }'></grid-example>
+</framework-specific-section>
+
+<framework-specific-section frameworks="vue">
+<grid-example title='Vue Floating Filter Component' name='floating-filter-component' type='generated' options='{ "exampleHeight": 370 }'></grid-example>
+</framework-specific-section>
 
 ## Complex example with jQuery
 

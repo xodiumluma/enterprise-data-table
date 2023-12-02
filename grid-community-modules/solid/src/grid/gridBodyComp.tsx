@@ -5,7 +5,7 @@ import { classesList } from './core/utils';
 import GridHeaderComp from "./header/gridHeaderComp";
 import RowContainerComp from "./rows/rowContainerComp";
 
-const GridBodyComp = ()=> {
+const GridBodyComp = () => {
 
     const {context, agStackComponentsRegistry, resizeObserverService} = useContext(BeansContext);
 
@@ -20,10 +20,10 @@ const GridBodyComp = ()=> {
     const [getTopDisplay, setTopDisplay] = createSignal<string>('');
     const [getBottomDisplay, setBottomDisplay] = createSignal<string>('');
     const [getBodyViewportWidth, setBodyViewportWidth] = createSignal<string>('');
-    
+
     const [getMovingCss, setMovingCss] = createSignal<string | null>(null);
     const [getForceVerticalScrollClass, setForceVerticalScrollClass] = createSignal<string | null>(null);
-    const [getTopAndBottomOverflowY, setTopAndBottomOverflowY] = createSignal<string>('');
+    const [getTopAndBottomOverflowY, setTopAndBottomOverflowY] = createSignal<'scroll' | 'hidden' | null>(null);
     const [getCellSelectableCss, setCellSelectableCss] = createSignal<string | null>(null);
 
     // we initialise layoutClass to 'ag-layout-normal', because if we don't, the comp will initially
@@ -40,13 +40,13 @@ const GridBodyComp = ()=> {
     let eBodyViewport: HTMLDivElement;
     let eBottom: HTMLDivElement;
 
-    const destroyFuncs: (()=>void)[] = [];
-    onCleanup( ()=> {
+    const destroyFuncs: (() => void)[] = [];
+    onCleanup(() => {
         destroyFuncs.forEach( f => f() );
         destroyFuncs.length = 0;
     });
 
-    onMount( () => {
+    onMount(() => {
         if (!context) { return; }
 
         const newComp = (tag: string) => {
@@ -75,21 +75,21 @@ const GridBodyComp = ()=> {
             updateLayoutClasses: setLayoutClass,
             setAlwaysVerticalScrollClass: setForceVerticalScrollClass,
             setPinnedTopBottomOverflowY: setTopAndBottomOverflowY,
-            setCellSelectableCss: setCellSelectableCss,
+            setCellSelectableCss: (cssClass: string | null, flag: boolean) => setCellSelectableCss(flag ? cssClass : null),
             setBodyViewportWidth: setBodyViewportWidth,
 
-            registerBodyViewportResizeListener: listener => {
+            registerBodyViewportResizeListener: (listener: () => void) => {
                 const unsubscribeFromResize = resizeObserverService.observeResize(eBodyViewport!, listener);
                 destroyFuncs.push(() => unsubscribeFromResize());
             }
         };
 
         const ctrl = context.createBean(new GridBodyCtrl());
-        onCleanup( ()=> context.destroyBean(ctrl) );
+        onCleanup(() => context.destroyBean(ctrl) );
 
         // fixme - should not be in a timeout,
-        // was becusae we need GridHeaderComp to be created first
-        setTimeout( ()=> 
+        // was because we need GridHeaderComp to be created first
+        setTimeout(() => 
             ctrl.setComp(
                 compProxy,
                 eRoot,
@@ -106,9 +106,6 @@ const GridBodyComp = ()=> {
     const getBodyClasses = createMemo(() => 
         classesList('ag-body', getLayoutClass())
     );
-    const getBodyClipperClasses = createMemo(() =>
-        classesList('ag-body-clipper', getLayoutClass())
-    );
     const getBodyViewportClasses = createMemo(() =>
         classesList('ag-body-viewport', getRowAnimationClass(), getLayoutClass(), getForceVerticalScrollClass(), getCellSelectableCss())
     );
@@ -122,29 +119,31 @@ const GridBodyComp = ()=> {
         classesList('ag-floating-bottom', getCellSelectableCss())
     );
 
-    const getTopStyle = createMemo(() => ({
-        height: getTopHeight,
-        'min-height': getTopHeight,
-        display: getTopDisplay,
-        'overflow-y': (getTopAndBottomOverflowY as any)
+    const getTopStyle : any = createMemo(() => ({
+       height: getTopHeight(),
+        'min-height': getTopHeight(),
+        display: getTopDisplay(),
+        'overflow-y': getTopAndBottomOverflowY()
     }));
 
     const getStickyTopStyle = createMemo(() => ({
-        height: getStickyTopHeight,
-        top: getStickyTopTop,
-        width: getStickyTopWidth
+        height: getStickyTopHeight(),
+        top: getStickyTopTop(),
+        width: getStickyTopWidth()
     }));
 
-    const getBottomStyle = createMemo(()=> ({
-        height: getBottomHeight,
-        'min-height': getBottomHeight,
-        display: getBottomDisplay,
-        'overflow-y': (getTopAndBottomOverflowY as any)
+    const getBottomStyle: any = createMemo(() => ({
+        height: getBottomHeight(),
+        'min-height': getBottomHeight(),
+        display: getBottomDisplay(),
+        'overflow-y': getTopAndBottomOverflowY()
     }));
 
-    const getBodyViewportStyle = createMemo( ()=> ({
+    const getBodyViewportStyle = createMemo(() => ({
         width: getBodyViewportWidth()
     }));
+
+
 
     return (
         <div ref={ eRoot! } class={ getRootClasses() } role="treegrid" aria-colcount={ getAriaColCount() } aria-rowcount={ getAriaRowCount() }>
@@ -156,13 +155,11 @@ const GridBodyComp = ()=> {
                 <RowContainerComp name={ RowContainerName.TOP_FULL_WIDTH } />
             </div>
             <div class={getBodyClasses()} ref={eBody!} role="presentation">
-                <div class={getBodyClipperClasses()} role="presentation">
-                    <div ref={ eBodyViewport! } class={ getBodyViewportClasses() } role="presentation" style={ getBodyViewportStyle() }>
-                        <RowContainerComp name={ RowContainerName.LEFT } />
-                        <RowContainerComp name={ RowContainerName.CENTER } />
-                        <RowContainerComp name={ RowContainerName.RIGHT } />
-                        <RowContainerComp name={ RowContainerName.FULL_WIDTH } />
-                    </div>
+                <div ref={ eBodyViewport! } class={ getBodyViewportClasses() } role="presentation" style={ getBodyViewportStyle() }>
+                    <RowContainerComp name={ RowContainerName.LEFT } />
+                    <RowContainerComp name={ RowContainerName.CENTER } />
+                    <RowContainerComp name={ RowContainerName.RIGHT } />
+                    <RowContainerComp name={ RowContainerName.FULL_WIDTH } />
                 </div>
             </div>
             <div ref={ eStickyTop! } class={ getStickyTopClasses() } role="presentation" style={ getStickyTopStyle() }>

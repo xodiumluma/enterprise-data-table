@@ -12,6 +12,16 @@ import {
 // @ts-ignore
 const AGBigInt = typeof BigInt === 'undefined' ? null : BigInt;
 
+const defaultAggFuncNames: { [key: string]: string } = {
+    sum: 'Sum',
+    first: 'First',
+    last: 'Last',
+    min: 'Min',
+    max: 'Max',
+    count: 'Count',
+    avg: 'Average',
+};
+
 @Bean('aggFuncService')
 export class AggFuncService extends BeanStub implements IAggFuncService {
 
@@ -52,6 +62,10 @@ export class AggFuncService extends BeanStub implements IAggFuncService {
         const allowed = _.includes(allKeys, func);
         const funcExists = _.exists(this.aggFuncsMap[func]);
         return allowed && funcExists;
+    }
+
+    public getDefaultFuncLabel(fctName: string): string {
+        return defaultAggFuncNames[fctName] ?? fctName;
     }
 
     public getDefaultAggFunc(column: Column): string | null {
@@ -164,7 +178,7 @@ function aggMax(params: IAggFuncParams): number | bigint | null {
     return result;
 }
 
-function aggCount(params: IAggFuncParams): number {
+function aggCount(params: IAggFuncParams) {
     const { values } = params;
     let result = 0;
 
@@ -176,7 +190,25 @@ function aggCount(params: IAggFuncParams): number {
         result += value != null && typeof value.value === 'number' ? value.value : 1;
     }
 
-    return result;
+
+    // the previous aggregation data
+    const existingAggData = params.rowNode?.aggData?.[params.column.getColId()];
+    if (existingAggData && existingAggData.value === result) {
+        // the underlying values haven't changed, return the old object to avoid triggering change detection
+        return existingAggData;
+    }
+
+    // it's important to wrap it in the object so we can determine if this is a group level
+    return {
+        value: result,
+        toString: function() {
+            return this.value.toString();
+        },
+        // used for sorting
+        toNumber: function() {
+            return this.value;
+        }
+    };
 }
 
 // the average function is tricky as the multiple levels require weighted averages

@@ -1,10 +1,10 @@
-import { ChartProxy, ChartProxyParams, UpdateChartParams } from "../chartProxy";
+import { ChartProxy, ChartProxyParams, UpdateParams } from "../chartProxy";
 import {
     AgAreaSeriesOptions,
     AgBaseSeriesOptions,
     AgCartesianAxisOptions,
     AgCartesianChartOptions,
-    AgChart,
+    AgCharts,
     AgLineSeriesOptions,
 } from "ag-charts-community";
 
@@ -16,45 +16,44 @@ export abstract class CartesianChartProxy extends ChartProxy {
         super(params);
     }
 
-    abstract getAxes(params: UpdateChartParams): AgCartesianAxisOptions[];
-    abstract getSeries(params: UpdateChartParams): AgBaseSeriesOptions<any>[];
+    abstract getAxes(params: UpdateParams): AgCartesianAxisOptions[];
+    abstract getSeries(params: UpdateParams): AgBaseSeriesOptions<any>[];
 
-    public update(params: UpdateChartParams): void {
+    public update(params: UpdateParams): void {
         const axes = this.getAxes(params);
 
         const options: AgCartesianChartOptions = {
-            ...this.getCommonChartOptions(),
+            ...this.getCommonChartOptions(params.updatedOverrides),
             data: this.getData(params, axes),
             axes,
             series: this.getSeries(params),
         };
 
-        AgChart.update(this.getChartRef(), options);
+        AgCharts.update(this.getChartRef(), options);
     }
 
-    private getData(params: UpdateChartParams, axes: AgCartesianAxisOptions[]): any[] {
+    private getData(params: UpdateParams, axes: AgCartesianAxisOptions[]): any[] {
         const supportsCrossFiltering = ['area', 'line'].includes(this.standaloneChartType);
-        const xPosition = this.standaloneChartType === 'bar' ? 'left' : 'bottom';
-        const xAxisIsCategory = axes.find(o => o.position === xPosition)?.type === 'category';
+        const xAxisIsCategory = axes.filter(o => o.position === 'bottom')[0]?.type === 'category';
         return this.crossFiltering && supportsCrossFiltering ?
             this.getCrossFilterData(params) :
             this.getDataTransformedData(params, xAxisIsCategory);
     }
 
-    private getDataTransformedData(params: UpdateChartParams, isCategoryAxis: boolean) {
+    private getDataTransformedData(params: UpdateParams, isCategoryAxis: boolean) {
         return this.transformData(params.data, params.category.id, isCategoryAxis);
     }
 
-    protected getXAxisType(params: UpdateChartParams) {
+    protected getXAxisType(params: UpdateParams) {
         if (params.grouping) {
-            return 'groupedCategory';
+            return 'grouped-category';
         } else if (CartesianChartProxy.isTimeAxis(params)) {
             return 'time';
         }
         return 'category';
     }
 
-    private static isTimeAxis(params: UpdateChartParams): boolean {
+    private static isTimeAxis(params: UpdateParams): boolean {
         if (params.category && params.category.chartDataType) {
             return params.category.chartDataType === 'time';
         }
@@ -76,9 +75,9 @@ export abstract class CartesianChartProxy extends ChartProxy {
             this.crossFilteringAllPoints.size !== this.crossFilteringSelectedPoints.length;
     }
 
-    protected extractLineAreaCrossFilterSeries(series: (AgLineSeriesOptions | AgAreaSeriesOptions)[], params: UpdateChartParams) {
+    protected extractLineAreaCrossFilterSeries(series: (AgLineSeriesOptions | AgAreaSeriesOptions)[], params: UpdateParams) {
         const getYKey = (yKey: string) => {
-            if(this.standaloneChartType === 'area') {
+            if (this.standaloneChartType === 'area') {
                 const lastSelectedChartId = params.getCrossFilteringContext().lastSelectedChartId;
                 return (lastSelectedChartId === params.chartId) ? yKey + '-total' : yKey;
             }
@@ -115,7 +114,7 @@ export abstract class CartesianChartProxy extends ChartProxy {
         });
     }
 
-    private getCrossFilterData(params: UpdateChartParams): any[] {
+    private getCrossFilterData(params: UpdateParams): any[] {
         this.crossFilteringAllPoints.clear();
         const colId = params.fields[0].colId;
         const filteredOutColId = `${colId}-filtered-out`;

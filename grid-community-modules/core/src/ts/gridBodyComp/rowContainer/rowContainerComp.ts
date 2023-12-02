@@ -16,19 +16,13 @@ function templateFactory(): string {
 
     let res: string;
 
-    const template1 = name === RowContainerName.CENTER;
-    const template2 = name === RowContainerName.TOP_CENTER
-                     || name === RowContainerName.STICKY_TOP_CENTER
-                     || name === RowContainerName.BOTTOM_CENTER;
+    const centerTemplate =
+        name === RowContainerName.CENTER ||
+        name === RowContainerName.TOP_CENTER ||
+        name === RowContainerName.STICKY_TOP_CENTER ||
+        name === RowContainerName.BOTTOM_CENTER;
 
-    if (template1) {
-        res = /* html */
-            `<div class="${cssClasses.wrapper}" ref="eWrapper" role="presentation">
-                <div class="${cssClasses.viewport}" ref="eViewport" role="presentation">
-                    <div class="${cssClasses.container}" ref="eContainer"></div>
-                </div>
-            </div>`;
-    } else if (template2) {
+    if (centerTemplate) {
         res = /* html */
             `<div class="${cssClasses.viewport}" ref="eViewport" role="presentation">
                 <div class="${cssClasses.container}" ref="eContainer"></div>
@@ -47,7 +41,6 @@ export class RowContainerComp extends Component {
 
     @RefSelector('eViewport') private eViewport: HTMLElement;
     @RefSelector('eContainer') private eContainer: HTMLElement;
-    @RefSelector('eWrapper') private eWrapper: HTMLElement;
 
     private readonly name: RowContainerName;
     private readonly type: RowContainerType;
@@ -77,7 +70,7 @@ export class RowContainerComp extends Component {
         };
 
         const ctrl = this.createManagedBean(new RowContainerCtrl(this.name));
-        ctrl.setComp(compProxy, this.eContainer, this.eViewport, this.eWrapper);
+        ctrl.setComp(compProxy, this.eContainer, this.eViewport);
     }
 
     @PreDestroy
@@ -101,6 +94,11 @@ export class RowContainerComp extends Component {
                 delete oldRows[instanceId];
                 this.ensureDomOrder(existingRowComp.getGui());
             } else {
+                // don't create new row comps for rows which are not displayed. still want the existing components
+                // as they may be animating out.
+                if (!rowCon.getRowNode().displayed) {
+                    return;
+                }
                 const rowComp = new RowComp(rowCon, this.beans, this.type);
                 this.rowComps[instanceId] = rowComp;
                 this.appendRow(rowComp.getGui());

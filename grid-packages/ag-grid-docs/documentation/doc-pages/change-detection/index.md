@@ -11,8 +11,9 @@ Change detection can be broken down into the following two categories:
 
 1. **Aggregation Change Detection:** When a value for any cell changes, the grid will recalculate all [aggregations](/aggregation/) that are impacted by the changed value. This means the grid will automatically keep aggregation results (the values in the grouped row) up to date as the data beneath it changes.
 
-[[note]]
-| If you are using a custom cell renderer see [Component Refresh](/component-cell-renderer/#component-refresh) for more details on how to update your component following change detection.
+<note>
+If you are using a custom cell renderer see [Component Refresh](../component-cell-renderer/#component-refresh) for more details on how to update your component following change detection.
+</note>
 
 ## Example: Change Detection and Value Getters
 
@@ -31,11 +32,12 @@ a refresh. Notice the following:
 
 The grid keeps a local copy of all values rendered in each cell. When a refresh of the cell is requested, the cell will only be refreshed if the value has changed.
 
-[[note]]
-| You might ask, is checking every cell against its value a performance problem? The answer is no.
-| What AG Grid does is similar to the change detection algorithms in frameworks.
-| Doing this many checks in JavaScript is not a problem. Slowness comes when the DOM is updated
-| many times. AG Grid minimises the DOM updates by only updating the DOM where changes are detected.
+<note>
+You might ask, is checking every cell against its value a performance problem? The answer is no.
+What AG Grid does is similar to the change detection algorithms in frameworks.
+Doing this many checks in JavaScript is not a problem. Slowness comes when the DOM is updated
+many times. AG Grid minimises the DOM updates by only updating the DOM where changes are detected.
+</note>
 
 ### Comparing Values
 
@@ -110,7 +112,7 @@ The following operations will **automatically** trigger aggregation change detec
 1. Using the `rowNode.setDataValue(col,value)` Row Node method.
 1. Using the `api.applyTransaction(transaction)` API method.
 
-To **manually** run aggregation change detection to re-compute the aggregated values, then call [api.refreshClientSideRowModel('aggregate')](/client-side-model/#refreshing-the-client-side-model).
+To **manually** run aggregation change detection to re-compute the aggregated values, then call [api.refreshClientSideRowModel('aggregate')](/grid-api/#reference-data-refreshClientSideRowModel).
 
 ## Change Detection and Sorting, Filtering, Grouping
 
@@ -127,7 +129,7 @@ The grid will **not**:
 
 The reason why sorting, filtering and grouping is not done automatically is that it would be considered bad user experience in most use cases to change the displayed rows while editing. For example, if a user edits a cell, then the row should not jump location (due to sorting and grouping) or even worse, disappear altogether (if the filter removes the row due to the new value failing the filter).
 
-For this reason, if you want to update the sorting, filtering or group grouping after an update, you should listen for the event `cellValueChanged` and call [api.applyTransaction(transaction)](/client-side-model/#refreshing-the-client-side-model) with the rows that were updated.
+For this reason, if you want to update the sorting, filtering or group grouping after an update, you should listen for the event `cellValueChanged` and call [api.applyTransaction(transaction)](/data-update-transactions/#transaction-update-api) with the rows that were updated.
 
 ### Example: Change Detection and Filter / Sort / Group
 
@@ -173,7 +175,7 @@ To demonstrate this, the example installs it's own aggregation function for summ
 
 So with the example below, open up the console and notice the following:
 
-- When the grid initialises, the aggregation gets complete 56 times (4 columns * 14 groups). That's all paths in the group tree and all columns.
+- When the grid initialises, the aggregation gets complete 48 times (4 columns * 12 groups). That's all paths in the group tree and all columns.
 
 - When one value changes (either via UI or via the first button 'Update One Value') then the grid recomputes the values for the impacted path only, and for the changed column only.
 
@@ -196,7 +198,7 @@ From the example, you can observe:
 
 - Button '**Update Points**' updates one record using `api.applyTransaction(transaction)`. The grid aggregates the new value for display.
 
-- Button '**Add New Group**' adds one record for 'Year 5' using `api.applyTransaction(transaction)`. The grid does a delta change and adds one more row to represent this group while not touching the DOM with the remaining rows.
+- Button '**Add Year 5**' adds one record for 'Year 5' using `api.applyTransaction(transaction)`. The grid does a delta change and adds one more row to represent this group while not touching the DOM with the remaining rows.
 
 - Button '**Add Physics Row**' adds one record with subject 'Physics' using `api.applyTransaction(transaction)`. This impacts the columns in the grid as we are pivoting on 'course', so a new column is added for 'Physics'. Again this is all done without touching the remaining columns or rows in the grid.
 

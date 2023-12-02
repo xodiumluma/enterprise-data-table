@@ -1,21 +1,23 @@
 ---
 title: "Column State"
 ---
-[[only-javascript-or-angular-or-vue]]
+<framework-specific-section frameworks="javascript,angular,vue">
 |Column Definitions contain both stateful and non-stateful attributes. Stateful attributes can have their values changed by the grid (e.g. Column sort can be changed by the user clicking on the column header). Non-stateful attributes do not change from what is set in the Column Definition (e.g. once the Header Name is set as part of a Column Definition, it typically does not change).
+</framework-specific-section>
 
-[[only-react]]
-|<video-section id="d9Kohpbt42M" title="React Column State" header="true">
-|Column Definitions contain both stateful and non-stateful attributes. Stateful attributes can have their values changed by the grid (e.g. Column sort can be changed by the user clicking on the column header). Non-stateful attributes do not change from what is set in the Column Definition (e.g. once the Header Name is set as part of a Column Definition, it typically does not change).
-|</video-section>
+<framework-specific-section frameworks="react">
+<video-section id="d9Kohpbt42M" title="React Column State" header="true">
+Column Definitions contain both stateful and non-stateful attributes. Stateful attributes can have their values changed by the grid (e.g. Column sort can be changed by the user clicking on the column header). Non-stateful attributes do not change from what is set in the Column Definition (e.g. once the Header Name is set as part of a Column Definition, it typically does not change).
+</video-section>
+</framework-specific-section>
 
-[[note]]
-| The DOM also has stateful vs non-stateful attributes. For example consider a DOM element and setting 
-| `element.style.width="100px"` will indefinitely set width to 100 pixels, the browser will not change this value. 
-| However setting `element.scrollTop=200` will set the scroll position, but the browser can change the scroll
-| position further following user interaction, thus scroll position is stateful as the browser can change
-| the state.
-
+<note>
+The DOM also has stateful vs non-stateful attributes. For example consider a DOM element and setting 
+`element.style.width="100px"` will indefinitely set width to 100 pixels, the browser will not change this value. 
+However setting `element.scrollTop=200` will set the scroll position, but the browser can change the scroll
+position further following user interaction, thus scroll position is stateful as the browser can change
+the state.
+</note>
 
 The full list of stateful attributes of Columns are represented by the `ColumnStateParams` interface:
 
@@ -25,15 +27,19 @@ This section details how such state items can be manipulated without having to u
 
 ## Save and Apply State {#save-and-apply}
 
-There are two API methods provided for getting and setting Column State. `columnApi.getColumnState()` gets the current
-column state and `columnApi.applyColumnState(params)` sets the column state.
+<note>
+|If you are only interested in restoring Column State on grid initialisation, you should consider using [Initial State](../grid-state/) instead, which contains all of the Column State properties.
+</note>
+
+There are two API methods provided for getting and setting Column State. `api.getColumnState()` gets the current
+column state and `api.applyColumnState(params)` sets the column state.
 
 <snippet>
 | // save the column's state
-| const savedState = gridOptions.columnApi.getColumnState();
+| const savedState = api.getColumnState();
 |
 | // restore the column state
-| gridOptions.columnApi.applyColumnState({ state: savedState });
+| api.applyColumnState({ state: savedState });
 </snippet>
 
 The example below demonstrates saving and restoring column state. Try the following:
@@ -49,7 +55,7 @@ The example below demonstrates saving and restoring column state. Try the follow
 
 The Column State method interfaces are as follows:
 
-<api-documentation source='column-api/api.json' section='state' names='["getColumnState", "applyColumnState"]'></api-documentation>
+<api-documentation source='grid-api/api.json' section='state' names='["getColumnState", "applyColumnState"]'></api-documentation>
 
 ## Partial State
 
@@ -59,22 +65,21 @@ any other state attribute.
 
 ### Applying Partial State
 
-When applying a Column State, in cases where some state attributes or columns are missing from the Column State,
+When applying a Column State, in cases where some state attributes or columns are missing from the Column State, 
 the following rules apply:
 
-- If a Column State is missing attributes, or attributes are provided as `undefined`, then those missing / undefined
-attributes are not updated. For example if a Column has a Column State with just `pinned`, then Pinned is applied to
-that Column but other attributes, such as Sort, are left intact.
-- When state is applied and there are additional Columns in the grid that do not appear in the provided state, then the
-`params.defaultState` is applied to those additional Columns.
-- If `params.defaultState` is not provided, then any additional Columns in the grid will not be updated.
+- Attributes that are not supplied or are set to `undefined` will remain unchanged. For example if a Column has a Column State with just `pinned`, then Pinned is applied to that Column but other attributes, such as `sort` are left intact. 
+
+- When state is applied and there are additional Columns in the grid that do not appear in the provided state, then the `params.defaultState` is applied to those additional Columns.
+
+- If `params.defaultState` is not provided, then any additional Columns in the grid will not be updated. 
 
 Combining these rules together leaves for flexible fine grained state control. Take the following code snippets as
 examples:
 
 <snippet>
 | // Sort Athlete column ascending
-| gridOptions.columnApi.applyColumnState({
+| api.applyColumnState({
 |     state: [
 |         {
 |             colId: 'athlete',
@@ -83,7 +88,7 @@ examples:
 |     ]
 | });
 | // Sort Athlete column ascending and clear sort on all other columns
-| gridOptions.columnApi.applyColumnState({
+| api.applyColumnState({
 |     state: [
 |         {
 |             colId: 'athlete',
@@ -96,14 +101,14 @@ examples:
 |     }
 | });
 | // Clear sorting on all columns, leave all other attributes untouched
-| gridOptions.columnApi.applyColumnState({
+| api.applyColumnState({
 |     defaultState: {
 |         // important to say 'null' as undefined means 'do nothing'
 |         sort: null
 |     }
 | });
 | // Clear sorting, row group, pivot and pinned on all columns, leave all other attributes untouched
-| gridOptions.columnApi.applyColumnState({
+| api.applyColumnState({
 |     defaultState: {
 |         // important to say 'null' as undefined means 'do nothing'
 |         sort: null,
@@ -113,7 +118,7 @@ examples:
 |     }
 | });
 | // Order columns, but do nothing else
-| gridOptions.columnApi.applyColumnState({
+| api.applyColumnState({
 |     state: [
 |         { colId: 'athlete' },
 |         { colId: 'country' },
@@ -197,10 +202,10 @@ a new tab and observe the dev console.
 Column Group State is concerned with the state of Column Groups. There is only one state attribute for Column Groups,
 which is whether the group is open or closed.
 
-To get the state of Column Groups use the API method `columnApi.getColumnGroupState()`. To
-set the Column Group state use the API method `columnApi.setColumnGroupState(stateItems)`.
+To get the state of Column Groups use the API method `api.getColumnGroupState()`. To
+set the Column Group state use the API method `api.setColumnGroupState(stateItems)`.
 
-<api-documentation source='column-api/api.json' section='state' names='["getColumnGroupState", "setColumnGroupState"]' ></api-documentation>
+<api-documentation source='grid-api/api.json' section='state' names='["getColumnGroupState", "setColumnGroupState"]' ></api-documentation>
 
 The example below demonstrates getting and setting Column Group State. Note the following:
 

@@ -1,6 +1,7 @@
-import { FirstDataRenderedEvent, Grid, GridApi, GridOptions } from '@ag-grid-community/core';
-import { getData } from "./data";
+import {createGrid, FirstDataRenderedEvent, GridApi, GridOptions, GridReadyEvent, ValueFormatterParams} from '@ag-grid-community/core';
+import {getData} from "./data";
 
+let gridApi: GridApi;
 
 const gridOptions: GridOptions = {
   columnDefs: [
@@ -14,7 +15,14 @@ const gridOptions: GridOptions = {
       filter: 'agNumberColumnFilter',
       chartDataType: 'series',
     },
-    { field: 'saleDate', chartDataType: 'category' },
+    {
+      field: 'saleDate',
+      chartDataType: 'category',
+      filter: 'agSetColumnFilter',
+      filterParams: {
+        valueFormatter: (params: ValueFormatterParams) => `${params.value}`,
+      },
+    },
     {
       field: 'quarter',
       maxWidth: 160,
@@ -25,16 +33,12 @@ const gridOptions: GridOptions = {
   defaultColDef: {
     flex: 1,
     editable: true,
-    sortable: true,
     filter: 'agMultiColumnFilter',
     floatingFilter: true,
-    resizable: true,
   },
-  rowData: getData(),
   enableCharts: true,
-  chartThemes: ['ag-default-dark'],
   chartThemeOverrides: {
-    cartesian: {
+    bar: {
       axes: {
         category: {
           label: {
@@ -44,17 +48,20 @@ const gridOptions: GridOptions = {
       },
     },
   },
-  onFirstDataRendered: onFirstDataRendered,
+  onGridReady : (params: GridReadyEvent) => {
+    getData().then(rowData => params.api.setGridOption('rowData', rowData));
+  },
+  onFirstDataRendered,
 }
 
 function onFirstDataRendered(params: FirstDataRenderedEvent) {
-  createQuarterlySalesChart(params.api)
-  createSalesByRefChart(params.api)
-  createHandsetSalesChart(params.api)
+  createQuarterlySalesChart(params.api);
+  createSalesByRefChart(params.api);
+  createHandsetSalesChart(params.api);
 }
 
-function createQuarterlySalesChart(gridApi: GridApi) {
-  gridApi.createCrossFilterChart({
+function createQuarterlySalesChart(api: GridApi) {
+  api.createCrossFilterChart({
     chartType: 'column',
     cellRange: {
       columns: ['quarter', 'sale'],
@@ -64,11 +71,9 @@ function createQuarterlySalesChart(gridApi: GridApi) {
       common: {
         title: {
           enabled: true,
-          text: 'Quarterly Sales ($)',
+          text: "Quarterly Sales ($)",
         },
-        legend: {
-          enabled: false,
-        },
+        legend: { enabled: false },
         axes: {
           category: {
             label: {
@@ -89,8 +94,8 @@ function createQuarterlySalesChart(gridApi: GridApi) {
   })
 }
 
-function createSalesByRefChart(gridApi: GridApi) {
-  gridApi.createCrossFilterChart({
+function createSalesByRefChart(api: GridApi) {
+  api.createCrossFilterChart({
     chartType: 'pie',
     cellRange: {
       columns: ['salesRep', 'sale'],
@@ -100,10 +105,10 @@ function createSalesByRefChart(gridApi: GridApi) {
       common: {
         title: {
           enabled: true,
-          text: 'Sales by Representative ($)',
+          text: "Sales by Representative ($)",
         },
       },
-      pie: {
+      pie: { 
         series: {
           title: {
             enabled: false,
@@ -112,14 +117,17 @@ function createSalesByRefChart(gridApi: GridApi) {
             enabled: false,
           },
         },
+        legend: {
+          position: 'right',
+        },
       },
     },
     chartContainer: document.querySelector('#pieChart') as any,
   })
 }
 
-function createHandsetSalesChart(gridApi: GridApi) {
-  gridApi.createCrossFilterChart({
+function createHandsetSalesChart(api: GridApi) {
+  api.createCrossFilterChart({
     chartType: 'bar',
     cellRange: {
       columns: ['handset', 'sale'],
@@ -129,11 +137,9 @@ function createHandsetSalesChart(gridApi: GridApi) {
       common: {
         title: {
           enabled: true,
-          text: 'Handsets Sold (Units)',
+          text: "Handsets Sold (Units)",
         },
-        legend: {
-          enabled: false,
-        },
+        legend: { enabled: false },
       },
     },
     chartContainer: document.querySelector('#barChart') as any,
@@ -142,6 +148,5 @@ function createHandsetSalesChart(gridApi: GridApi) {
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
-  var gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(document.querySelector<HTMLElement>('#myGrid')!, gridOptions);
 })

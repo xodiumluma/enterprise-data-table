@@ -6,6 +6,7 @@ var ClientSideRowModelModule = require('../../grid-community-modules/client-side
 var GridCoreModule = require('../../grid-community-modules/core');
 var CsvExportModule = require('../../grid-community-modules/csv-export');
 var InfiniteRowModelModule = require('../../grid-community-modules/infinite-row-model');
+var AdvancedFilterModule = require('../../grid-enterprise-modules/advanced-filter');
 var GridChartsModule = require('../../grid-enterprise-modules/charts');
 var ClipboardModule = require('../../grid-enterprise-modules/clipboard');
 var ColumnsToolPanelModule = require('../../grid-enterprise-modules/column-tool-panel');
@@ -24,12 +25,12 @@ var SideBarModule = require('../../grid-enterprise-modules/side-bar');
 var SparklinesModule = require('../../grid-enterprise-modules/sparklines');
 var StatusBarModule = require('../../grid-enterprise-modules/status-bar');
 var ViewportRowModelModule = require('../../grid-enterprise-modules/viewport-row-model');
-require('./dist/esm/es5/main');
+require('./dist/esm/es6/main');
 
 var gridExports = {};
 
 // add in exports for AG Grid Enterprise
-var agGridEnterprise = require('./dist/esm/es5/main');
+var agGridEnterprise = require('./dist/esm/es6/main');
 Object.keys(agGridEnterprise).forEach(function(key) {
     exports[key] = agGridEnterprise[key];
     gridExports[key] = agGridEnterprise[key];
@@ -48,6 +49,7 @@ exports['agCharts'] = agGridEnterprise['agCharts'];
 agGrid.ModuleRegistry.register(ClientSideRowModelModule.ClientSideRowModelModule);
 agGrid.ModuleRegistry.register(CsvExportModule.CsvExportModule);
 agGrid.ModuleRegistry.register(InfiniteRowModelModule.InfiniteRowModelModule);
+agGrid.ModuleRegistry.register(AdvancedFilterModule.AdvancedFilterModule);
 agGrid.ModuleRegistry.register(GridChartsModule.GridChartsModule);
 agGrid.ModuleRegistry.register(ClipboardModule.ClipboardModule);
 agGrid.ModuleRegistry.register(ColumnsToolPanelModule.ColumnsToolPanelModule);
@@ -65,4 +67,4 @@ agGrid.ModuleRegistry.register(SideBarModule.SideBarModule);
 agGrid.ModuleRegistry.register(SparklinesModule.SparklinesModule);
 agGrid.ModuleRegistry.register(StatusBarModule.StatusBarModule);
 agGrid.ModuleRegistry.register(ViewportRowModelModule.ViewportRowModelModule);
-agGrid.ModuleRegistry.setIsBundled();
+agGrid.ModuleRegistry.__setIsBundled();

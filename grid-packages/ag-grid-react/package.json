@@ -1,12 +1,13 @@
 {
   "name": "ag-grid-react",
-  "version": "29.3.0",
+  "version": "31.0.0",
   "description": "AG Grid React Component",
-  "main": "main.js",
-  "typings": "./main.d.ts",
+  "main": "lib/main.js",
+  "typings": "./lib/main.d.ts",
   "scripts": {
-    "clean": "rimraf bundles lib .hash",
-    "build": "npx gulp && npm run hash",
+    "clean": "rimraf bundles lib",
+    "build": "npx gulp",
+    "build-docs-initial": "npm run build",
     "build-prod": "npm run build",
     "umd": "npx rollup -c",
     "testx": "npx jest",
@@ -15,8 +16,7 @@
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "cypress:open": "npx cross-env NODE_ENV=test npx cypress open",
     "cypress:e2e": "npx cross-env NODE_ENV=test npx cypress run --spec 'cypress/integration/*spec.js'",
-    "cypress:components": "npx cross-env NODE_ENV=test npx cypress run --spec 'cypress/components/**/*spec.js'",
-    "hash": "sh ../../scripts/hashDirectory.sh > .hash"
+    "cypress:components": "npx cross-env NODE_ENV=test npx cypress run --spec 'cypress/components/**/*spec.js'"
   },
   "repository": {
     "type": "git",
@@ -38,10 +38,10 @@
   "devDependencies": {
     "@babel/runtime": "^7.16.3",
     "prop-types": "^15.6.2",
-    "ag-grid-community": "~29.3.0",
-    "@ag-grid-community/react": "~29.3.0",
-    "@ag-grid-community/client-side-row-model": "~29.3.0",
-    "@ag-grid-community/core": "~29.3.0",
+    "ag-grid-community": "~31.0.0",
+    "@ag-grid-community/react": "~31.0.0",
+    "@ag-grid-community/client-side-row-model": "~31.0.0",
+    "@ag-grid-community/core": "~31.0.0",
     "gulp": "^4.0.0",
     "gulp-clean": "^0.4.0",
     "gulp-header": "^2.0.0",
@@ -58,6 +58,7 @@
     "rollup-plugin-uglify": "^6.0.0",
     "vinyl-source-stream": "^2.0.0",
     "gulp-replace": "^1.0.0",
+    "gulp-rename": "2.0.0",
     "rollup-stream": "^1.24.0",
     "lnk": "^1.1.0",
     "jest": "26.6.0",
@@ -72,14 +73,15 @@
     "@babel/plugin-proposal-throw-expressions": "7.14.5",
     "babel-preset-react-app": "^10.0.0",
     "webpack": "^5.64.4",
-    "typescript": "~4.0.8",
-    "rimraf": "3.0.2"
+    "typescript": "~4.3.5",
+    "rimraf": "3.0.2",
+    "tslib": "2.5.0"
   },
   "dependencies": {
-    "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1",
+    "ag-grid-community": "~31.0.0"
   },
   "peerDependencies": {
-    "ag-grid-community": "~29.3.0",
     "react": "^16.3.0 || ^17.0.0 || ^18.0.0",
     "react-dom": "^16.3.0 || ^17.0.0 || ^18.0.0"
   },

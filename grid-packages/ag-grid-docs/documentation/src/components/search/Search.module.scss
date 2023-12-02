@@ -1,11 +1,28 @@
 @use '../../design-system' as *;
 
 .searchForm {
-    flex-grow: 1;
-    margin-right: auto !important; // !important for .ag-styles specificity
+    --max-width: 380px;
 
-    @media screen and (min-width: $breakpoint-docs-search-medium) {
-        position: relative;
-        max-width: 32rem;
+    position: relative;
+    width: 50%;
+    flex-grow: 1;
+    margin: 0 $size-2 8px;
+
+    @media screen and (min-width: $breakpoint-docs-search-small) {
+        margin-left: 0;
+    }
+
+    @media screen and (min-width: $breakpoint-docs-nav-medium) {
+        max-width: var(--max-width);
+        margin: 0 auto;
+    }
+
+    @media screen and (min-width: $breakpoint-site-header-large) {
+        --max-width: 440px;
+
+        position: absolute;
+        left: 50%;
+        width: 100%;
+        margin-left: calc(var(--max-width) / -2);
     }
 }

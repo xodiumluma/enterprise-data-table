@@ -33,15 +33,6 @@ const VanillaTemplate = ({ isExecuting, modifiedTimeMs, library, appLocation, op
 
 const VanillaBody = ({ library, appLocation, options, scriptFiles, indexFragment }) => {
     let scriptPath;
-    let chartScriptPath;
-
-    if (library === 'charts' || options.enableChartApi) {
-        chartScriptPath = isUsingPublishedPackages()
-            ? `https://cdn.jsdelivr.net/npm/ag-charts-community@${agChartsVersion}/dist/ag-charts-community.min.js`
-            : isDevelopment()
-                ? `${localPrefix}/ag-charts-community/dist/ag-charts-community.js`
-                : `${localPrefix}/ag-charts-community/dist/ag-charts-community.min.js`;
-    }
 
     if (library === 'grid') {
         if (options.enterprise) {
@@ -63,7 +54,6 @@ const VanillaBody = ({ library, appLocation, options, scriptFiles, indexFragment
         <>
             <script dangerouslySetInnerHTML={{ __html: `var __basePath = '${appLocation}';` }}></script>
             {scriptPath ? <script src={scriptPath}></script> : ''}
-            {chartScriptPath ? <script src={chartScriptPath}></script> : ''}
             <Scripts files={scriptFiles} />
         </>
     );

@@ -1,11 +1,11 @@
-import { Component, ViewChild } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { ExcelExportModule, exportMultipleSheetsAsExcel } from '@ag-grid-enterprise/excel-export';
-import { ModuleRegistry, ColDef, ColumnApi, GetRowIdParams, GridApi, GridReadyEvent, ICellRendererComp, ICellRendererParams } from '@ag-grid-community/core';
 import { ICellRendererAngularComp } from '@ag-grid-community/angular';
+import { ColDef, GetRowIdParams, GridApi, GridReadyEvent, ICellRendererParams, ModuleRegistry } from '@ag-grid-community/core';
+import { ExcelExportModule, exportMultipleSheetsAsExcel } from '@ag-grid-enterprise/excel-export';
+import { HttpClient } from '@angular/common/http';
+import { Component, ViewChild } from '@angular/core';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { MenuModule } from '@ag-grid-enterprise/menu';
@@ -48,20 +48,20 @@ export class SportRenderer implements ICellRendererAngularComp {
                     <i class="fas fa-redo" style="margin-right: 5px;"></i>Reset
                 </button>
             </div>
-            <div class="grid-wrapper ag-theme-alpine">
+            <div class="grid-wrapper">
                 <div class="panel panel-primary" style="margin-right: 10px;">
                     <div class="panel-heading">Athletes</div>
                     <div class="panel-body">
                         <div id="eLeftGrid">
                             <ag-grid-angular
                                     style="height: 100%;"
+                                    [class]="themeClass"
                                     [defaultColDef]="defaultColDef"
                                     rowSelection="multiple"
                                     [rowDragMultiRow]="true"
                                     [getRowId]="getRowId"
                                     [rowDragManaged]="true"
                                     [suppressMoveWhenRowDragging]="true"
-                                    [animateRows]="true"
                                     [rowData]="leftRowData"
                                     [columnDefs]="leftColumns"
                                     (gridReady)="onGridReady($event, 0)"
@@ -76,10 +76,10 @@ export class SportRenderer implements ICellRendererAngularComp {
                         <div id="eRightGrid">
                             <ag-grid-angular
                                     style="height: 100%;"
+                                    [class]="themeClass"
                                     [defaultColDef]="defaultColDef"
                                     [getRowId]="getRowId"
                                     [rowDragManaged]="true"
-                                    [animateRows]="true"
                                     [rowData]="rightRowData"
                                     [columnDefs]="rightColumns"
                                     (gridReady)="onGridReady($event, 1)"
@@ -92,20 +92,17 @@ export class SportRenderer implements ICellRendererAngularComp {
         </div>`
 })
 export class AppComponent {
-
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     rawData: any[] = [];
     leftRowData: any[] = [];
     rightRowData: any[] = []
     leftApi!: GridApi;
-    leftColumnApi!: ColumnApi;
     rightApi!: GridApi;
 
     defaultColDef: ColDef = {
         flex: 1,
         minWidth: 100,
-        sortable: true,
         filter: true,
-        resizable: true
     };
 
     leftColumns: ColDef[] = [
@@ -179,7 +176,6 @@ export class AppComponent {
     onGridReady(params: GridReadyEvent, side: number) {
         if (side === 0) {
             this.leftApi = params.api
-            this.leftColumnApi = params.columnApi;
         }
 
         if (side === 1) {

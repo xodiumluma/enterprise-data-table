@@ -13,11 +13,11 @@ export class MedalCellRenderer implements ICellRendererAngularComp {
 
     agInit(params: ICellRendererParams<IOlympicData, number>): void {
         this.params = params;
-        this.displayValue = new Array(params.value).fill('#').join('');
+        this.displayValue = new Array(params.value!).fill('#').join('');
     }
 
     medalUserFunction() {
-        console.log(`user function called for medal column: row = ${this.params.rowIndex}, column = ${this.params.column!.getId()}`);
+        console.log(`user function called for medal column: row = ${this.params.node.rowIndex}, column = ${this.params.column!.getId()}`);
     }
     refresh(params: ICellRendererParams) {
         return false;

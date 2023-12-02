@@ -19,8 +19,8 @@
             react: 'npm:react@18.2.0',
             'react-dom': 'npm:react-dom@18.2.0',
             'react-dom/client': 'npm:react-dom@18.2.0',
-            redux: 'npm:redux@3.6.0',
-            'react-redux': 'npm:react-redux@5.0.6',
+            redux: 'npm:redux@4.2.1',
+            'react-redux': 'npm:react-redux@8.0.5',
             'prop-types': 'npm:prop-types@15.8.1',
 
             app: appLocation + 'app',
@@ -29,10 +29,10 @@
         },
         packages: {
             react: {
-                main: './umd/react.development.min.js'
+                main: './umd/react.production.min.js'
             },
             'react-dom': {
-                main: './umd/react-dom.development.min.js'
+                main: './umd/react-dom.production.min.js'
             },
             'react-dom/server': {
                 main: '../umd/react-dom-server.browser.production.min.js'
@@ -53,8 +53,16 @@
             app: {
                 defaultExtension: 'jsx'
             },
+            'ag-charts-community': {
+                main: './dist/package/main.cjs.js',
+                defaultExtension: 'js'
+            },
+            // 'ag-charts-enterprise': {
+            //     main: './dist/package/main.cjs.js',
+            //     defaultExtension: 'js'
+            // },
             'ag-grid-react': {
-                main: './main.js',
+                main: './lib/main.js',
                 defaultExtension: 'js'
             },
             'ag-grid-community': {
@@ -66,8 +74,8 @@
                 defaultExtension: 'js'
             },
             '@ag-grid-community/react': {
-                main: './main.js',
-                defaultExtension: 'js'
+                main: './lib/main.mjs',
+                defaultExtension: 'mjs'
             }
         },
         meta: {
@@ -80,3 +88,7 @@
         }
     });
 })(this);
+
+window.addEventListener('error', e => {
+    console.error('ERROR', e.message, e.filename)
+});

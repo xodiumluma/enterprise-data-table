@@ -16,15 +16,12 @@ import {
     ExcelRow,
     CssClassApplier,
     ColumnGroup,
+    ValueFormatterService,
+    ValueParserService
 } from '@ag-grid-community/core';
-import { ExcelXmlSerializingSession } from './excelXmlSerializingSession';
-import { ExcelXlsxSerializingSession } from './excelXlsxSerializingSession';
 import { ExcelXlsxFactory } from './excelXlsxFactory';
 import { BaseCreator, Downloader, GridSerializer, RowType, ZipContainer } from "@ag-grid-community/csv-export";
-import { ExcelGridSerializingParams, StyleLinkerInterface } from './baseExcelSerializingSession';
-import { ExcelXmlFactory } from './excelXmlFactory';
-
-type SerializingSession = ExcelXlsxSerializingSession | ExcelXmlSerializingSession;
+import { ExcelGridSerializingParams, ExcelSerializingSession, StyleLinkerInterface } from './excelSerializingSession';
 
 export const getMultipleSheetsAsExcel = (params: ExcelExportMultipleSheetParams): Blob | undefined => {
     const { data, fontSize = 11, author = 'AG Grid' } = params;
@@ -108,7 +105,7 @@ const createImageRelationsForSheet = (sheetIndex: number, currentRelationIndex: 
 };
 
 @Bean('excelCreator')
-export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, ExcelExportParams> implements IExcelCreator {
+export class ExcelCreator extends BaseCreator<ExcelRow[], ExcelSerializingSession, ExcelExportParams> implements IExcelCreator {
 
     @Autowired('columnModel') private columnModel: ColumnModel;
     @Autowired('valueService') private valueService: ValueService;
@@ -116,8 +113,8 @@ export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, Ex
 
     @Autowired('gridSerializer') private gridSerializer: GridSerializer;
     @Autowired('gridOptionsService') gridOptionsService: GridOptionsService;
-
-    private exportMode: string = 'xlsx';
+    @Autowired('valueFormatterService') private valueFormatterService: ValueFormatterService;
+    @Autowired('valueParserService') private valueParserService: ValueParserService;
 
     @PostConstruct
     public postConstruct(): void {
@@ -130,12 +127,6 @@ export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, Ex
     protected getMergedParams(params?: ExcelExportParams): ExcelExportParams {
         const baseParams = this.gridOptionsService.get('defaultExcelExportParams');
         return Object.assign({}, baseParams, params);
-    }
-
-    protected getData(params: ExcelExportParams): string {
-        this.setExportMode(params.exportMode || 'xlsx');
-
-        return super.getData(params);
     }
 
     public export(userParams?: ExcelExportParams): string {
@@ -171,8 +162,6 @@ export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, Ex
         const mergedParams = this.getMergedParams(params);
         const data = this.getData(mergedParams);
 
-        if (params && params.exportMode === 'xml') { return data; }
-
         const exportParams: ExcelExportMultipleSheetParams = {
             data: [data],
             fontSize: mergedParams.fontSize,
@@ -183,14 +172,12 @@ export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, Ex
         return this.packageFile(exportParams);
     }
 
-    public setFactoryMode(factoryMode: ExcelFactoryMode, exportMode: 'xml' | 'xlsx' = 'xlsx'): void {
-        const factory = exportMode === 'xlsx' ? ExcelXlsxFactory : ExcelXmlFactory;
-        factory.factoryMode = factoryMode;
+    public setFactoryMode(factoryMode: ExcelFactoryMode): void {
+        ExcelXlsxFactory.factoryMode = factoryMode;
     }
 
-    public getFactoryMode(exportMode: 'xml' | 'xlsx'): ExcelFactoryMode {
-        const factory = exportMode === 'xlsx' ? ExcelXlsxFactory : ExcelXmlFactory;
-        return factory.factoryMode;
+    public getFactoryMode(): ExcelFactoryMode {
+        return ExcelXlsxFactory.factoryMode;
     }
 
     public getSheetDataForExcel(params: ExcelExportParams): string {
@@ -208,35 +195,34 @@ export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, Ex
         return exportMultipleSheetsAsExcel(params);
     }
 
-    public getDefaultFileName(): string {
-        return `export.${this.getExportMode()}`;
+    public getDefaultFileExtension(): 'xlsx' {
+        return 'xlsx';
     }
 
-    public getDefaultFileExtension(): string {
-        return this.getExportMode();
-    }
-
-    public createSerializingSession(params: ExcelExportParams): SerializingSession {
-        const { columnModel, valueService, gridOptionsService } = this;
-        const isXlsx = this.getExportMode() === 'xlsx';
+    public createSerializingSession(params: ExcelExportParams): ExcelSerializingSession {
+        const { columnModel, valueService, gridOptionsService, valueFormatterService, valueParserService } = this;
 
         let sheetName = 'ag-grid';
 
         if (params.sheetName != null) {
-            sheetName = _.utf8_encode(params.sheetName.toString().substr(0, 31));
+            sheetName = _.utf8_encode(String(params.sheetName).substring(0, 31));
         }
+
         const config: ExcelGridSerializingParams = {
             ...params,
             sheetName,
             columnModel,
             valueService,
             gridOptionsService,
+            valueFormatterService,
+            valueParserService,
+            suppressRowOutline: params.suppressRowOutline || params.skipRowGroups,
             headerRowHeight: params.headerRowHeight || params.rowHeight,
             baseExcelStyles: this.gridOptionsService.get('excelStyles') || [],
             styleLinker: this.styleLinker.bind(this)
         };
 
-        return new (isXlsx ? ExcelXlsxSerializingSession : ExcelXmlSerializingSession)(config);
+        return new ExcelSerializingSession(config);
     }
 
     private styleLinker(params: StyleLinkerInterface): string[] {
@@ -300,23 +286,10 @@ export class ExcelCreator extends BaseCreator<ExcelRow[], SerializingSession, Ex
     }
 
     public isExportSuppressed():boolean {
-        return this.gridOptionsService.is('suppressExcelExport');
-    }
-
-    private setExportMode(exportMode: string): void {
-        this.exportMode = exportMode;
-    }
-
-    private getExportMode(): string {
-        return this.exportMode;
+        return this.gridOptionsService.get('suppressExcelExport');
     }
 
     private packageFile(params: ExcelExportMultipleSheetParams): Blob | undefined {
-        if (this.getExportMode() === 'xml') {
-            const mimeType = params.mimeType || 'application/vnd.ms-excel';
-            return new Blob(["\ufeff", params.data[0]], { type: mimeType });
-        }
-
         return getMultipleSheetsAsExcel(params);
     }
 }

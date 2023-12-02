@@ -4,7 +4,7 @@ export type ColumnSortState = 'ascending' | 'descending' | 'other' | 'none';
 
 // ARIA HELPER FUNCTIONS
 function toggleAriaAttribute(element: Element, attribute: string, value?: number | boolean | string | null) {
-    if (value == null || value == '') {
+    if (value == null || (typeof value === 'string' && value == '')) {
         removeAriaAttribute(element, attribute);
     } else {
         setAriaAttribute(element, attribute, value);
@@ -56,8 +56,8 @@ export function getAriaPosInSet(element: Element): number {
     return parseInt(element.getAttribute('aria-posinset')!, 10);
 }
 
-export function getAriaDescribedBy(element: Element): string {
-    return element.getAttribute('aria-describedby') || '';
+export function getAriaLabel(element: Element): string | null {
+    return element.getAttribute('aria-label');
 }
 
 // ARIA ATTRIBUTE SETTERS
@@ -81,6 +81,14 @@ export function setAriaLive(element: Element, live?: 'polite' | 'assertive' | 'o
     toggleAriaAttribute(element, 'live', live);
 }
 
+export function setAriaAtomic(element: Element, atomic: boolean | null) {
+    toggleAriaAttribute(element, 'atomic', atomic);
+}
+
+export function setAriaRelevant(element: Element, relevant:  'additions' | 'additions text' | 'all' | 'removals' | 'text' | null) {
+    toggleAriaAttribute(element, 'relevant', relevant);
+}
+
 export function setAriaLevel(element: Element, level: number): void {
     toggleAriaAttribute(element, 'level', level);
 }
@@ -91,6 +99,10 @@ export function setAriaDisabled(element: Element, disabled: boolean): void {
 
 export function setAriaHidden(element: Element, hidden: boolean): void {
     toggleAriaAttribute(element, 'hidden', hidden);
+}
+
+export function setAriaActiveDescendant(element: Element, descendantId: string | null): void {
+    toggleAriaAttribute(element, 'activedescendant', descendantId);
 }
 
 export function setAriaExpanded(element: Element, expanded: boolean): void {
@@ -147,4 +159,19 @@ export function setAriaSelected(element: Element, selected?: boolean): void {
 
 export function setAriaChecked(element: Element, checked?: boolean) {
     setAriaAttribute(element, 'checked', checked === undefined ? 'mixed' : checked);
+}
+
+export function setAriaControls(controllerElement: Element, controlledElement: Element) {
+    toggleAriaAttribute(controllerElement, 'controls', controlledElement.id);
+    setAriaLabelledBy(controlledElement, controllerElement.id);
+}
+
+
+export function getAriaCheckboxStateName(translate: (key: string, defaultValue: string, variableValues?: string[]) => string, state?: boolean): string {
+    return state === undefined
+        ? translate('ariaIndeterminate', 'indeterminate')
+        : (state === true
+            ? translate('ariaChecked', 'checked')
+            : translate('ariaUnchecked', 'unchecked')
+        );
 }

@@ -4,17 +4,17 @@ title: "Full Width Rows"
 
 Under normal operation, AG Grid will render each row as a horizontal list of cells. Each cell in the row will correspond to one column definition. It is possible to switch this off and allow you to provide one component to span the entire width of the grid and not use columns. This is useful if you want to embed a complex component inside the grid instead of rendering a list of cells. This technique can be used for displaying panels of information.
 
-[[note]]
-| You may be wondering what full width rows are useful for. Their usage is very rare and most
-| applications will not use them. If you cannot think of a use case for it, then don't worry,
-| do not use it. Full width rows were initially introduced into AG Grid to support
-| [Master / Detail](/master-detail/) before the grid provided direct support for master / detail.
-| Now that master / detail is directly supported, the usefulness of full width is reduced.
+<note>
+|You may be wondering what full width rows are useful for. Their usage is very rare and most
+|applications will not use them. If you cannot think of a use case for it, then don't worry,
+|do not use it. Full width rows were initially introduced into AG Grid to support
+|[Master / Detail](../master-detail/) before the grid provided direct support for master / detail.
+|Now that master / detail is directly supported, the usefulness of full width is reduced.
+</note>
 
-## Simple Example of Full Width Rows
+## Example of Full Width Rows
 
-
-Below shows a simple example using full width. The following can be noted:
+Below shows an example using full width. The following can be noted:
 
 - The rows for countries France, Italy and Peru have full width components instead of cells.
 
@@ -78,7 +78,7 @@ The following points should be noted:
 ## Embedded Full Width Rows
 
 By default, Full Width Rows remain in place while the grid is scrolled horizontally. However, this may be undesirable 
-for some applications which need to horizontally scroll the full-width rows together the rest of the rows.
+for some applications which need to horizontally scroll the full-width rows together with the rest of the rows.
 
 In order to have Full Width Rows scroll like normal rows, set `embedFullWidthRows=true` in the gridOptions.
 
@@ -96,10 +96,10 @@ When using full width rows, the full width cell renderer is responsible for impl
 
 Adding support for keyboard navigation and focus requires a custom `suppressKeyboardEvent` function in grid options. See [Suppress Keyboard Events](/keyboard-navigation/#suppress-keyboard-events).
 
-An example of this is shown below, enabling keyboard navigation through the full width cell elements when pressing <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd>:
+An example of this is shown below, enabling keyboard navigation through the full width cell elements when pressing <kbd>⇥ Tab</kbd> and <kbd>⇧ Shift</kbd>+<kbd>⇥ Tab</kbd>:
 
-- Click on the `United Kingdom` row, press the <kbd>Tab</kbd> a few times and notice that the full width `France` row can be tabbed into, along with the button, link and textbox. At the end of the cell elements, the tab focus moves to the next cell in the next row
-- Use <kbd>Shift</kbd>+<kbd>Tab</kbd> to navigate in the reverse direction
+- Click on the `United Kingdom` row, press the <kbd>⇥ Tab</kbd> a few times and notice that the full width `France` row can be tabbed into, along with the button, link and textbox. At the end of the cell elements, the tab focus moves to the next cell in the next row
+- Use <kbd>⇧ Shift</kbd>+<kbd>⇥ Tab</kbd> to navigate in the reverse direction
 
 The `suppressKeyboardEvent` callback is used to capture tab events and determine if the user is tabbing forward or backwards. It also suppresses the default behaviour of moving to the next cell if tabbing within the child elements. 
 

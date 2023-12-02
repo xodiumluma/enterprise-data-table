@@ -43,6 +43,15 @@ export class Events {
     /** The list of displayed columns has changed, can result from columns open / close, column move, pivot, group, etc */
     public static EVENT_DISPLAYED_COLUMNS_CHANGED: 'displayedColumnsChanged' = 'displayedColumnsChanged';
 
+    /** The grid option related to suppressing movable columns has changed */
+    public static EVENT_SUPPRESS_COLUMN_MOVE_CHANGED: 'suppressMovableColumns' = 'suppressMovableColumns';
+
+    /** The grid option related to suppressing column group selection has changed */
+    public static EVENT_SUPPRESS_MENU_HIDE_CHANGED: 'suppressMenuHide' = 'suppressMenuHide';
+
+    /** The grid option related to suppressing movable columns has changed */
+    public static EVENT_SUPPRESS_FIELD_DOT_NOTATION: 'suppressFieldDotNotation' = 'suppressFieldDotNotation';
+
     /** The list of virtual columns has changed, results from viewport changing */
     public static EVENT_VIRTUAL_COLUMNS_CHANGED: 'virtualColumnsChanged' = 'virtualColumnsChanged';
 
@@ -52,10 +61,7 @@ export class Events {
     /** A row group was opened / closed */
     public static EVENT_ROW_GROUP_OPENED: 'rowGroupOpened' = 'rowGroupOpened';
 
-    /** @deprecated v28 use EVENT_ROW_DATA_UPDATED instead */
-    public static EVENT_ROW_DATA_CHANGED: 'rowDataChanged' = 'rowDataChanged';
-
-    /** The client has updated data for the grid */
+    /** Client-Side Row Model only. The client has updated data for the grid */
     public static EVENT_ROW_DATA_UPDATED: 'rowDataUpdated' = 'rowDataUpdated';
 
     /** The client has set new floating data into the grid */
@@ -79,11 +85,6 @@ export class Events {
     /** For when the tool panel is shown / hidden */
     public static EVENT_TOOL_PANEL_VISIBLE_CHANGED: 'toolPanelVisibleChanged' = 'toolPanelVisibleChanged';
     public static EVENT_TOOL_PANEL_SIZE_CHANGED: 'toolPanelSizeChanged' = 'toolPanelSizeChanged';
-    /**
-     * This is a replacement event for EVENT_TOOL_PANEL_VISIBLE_CHANGED. In v30, the original event interface will be dropped
-     * and replaced with the new event (but using the old event type and interface name)
-     */
-    public static EVENT_INTERNAL_TOOL_PANEL_VISIBLE_CHANGED: 'internalToolPanelVisibleChanged' = 'internalToolPanelVisibleChanged';
 
     public static EVENT_COLUMN_PANEL_ITEM_DRAG_START: 'columnPanelItemDragStart' = 'columnPanelItemDragStart';
     public static EVENT_COLUMN_PANEL_ITEM_DRAG_END: 'columnPanelItemDragEnd' = 'columnPanelItemDragEnd';
@@ -91,11 +92,17 @@ export class Events {
     /** Model was updated - grid updates the drawn rows when this happens */
     public static EVENT_MODEL_UPDATED: 'modelUpdated' = 'modelUpdated';
 
+    public static EVENT_CUT_START: 'cutStart' = 'cutStart';
+    public static EVENT_CUT_END: 'cutEnd' = 'cutEnd';
+
     public static EVENT_PASTE_START: 'pasteStart' = 'pasteStart';
     public static EVENT_PASTE_END: 'pasteEnd' = 'pasteEnd';
 
     public static EVENT_FILL_START: 'fillStart' = 'fillStart';
     public static EVENT_FILL_END: 'fillEnd' = 'fillEnd';
+
+    public static EVENT_RANGE_DELETE_START: 'rangeDeleteStart' = 'rangeDeleteStart';
+    public static EVENT_RANGE_DELETE_END: 'rangeDeleteEnd' = 'rangeDeleteEnd';
 
     /** Undo operation has started. */
     public static EVENT_UNDO_STARTED: 'undoStarted' = 'undoStarted';
@@ -122,8 +129,10 @@ export class Events {
     public static EVENT_ROW_SELECTED: 'rowSelected' = 'rowSelected';
     public static EVENT_SELECTION_CHANGED: 'selectionChanged' = 'selectionChanged';
 
+    public static EVENT_TOOLTIP_SHOW: 'tooltipShow' = 'tooltipShow';
+    public static EVENT_TOOLTIP_HIDE: 'tooltipHide' = 'tooltipHide';
+
     public static EVENT_CELL_KEY_DOWN: 'cellKeyDown' = 'cellKeyDown';
-    public static EVENT_CELL_KEY_PRESS: 'cellKeyPress' = 'cellKeyPress';
 
     public static EVENT_CELL_MOUSE_OVER: 'cellMouseOver' = 'cellMouseOver';
     public static EVENT_CELL_MOUSE_OUT: 'cellMouseOut' = 'cellMouseOut';
@@ -135,6 +144,8 @@ export class Events {
     public static EVENT_FILTER_MODIFIED: 'filterModified' = 'filterModified';
     public static EVENT_FILTER_OPENED: 'filterOpened' = 'filterOpened';
 
+    public static EVENT_ADVANCED_FILTER_BUILDER_VISIBLE_CHANGED: 'advancedFilterBuilderVisibleChanged' = 'advancedFilterBuilderVisibleChanged';
+
     public static EVENT_SORT_CHANGED: 'sortChanged' = 'sortChanged';
 
     /** A row was removed from the dom, for any reason. Use to clean up resources (if any) used by the row. */
@@ -145,6 +156,8 @@ export class Events {
 
     /** Gets called once after the grid has finished initialising. */
     public static EVENT_GRID_READY: 'gridReady' = 'gridReady';
+    /** Called once when the grid is about to get destroyed. */
+    public static EVENT_GRID_PRE_DESTROYED: 'gridPreDestroyed' = 'gridPreDestroyed';
     /** Width of height of the main grid div has changed. Grid listens for this and does layout of grid if it's
      * changed, so always filling the space it was given. */
     public static EVENT_GRID_SIZE_CHANGED: 'gridSizeChanged' = 'gridSizeChanged';
@@ -187,6 +200,8 @@ export class Events {
     /** Only used by the SSRM, called when the grid has no more rows to refresh */
     public static EVENT_STORE_REFRESHED: 'storeRefreshed' = 'storeRefreshed';
 
+    public static EVENT_STATE_UPDATED: 'stateUpdated' = 'stateUpdated';
+
     /*****************************  INTERNAL EVENTS: START ******************************************* */
 
     /** Please remember to add to ComponentUtil.EXCLUDED_INTERNAL_EVENTS to not have these events exposed to framework components. */
@@ -227,12 +242,22 @@ export class Events {
     public static EVENT_COLUMN_VALUE_CHANGE_REQUEST: 'columnValueChangeRequest' = 'columnValueChangeRequest';
     public static EVENT_COLUMN_AGG_FUNC_CHANGE_REQUEST: 'columnAggFuncChangeRequest' = 'columnAggFuncChangeRequest';
 
-    public static EVENT_KEYBOARD_FOCUS: 'keyboardFocus' = 'keyboardFocus';
-    public static EVENT_MOUSE_FOCUS: 'mouseFocus' = 'mouseFocus';
-
     public static EVENT_STORE_UPDATED: 'storeUpdated' = 'storeUpdated';
 
     public static EVENT_FILTER_DESTROYED: 'filterDestroyed' = 'filterDestroyed';
+
+    public static EVENT_ROW_DATA_UPDATE_STARTED: 'rowDataUpdateStarted' = 'rowDataUpdateStarted';
+    public static EVENT_ROW_COUNT_READY: 'rowCountReady' = 'rowCountReady';
+
+    // Advanced Filters
+    public static EVENT_ADVANCED_FILTER_ENABLED_CHANGED: 'advancedFilterEnabledChanged' = 'advancedFilterEnabledChanged';
+    public static EVENT_DATA_TYPES_INFERRED: 'dataTypesInferred' = 'dataTypesInferred';
+
+    // Widgets
+    public static EVENT_FIELD_VALUE_CHANGED: 'fieldValueChanged' = 'fieldValueChanged';
+    public static EVENT_FIELD_PICKER_VALUE_SELECTED: 'fieldPickerValueSelected' = 'fieldPickerValueSelected';
+
+    public static EVENT_SIDE_BAR_UPDATED: 'sideBarUpdated' = 'sideBarUpdated';
 
     /*****************************  INTERNAL EVENTS: END ******************************************* */
 }

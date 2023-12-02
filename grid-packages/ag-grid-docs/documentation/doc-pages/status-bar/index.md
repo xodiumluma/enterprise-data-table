@@ -48,7 +48,7 @@ Components can be aligned either to the `left`, in the `center` of the bar or on
 
 ### Labels and Number Formats
 
-Labels within the Status Bar (ie. "Rows", "Total Rows", "Average") and number formatters such as the decimal and thousand separators can be changed by using the grid's [Localisation](/localisation/).
+Labels within the Status Bar (ie. "Rows", "Total Rows", "Average"), the decimal and thousand separators can be changed by using the grid's [Localisation](/localisation/).
 
 ### Simple Status Bar Example
 
@@ -64,7 +64,7 @@ The example below shows a Status Bar with a simple configuration. Note the follo
 
 ### Configuring the Aggregation Panel
 
-If you have multiple ranges selected (by holding down <kbd>Ctrl</kbd> while dragging) and a cell is in multiple ranges, the cell will be only included once in the aggregation.
+If you have multiple ranges selected (by holding down <kbd>^ Ctrl</kbd> while dragging) and a cell is in multiple ranges, the cell will be only included once in the aggregation.
 
 If the cell does not contain a simple number value, then it will not be included in average, min max or sum, however it will still be included in count.
 
@@ -96,7 +96,7 @@ const gridOptions = {
 
 Accessing status panel instances is possible using `api.getStatusPanel(key)`. The key will be the value provided in the component configuration (see above), but will default to the component name if not provided.
 
-See [Accessing Status Bar Panel Instances](/component-status-bar/#accessing-status-bar-comp-instances) for more information.
+See [Accessing Status Bar Panel Instances](/component-status-bar/#accessing-status-bar-panel-instances) for more information.
 
 ## Configuration with Component Parameters
 

@@ -20,7 +20,9 @@ const gridOptions = {
 }
 </snippet>
 
-By default the grid provides simple string editing and stores the result as a string. The example below shows string editing enabled on all columns by setting `editable=true` on the `defaultColDef`.
+If [Cell Data Types](/cell-data-types/) are enabled, the grid provides different types of editors, with the result stored in the correct format. If disabled, simple string editing is provided, and the result is stored as a `string`.
+
+The example below shows `string` editing enabled on all columns by setting `editable=true` on the `defaultColDef`.
 
 <grid-example title='Simple Cell Editing' name='simple-editing' type='generated'></grid-example>
 
@@ -45,7 +47,7 @@ In the snippet above, **Athlete** cells will be editable on rows where the **Yea
 This is demonstrated in the following example, note that:
 
 - An `editable` callback is added to the **Athlete** and **Age** columns to control which cells are editable based on the selected **Year**.
-- A custom `editableColumn` [Column Type](/column-definitions/#custom-column-types) is used to avoid duplication of the callback for **Athlete** and **Age**.
+- A custom `editableColumn` [Column Type](/column-definitions/#default-column-definitions) is used to avoid duplication of the callback for **Athlete** and **Age**.
 - Buttons are provided to change the **Year** used by the `editable` callback function to control which cells are editable.    
 - A blue [Cell Style](/cell-styles/) has been added to highlight editable cells using the same logic as the `editable` callback.
 

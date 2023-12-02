@@ -34,9 +34,10 @@ The following example demonstrates overriding the default agg function. Note the
 
 <grid-example title='Default Aggregation Function' name='default-aggregation-function' type='generated' options='{ "enterprise": true, "exampleHeight": 655, "modules": ["clientside", "rowgrouping", "menu", "columnpanel", "filterpanel"] }'></grid-example>
 
-[[note]]
-| Note that unlike `aggFunc` you can't pass a custom aggregation function directly to `defaultAggFunc`,
-| as demonstrated in the previous example, it must be registered first. See [Registering Custom Functions](/aggregation-custom-functions#registering-custom-functions) for how to do this.
+<note>
+Note that unlike `aggFunc` you can't pass a custom aggregation function directly to `defaultAggFunc`,
+as demonstrated in the previous example, it must be registered first. See [Registering Custom Functions](../aggregation-custom-functions#registering-custom-functions) for how to do this.
+</note>
 
 ## Restricting Aggregation Functions
 
@@ -65,9 +66,9 @@ The following example demonstrates restricting the aggregation functions. Note t
 
 ## Aggregation API
 
-After the grid is initialised aggregations can be applied / retrieved / removed via the `columnApi` with the following methods:
+After the grid is initialised aggregations can be applied / retrieved / removed via the `api` with the following methods:
 
-<api-documentation source='column-api/api.json' section='valueColumns' ></api-documentation>
+<api-documentation source='grid-api/api.json' section='rowPivoting' names='["getValueColumns", "addValueColumn", "addValueColumns", "removeValueColumn", "removeValueColumns", "setValueColumns", "setColumnAggFunc"]' ></api-documentation>
 
 When the grid initialises, any column definitions that have `aggFunc` set will be automatically added as a value column.
 
@@ -92,6 +93,9 @@ If the data changes after the aggregation is done, you can tell the grid to reco
 
 <api-documentation source='grid-api/api.json' section='data' names='["refreshClientSideRowModel"]' ></api-documentation>
 
+## Enabling Top Level Aggregations
+
+When aggregations are present, the grid omits aggregating all the top level rows into one parent row as this total aggregation is not shown in the grid. Some applications may wish to use this value via the API, so the property `alwaysAggregateAtRootLevel` can be enabled to force this value to always calculate. The grid will still selectively calculate the top level aggregation in scenarios where it is needed, eg if `groupIncludeTotalFooter` is enabled, or if the root level is being displayed for pivoting.
 ## Next Up
 
 Continue to the next section to learn about [Tree Data](/tree-data/).

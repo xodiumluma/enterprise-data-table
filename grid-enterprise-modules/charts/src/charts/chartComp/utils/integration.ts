@@ -1,4 +1,5 @@
-import { AgChartInstance } from "ag-charts-community";
+import { _Scene, AgCartesianAxisType, AgChartInstance } from "ag-charts-community";
+// import { _Scene, AgCartesianAxisType, AgChartInstance } from "ag-charts-enterprise";
 
 export function deproxy(chartOrProxy: AgChartInstance): AgChartActual {
     if ((chartOrProxy as any).chart != null) {
@@ -7,9 +8,7 @@ export function deproxy(chartOrProxy: AgChartInstance): AgChartActual {
     return chartOrProxy as AgChartActual;
 }
 
-import { AgCartesianAxisType, _Scene } from 'ag-charts-community';
-
-// Extensions to the public ag-charts-community API that Integrated Charts currently depends on for
+// Extensions to the public ag-charts-enterprise API that Integrated Charts currently depends on for
 // correct operation. Over time we aim to eliminate these and only use the public API.
 //
 // AVOID ADDING MORE DEPENDENCIES ON THESE PRIVATE APIS.

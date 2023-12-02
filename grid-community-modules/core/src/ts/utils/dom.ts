@@ -3,6 +3,9 @@ import { exists } from './generic';
 import { setAriaHidden } from './aria';
 import { RowStyle } from '../entities/gridOptions';
 import { CellStyle } from '../entities/colDef';
+import { camelCaseToHyphenated } from './string';
+import { AgPromise } from './promise';
+import { ICellRendererComp } from '../rendering/cellRenderers/iCellRenderer';
 
 let rtlNegativeScroll: boolean;
 
@@ -29,7 +32,7 @@ export function radioCssClass(element: HTMLElement, elementClass: string | null,
 }
 
 export const FOCUSABLE_SELECTOR = '[tabindex], input, select, button, textarea, [href]';
-export const FOCUSABLE_EXCLUDE = '.ag-hidden, .ag-hidden *, [disabled], .ag-disabled, .ag-disabled *';
+export const FOCUSABLE_EXCLUDE = '[disabled], .ag-disabled:not(.ag-button), .ag-disabled *';
 
 export function isFocusableFormField(element: HTMLElement): boolean {
     const matches: (str: string) => boolean =
@@ -134,20 +137,20 @@ export function getElementSize(el: HTMLElement): {
     } = window.getComputedStyle(el);
 
     return {
-        height: parseFloat(height!),
-        width: parseFloat(width!),
-        borderTopWidth: parseFloat(borderTopWidth!),
-        borderRightWidth: parseFloat(borderRightWidth!),
-        borderBottomWidth: parseFloat(borderBottomWidth!),
-        borderLeftWidth: parseFloat(borderLeftWidth!),
-        paddingTop: parseFloat(paddingTop!),
-        paddingRight: parseFloat(paddingRight!),
-        paddingBottom: parseFloat(paddingBottom!),
-        paddingLeft: parseFloat(paddingLeft!),
-        marginTop: parseFloat(marginTop!),
-        marginRight: parseFloat(marginRight!),
-        marginBottom: parseFloat(marginBottom!),
-        marginLeft: parseFloat(marginLeft!),
+        height: parseFloat(height),
+        width: parseFloat(width),
+        borderTopWidth: parseFloat(borderTopWidth),
+        borderRightWidth: parseFloat(borderRightWidth),
+        borderBottomWidth: parseFloat(borderBottomWidth),
+        borderLeftWidth: parseFloat(borderLeftWidth),
+        paddingTop: parseFloat(paddingTop),
+        paddingRight: parseFloat(paddingRight),
+        paddingBottom: parseFloat(paddingBottom),
+        paddingLeft: parseFloat(paddingLeft),
+        marginTop: parseFloat(marginTop),
+        marginRight: parseFloat(marginRight),
+        marginBottom: parseFloat(marginBottom),
+        marginLeft: parseFloat(marginLeft),
         boxSizing
     };
 }
@@ -184,6 +187,23 @@ export function getAbsoluteWidth(el: HTMLElement): number {
     const marginWidth = size.marginLeft + size.marginRight;
 
     return Math.ceil(el.offsetWidth + marginWidth);
+}
+
+export function getElementRectWithOffset(el: HTMLElement): {
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+} {
+    const offsetElementRect = el.getBoundingClientRect();
+    const { borderTopWidth, borderLeftWidth, borderRightWidth, borderBottomWidth } = getElementSize(el);
+
+    return {
+        top: offsetElementRect.top + (borderTopWidth || 0),
+        left: offsetElementRect.left + (borderLeftWidth || 0),
+        right: offsetElementRect.right + (borderRightWidth || 0),
+        bottom: offsetElementRect.bottom + (borderBottomWidth || 0),
+    }
 }
 
 export function isRtlNegativeScroll(): boolean {
@@ -245,11 +265,6 @@ export function clearElement(el: HTMLElement): void {
     while (el && el.firstChild) { el.removeChild(el.firstChild); }
 }
 
-/** @deprecated */
-export function removeElement(parent: HTMLElement, cssSelector: string) {
-    removeFromParent(parent.querySelector(cssSelector));
-}
-
 export function removeFromParent(node: Element | null) {
     if (node && node.parentNode) {
         node.parentNode.removeChild(node);
@@ -257,7 +272,13 @@ export function removeFromParent(node: Element | null) {
 }
 
 export function isVisible(element: HTMLElement) {
-    return element.offsetParent !== null;
+    const el = element as any;
+    if (el.checkVisibility) {
+        return el.checkVisibility({ checkVisibilityCSS: true })
+    }
+
+    const isHidden = !element.offsetParent || window.getComputedStyle(element).visibility !== 'visible';
+    return !isHidden;
 }
 
 /**
@@ -283,17 +304,6 @@ export function appendHtml(eContainer: HTMLElement, htmlTemplate: string) {
     } else {
         eContainer.innerHTML = htmlTemplate;
     }
-}
-
-/** @deprecated */
-export function getElementAttribute(element: any, attributeName: string): string | null {
-    if (element.attributes && element.attributes[attributeName]) {
-        const attribute = element.attributes[attributeName];
-
-        return attribute.value;
-    }
-
-    return null;
 }
 
 export function offsetHeight(element: HTMLElement) {
@@ -364,15 +374,6 @@ export function insertWithDomOrder(
     }
 }
 
-/** @deprecated */
-export function prependDC(parent: HTMLElement, documentFragment: DocumentFragment): void {
-    if (exists(parent.firstChild)) {
-        parent.insertBefore(documentFragment, parent.firstChild);
-    } else {
-        parent.appendChild(documentFragment);
-    }
-}
-
 export function addStylesToElement(eElement: any, styles: RowStyle | CellStyle | null | undefined) {
     if (!styles) { return; }
 
@@ -380,12 +381,12 @@ export function addStylesToElement(eElement: any, styles: RowStyle | CellStyle |
         if (!key || !key.length || value == null) { continue; }
 
         // changes the key from camelCase into a hyphenated-string
-        const parsedKey = key.replace(/[A-Z]/g, s => `-${s.toLocaleLowerCase()}`);
+        const parsedKey = camelCaseToHyphenated(key);
         const valueAsString = value.toString();
         const parsedValue = valueAsString.replace(/\s*!important/g, '');
         const priority = parsedValue.length != valueAsString.length ? 'important' : undefined;
 
-        eElement.style.setProperty(parsedKey, value, priority);
+        eElement.style.setProperty(parsedKey, parsedValue, priority);
     }
 }
 
@@ -483,4 +484,24 @@ export function nodeListForEach<T extends Node>(nodeList: NodeListOf<T> | null, 
     for (let i = 0; i < nodeList.length; i++) {
         action(nodeList[i]);
     }
+}
+
+/**
+ * cell renderers are used in a few places. they bind to dom slightly differently to other cell renders as they
+ * can return back strings (instead of html element) in the getGui() method. common code placed here to handle that.
+ * @param {AgPromise<ICellRendererComp>} cellRendererPromise
+ * @param {HTMLElement} eTarget
+ */
+export function bindCellRendererToHtmlElement(cellRendererPromise: AgPromise<ICellRendererComp>, eTarget: HTMLElement) {
+    cellRendererPromise.then(cellRenderer => {
+        const gui: HTMLElement | string = cellRenderer!.getGui();
+
+        if (gui != null) {
+            if (typeof gui === 'object') {
+                eTarget.appendChild(gui);
+            } else {
+                eTarget.innerHTML = gui;
+            }
+        }
+    });
 }

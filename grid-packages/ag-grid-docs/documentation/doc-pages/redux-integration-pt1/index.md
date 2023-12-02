@@ -14,8 +14,9 @@ while UI events to add and delete files will be dispatched to the Redux store fo
 
 As shown above, files are grouped by folder, and files can be added or deleted via context menu options.
 
-[[note]]
-| This section assumes the reader is familiar with React and ES6 Javascript features.
+<note>
+This section assumes the reader is familiar with React and ES6 Javascript features.
+</note>
 
 ## Do I need Redux?
 
@@ -34,7 +35,7 @@ responsible for transforming the application state and is typically created by c
 smaller reducers.
 
 
-<img src="resources/redux-store.png" alt="Redux Store" />
+<image-caption src="redux-integration-pt1/resources/redux-store.png" alt="Redux Store"  constrained="true" centered="true" filterdarkmode="true"></image-caption>
 
 Actions describe the operation the reducer should perform on the state. They may also contain
 an optional payload containing data used by the reducer to transform the state. For example
@@ -51,7 +52,7 @@ an action to create a new file might look like this:
 
 Actions are dispatched to the store from UI components as illustrated below:
 
-<img src="resources/redux-data-flow.png" alt="Redux Data Flow" />
+<image-caption src="redux-integration-pt1/resources/redux-data-flow.png" alt="Redux Data Flow"  constrained="true" centered="true" filterdarkmode="true"></image-caption>
 
 The reducer that is associated with the action type will then transform the state which is saved
 in the store. Reducers are pure functions which receive the current application state along with
@@ -118,9 +119,10 @@ The `fileReducer` handles each action type with a case clause within a switch st
 to understand that the reducer doesn't modify the state directly but instead returns a new version for
 the store to persist. As a result there must not be any side effects contained within the reducer.
 
-[[note]]
-| The helper methods used in the reducer are omitted for brevity but can be examined in the code
-| tab provided in the example at the end of this section.
+<note>
+The helper methods used in the reducer are omitted for brevity but can be examined in the code
+tab provided in the example at the end of this section.
+</note>
 
 Rather than create action objects directly, a more elegant approach is to create helper functions referred to as
 
@@ -225,8 +227,9 @@ Now that our stateless `FileView` component is connected to our Redux store, whe
 in the store changes, our component will re-render with the latest file state available in `this.props.files`.
 
 
-[[note]]
-| Bindings exist for most major javascript frameworks so Redux is not limited to React applications.
+<note>
+Bindings exist for most major javascript frameworks so Redux is not limited to React applications.
+</note>
 
 ## Adding the Data Table
 
@@ -240,7 +243,7 @@ Before discussing the grid features in our File View, here are all of the grid o
 
 render() {
     return (
-        <div className="ag-theme-alpine">
+        <div className="ag-theme-quartz">
             <AgGridReact
                 {/* provide column definitions */}                 
                 columnDefs={this.colDefs}
@@ -253,8 +256,7 @@ render() {
                 {/* provide context menu callback */}
                 getContextMenuItems={this.getContextMenuItems}
                 {/* return key required for immutable data */}
-                getRowId={params => params.data.id}>
-            </AgGridReact>
+                getRowId={params => params.data.id} />
         </div>
     )
 }
@@ -342,7 +344,7 @@ is shown below. In this example you can:
 - **File 'Right Click':** reveals option to delete the selected file.
 - **'Reload Component' button:** unmounts and then re-mounts the File View component. Notice that state is preserved via our Redux file store!
 
-<grid-example title='Redux File View' name='redux-file-view' type='react' options=' { "enterprise": true, "showImportsDropdown": false, "extras": ["fontawesome"] }'></grid-example>
+<grid-example title='Redux File View' name='redux-file-view' type='react' options=' { "enterprise": true, "showImportsDropdown": false, "extras": ["fontawesome"], "noCodeSandbox": true }'></grid-example>
 
 ## Conclusion
 

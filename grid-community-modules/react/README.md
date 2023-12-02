@@ -67,7 +67,7 @@ $ npm install --save @ag-grid-community/core @ag-grid-community/react
 import { AgGridReact } from '@ag-grid-community/react';
 
 import '@ag-grid-community/styles/ag-grid.css';
-import '@ag-grid-community/styles/ag-theme-alpine.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
 ```
 
 ### Set the grid's configuration in a parent component
@@ -104,7 +104,7 @@ class App extends Component {
 	render() {
 		return (
 			<div
-				className="ag-theme-alpine"
+				className="ag-theme-quartz"
 				style={{
 					height: '500px',
 					width: '600px'
@@ -112,8 +112,7 @@ class App extends Component {
 			>
 				<AgGridReact
 					columnDefs={this.state.columnDefs}
-					rowData={this.state.rowData}>
-				</AgGridReact>
+					rowData={this.state.rowData} />
 			</div>
 		);
 	}
@@ -130,7 +129,7 @@ Look for similar problems on [StackOverflow](https://stackoverflow.com/questions
 
 ## Contributing
 
-AG Grid is developed by a team of co-located developers in London. If you want to join the team check out our [jobs board](https://www.ag-grid.com/ag-grid-jobs-board/?utm_source=@ag-grid-community/react-readme&utm_medium=repository&utm_campaign=github) or send your application to info@ag-grid.com.
+AG Grid is developed by a team of co-located developers in London. If you want to join the team send your application to info@ag-grid.com.
 
 ## License
 

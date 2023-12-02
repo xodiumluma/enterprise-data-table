@@ -1,13 +1,13 @@
 @use "sass:math";
 @use "core" as *;
 
-html,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
+html#{$exclude-grid-selector},
+h1#{$exclude-grid-selector},
+h2#{$exclude-grid-selector},
+h3#{$exclude-grid-selector},
+h4#{$exclude-grid-selector},
+h5#{$exclude-grid-selector},
+h6#{$exclude-grid-selector},
 .font-size-gargantuan,
 .font-size-gigantic,
 .font-size-massive,
@@ -27,19 +27,19 @@ h6,
     --line-height: var(--line-height-tight);
 }
 
-h1,
+h1#{$exclude-grid-selector},
 .font-size-gigantic {
     --font-size: var(--font-size-gigantic);
     --line-height: var(--line-height-tight);
 }
 
-h2,
+h2#{$exclude-grid-selector},
 .font-size-massive {
     --font-size: var(--font-size-massive);
     --line-height: var(--line-height-tight);
 }
 
-h3,
+h3#{$exclude-grid-selector},
 .font-size-extra-large {
     --font-size: var(--font-size-extra-large);
 }
@@ -48,22 +48,22 @@ h3,
     --font-size: var(--font-size-large);
 }
 
-h4,
+h4#{$exclude-grid-selector},
 .font-size-medium {
     --font-size: var(--font-size-medium);
 }
 
-h5,
+h5#{$exclude-grid-selector},
 .font-size-small {
     --font-size: var(--font-size-small);
 }
 
-h6,
+h6#{$exclude-grid-selector},
 .font-size-extra-small {
     --font-size: var(--font-size-extra-small);
 }
 
-h1,
+h1#{$exclude-grid-selector},
 .font-size-gargantuan,
 .font-size-gigantic,
 .font-size-massive {
@@ -72,26 +72,21 @@ h1,
 
 .font-size-responsive {
     @media screen and (min-width: $max-page-width) {
-        --font-size-extra-small: #{$large-font-size-extra-small};
-        --font-size-small: #{$large-font-size-small};
-        --font-size-medium: #{$large-font-size-medium};
-        --font-size-large: #{$large-font-size-large};
-        --font-size-extra-large: #{$large-font-size-extra-large};
-        --font-size-massive: #{$large-font-size-massive};
-        --font-size-gigantic: #{$large-font-size-gigantic};
-        --font-size-gargantuan: #{$large-font-size-gargantuan};
+        @include font-size-responsive();
     }
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-b,
-strong,
+h1#{$exclude-grid-selector},
+h2#{$exclude-grid-selector},
+h3#{$exclude-grid-selector},
+h4#{$exclude-grid-selector},
+h5#{$exclude-grid-selector},
+h6#{$exclude-grid-selector},
+b#{$exclude-grid-selector},
+strong#{$exclude-grid-selector},
 .bold-text {
+    --font-weight: var(--font-weight-bold);
+
     font-weight: var(--font-weight-bold);
 }
 
@@ -100,7 +95,7 @@ strong,
 }
 
 .normal-weight-text {
-    --font-weight: var(--font-weight);
+    font-weight: var(--font-weight);
 }
 
 .monospace-text {
@@ -113,14 +108,14 @@ h3:not(:last-child),
 h4:not(:last-child),
 h5:not(:last-child),
 h6:not(:last-child) {
-    margin-bottom: $size-1;
+    margin-bottom: $size-2;
 }
 
-p:not(:last-child),
-ul:not(:last-child),
-ol:not(:last-child),
-blockquote:not(:last-child) {
-    margin-bottom: $size-2;
+p:where(:not(:last-child)),
+ul:where(:not(:last-child)),
+ol:where(:not(:last-child)),
+blockquote:where(:not(:last-child)) {
+    margin-bottom: $size-3;
 }
 
 .max-text-length {

@@ -10,9 +10,11 @@ import { escapeString } from "../utils/string";
 import { createIcon } from "../utils/icon";
 import { flatten, removeFromArray } from "../utils/array";
 import { getBodyHeight, getBodyWidth } from "../utils/browser";
-import { loadTemplate, clearElement } from "../utils/dom";
+import { loadTemplate, clearElement, getElementRectWithOffset } from "../utils/dom";
 import { isFunction } from "../utils/function";
 import { IRowNode } from "../interfaces/iRowNode";
+import { IAggFunc } from "../entities/colDef";
+import { HorizontalDirection, VerticalDirection } from "../constants/direction";
 
 export interface DragItem {
     /**
@@ -29,9 +31,16 @@ export interface DragItem {
 
     /** When dragging columns, this contains the visible state of the columns */
     visibleState?: { [key: string]: boolean };
+
+    /** When dragging columns, this contains the pivot state of the columns. This is only populated/used in column tool panel */
+    pivotState?: { [key: string]: {
+        pivot?: boolean;
+        rowGroup?: boolean;
+        aggFunc?: string | IAggFunc | null;
+    } };
 }
 
-export enum DragSourceType { ToolPanel, HeaderCell, RowDrag, ChartPanel }
+export enum DragSourceType { ToolPanel, HeaderCell, RowDrag, ChartPanel, AdvancedFilterBuilder }
 
 export interface DragSource {
     /**
@@ -54,7 +63,7 @@ export interface DragSource {
     /**
      * Icon to show when not over a drop zone
      */
-    defaultIconName?: string;
+    getDefaultIconName?: () => string;
     /**
      * The drop target associated with this dragSource. When dragging starts, this
      * target does not get an onDragEnter event.
@@ -101,7 +110,7 @@ export interface DropTarget {
     /**
      * If `true`, the DragSources will only be allowed to be dragged within the DragTarget that contains them.
      * This is useful for changing order of items within a container, and not moving items across containers.
-     * Default: `false`
+     * @default false
      */
     targetContainsSource?: boolean;
 
@@ -116,9 +125,6 @@ export interface DropTarget {
     external?: boolean;
 }
 
-export enum VerticalDirection { Up, Down }
-export enum HorizontalDirection { Left, Right }
-
 export interface DraggingEvent {
     event: MouseEvent;
     x: number;
@@ -129,6 +135,7 @@ export interface DraggingEvent {
     dragItem: DragItem;
     fromNudge: boolean;
     api: GridApi;
+    /** @deprecated v31 ColumnApi has been deprecated and all methods moved to the api. */
     columnApi: ColumnApi;
     dropZoneTarget: HTMLElement;
 }
@@ -200,12 +207,13 @@ export class DragAndDropService extends BeanStub {
             dragStartPixels: dragSource.dragStartPixels,
             onDragStart: this.onDragStart.bind(this, dragSource),
             onDragStop: this.onDragStop.bind(this),
-            onDragging: this.onDragging.bind(this)
+            onDragging: this.onDragging.bind(this),
+            includeTouch: allowTouch
         };
 
         this.dragSourceAndParamsList.push({ params: params, dragSource: dragSource });
 
-        this.dragService.addDragSource(params, allowTouch);
+        this.dragService.addDragSource(params);
     }
 
     public removeDragSource(dragSource: DragSource): void {
@@ -441,14 +449,15 @@ export class DragAndDropService extends BeanStub {
         const ghostRect = ghost.getBoundingClientRect();
         const ghostHeight = ghostRect.height;
 
-        // for some reason, without the '-2', it still overlapped by 1 or 2 pixels, which
-        // then brought in scrollbars to the browser. no idea why, but putting in -2 here
-        // works around it which is good enough for me.
-        const browserWidth = getBodyWidth() - 2;
-        const browserHeight = getBodyHeight() - 2;
+        const browserWidth = getBodyWidth() - 2; // 2px for 1px borderLeft and 1px borderRight
+        const browserHeight = getBodyHeight() - 2; // 2px for 1px borderTop and 1px borderBottom
 
-        let top = event.pageY - (ghostHeight / 2);
-        let left = event.pageX - 10;
+        const offsetParentSize = getElementRectWithOffset(ghost.offsetParent as HTMLElement);
+
+        const { clientY, clientX } = event;
+
+        let top = (clientY - offsetParentSize.top) - (ghostHeight / 2);
+        let left = (clientX - offsetParentSize.left) - 10;
 
         const eDocument = this.gridOptionsService.getDocument();
         const win = (eDocument.defaultView || window);
@@ -512,24 +521,27 @@ export class DragAndDropService extends BeanStub {
         this.eGhost.style.left = '20px';
 
         const eDocument = this.gridOptionsService.getDocument();
+        let rootNode: Document | ShadowRoot | HTMLElement | null = null;
         let targetEl: HTMLElement | ShadowRoot | null = null;
 
         try {
-            targetEl = eDocument.fullscreenElement as HTMLElement | null;
+            rootNode = eDocument.fullscreenElement as HTMLElement;
         } catch (e) {
             // some environments like SalesForce will throw errors
             // simply by trying to read the fullscreenElement property
         } finally {
-            if (!targetEl) {
-                const rootNode = this.gridOptionsService.getRootNode();
-                const body = rootNode.querySelector('body');
-                if (body) {
-                    targetEl = body;
-                } else if (rootNode instanceof ShadowRoot) {
-                    targetEl = rootNode;
-                } else {
-                    targetEl = rootNode?.documentElement;
-                }
+            if (!rootNode) {
+                rootNode = this.gridOptionsService.getRootNode();
+            }
+            const body = rootNode.querySelector('body');
+            if (body) {
+                targetEl = body;
+            } else if (rootNode instanceof ShadowRoot) {
+                targetEl = rootNode;
+            } else if (rootNode instanceof Document) {
+                targetEl = rootNode?.documentElement;
+            } else {
+                targetEl = rootNode;
             }
         }
 
@@ -548,7 +560,7 @@ export class DragAndDropService extends BeanStub {
         let eIcon: Element | null = null;
 
         if (!iconName) {
-            iconName = this.dragSource.defaultIconName || DragAndDropService.ICON_NOT_ALLOWED;
+            iconName = this.dragSource.getDefaultIconName ? this.dragSource.getDefaultIconName() : DragAndDropService.ICON_NOT_ALLOWED;
         }
 
         switch (iconName) {
@@ -565,7 +577,7 @@ export class DragAndDropService extends BeanStub {
 
         this.eGhostIcon.classList.toggle('ag-shake-left-to-right', shake);
 
-        if (eIcon === this.eHideIcon && this.gridOptionsService.is('suppressDragLeaveHidesColumns')) {
+        if (eIcon === this.eHideIcon && this.gridOptionsService.get('suppressDragLeaveHidesColumns')) {
             return;
         }
 

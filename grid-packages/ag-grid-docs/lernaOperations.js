@@ -313,7 +313,7 @@ function moduleChanged(moduleRoot) {
 const readModulesState = (buildChain) => {
     const agPackages = Object.keys(buildChain);
 
-    const moduleRootNames = ['grid-packages', 'grid-community-modules', 'grid-enterprise-modules', 'charts-community-modules', 'grid-examples', 'grid-packages/ag-grid-docs'];
+    const moduleRootNames = ['grid-packages', 'grid-community-modules', 'grid-enterprise-modules', 'charts-community-modules', 'charts-enterprise-modules', 'grid-examples', 'grid-packages/ag-grid-docs'];
     const exclusions = ['ag-grid-dev', 'prettier-no-op'];
 
     const modulesState = {};
@@ -430,7 +430,7 @@ const rebuildPackagesBasedOnChangeState = async (runUnitTests = true,
 
             if (runUnitTests && !buildFailed) {
                 console.log("Running 'test' on changed modules");
-                result = await buildPackages(packagesToRun, 'test');
+                result = await buildPackages(packagesToRun, 'test', '--concurrency 1');
                 buildFailed = result.exitCode !== 0 || result.failed === 1 || buildFailed;
             }
 

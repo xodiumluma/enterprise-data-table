@@ -1,13 +1,11 @@
 import { _ } from '@ag-grid-community/core';
 import {
-    AgChartThemePalette,
+    _Theme,
     AgChartLegendClickEvent,
     AgChartTheme,
     AgChartThemeName,
     AgChartThemeOverrides,
-    AgPieSeriesTooltipRendererParams,
-    AgPolarSeriesTheme,
-    _Theme,
+    AgChartThemePalette,
 } from 'ag-charts-community';
 import { ALL_AXIS_TYPES } from '../utils/axisTypeMapper';
 import { getSeriesType } from '../utils/seriesTypeMapper';
@@ -26,7 +24,7 @@ export function createAgChartTheme(chartProxyParams: ChartProxyParams, proxy: Ch
     const apiThemeOverrides = chartProxyParams.apiChartThemeOverrides;
 
     const standaloneChartType = getSeriesType(chartProxyParams.chartType);
-    const crossFilterThemeOverridePoint = standaloneChartType === 'pie' ? 'polar' : 'cartesian';
+    const crossFilterThemeOverridePoint = standaloneChartType === 'pie' ? 'pie' : 'cartesian';
     const crossFilteringOverrides = chartProxyParams.crossFiltering
         ? createCrossFilterThemeOverrides(proxy, chartProxyParams, crossFilterThemeOverridePoint)
         : undefined;
@@ -95,7 +93,7 @@ export function isStockTheme(themeName: string): boolean {
 function createCrossFilterThemeOverrides(
     proxy: ChartProxy,
     chartProxyParams: ChartProxyParams,
-    overrideType: 'cartesian' | 'polar'
+    overrideType: 'cartesian' | 'pie'
 ): AgChartThemeOverrides {
     const legend = {
         listeners: {
@@ -109,27 +107,7 @@ function createCrossFilterThemeOverrides(
         },
     };
 
-    const series: AgPolarSeriesTheme = {};
-    if (overrideType === 'polar') {
-        series.pie = {
-            tooltip: {
-                renderer: ({
-                    angleName,
-                    datum,
-                    calloutLabelKey,
-                    radiusKey,
-                    angleValue,
-                }: AgPieSeriesTooltipRendererParams) => {
-                    const title = angleName;
-                    const label = datum[calloutLabelKey as string];
-                    const ratio = datum[radiusKey as string];
-                    const totalValue = angleValue;
-                    return { title, content: `${label}: ${totalValue * ratio}` };
-                },
-            },
-        };
-    }
-
+    const series: AgChartThemeOverrides = {};
     return {
         [overrideType]: {
             tooltip: {

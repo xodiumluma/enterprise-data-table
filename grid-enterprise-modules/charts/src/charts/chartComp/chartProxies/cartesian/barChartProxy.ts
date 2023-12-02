@@ -1,9 +1,11 @@
 import { _ } from "@ag-grid-community/core";
 import { AgBarSeriesOptions, AgCartesianAxisOptions } from "ag-charts-community";
-import { ChartProxyParams, UpdateChartParams } from "../chartProxy";
+// import { AgBarSeriesOptions, AgCartesianAxisOptions } from "ag-charts-enterprise";
+import { ChartProxyParams, UpdateParams } from "../chartProxy";
 import { CartesianChartProxy } from "./cartesianChartProxy";
 import { deepMerge } from "../../utils/object";
 import { hexToRGBA } from "../../utils/color";
+import { isHorizontal, isStacked } from "../../utils/seriesTypeMapper";
 
 export class BarChartProxy extends CartesianChartProxy {
 
@@ -11,16 +13,15 @@ export class BarChartProxy extends CartesianChartProxy {
         super(params);
     }
 
-    public getAxes(params: UpdateChartParams): AgCartesianAxisOptions[] {
-        const isBar = this.standaloneChartType === 'bar';
+    public getAxes(params: UpdateParams): AgCartesianAxisOptions[] {
         const axes: AgCartesianAxisOptions[] = [
             {
                 type: this.getXAxisType(params),
-                position: isBar ? 'left' : 'bottom',
+                position: isHorizontal(this.chartType) ? 'left' : 'bottom',
             },
             {
                 type: 'number',
-                position: isBar ? 'bottom' : 'left',
+                position: isHorizontal(this.chartType) ? 'bottom' : 'left',
             },
         ];
         // Add a default label formatter to show '%' for normalized charts if none is provided
@@ -32,14 +33,12 @@ export class BarChartProxy extends CartesianChartProxy {
         return axes;
     }
 
-    public getSeries(params: UpdateChartParams): AgBarSeriesOptions[] {
-        const groupedCharts = ['groupedColumn', 'groupedBar'];
-        const isGrouped = !this.crossFiltering && _.includes(groupedCharts, this.chartType);
-
+    public getSeries(params: UpdateParams): AgBarSeriesOptions[] {
         const series: AgBarSeriesOptions[] = params.fields.map(f => (
             {
                 type: this.standaloneChartType,
-                grouped: isGrouped,
+                direction: isHorizontal(this.chartType) ? 'horizontal' : 'vertical',
+                stacked: this.crossFiltering || isStacked(this.chartType),
                 normalizedTo: this.isNormalised() ? 100 : undefined,
                 xKey: params.category.id,
                 xName: params.category.name,
@@ -73,7 +72,7 @@ export class BarChartProxy extends CartesianChartProxy {
                 yKey,
                 fill: hexToRGBA(seriesOptions.fill!, '0.3'),
                 stroke: hexToRGBA(seriesOptions.stroke!, '0.3'),
-                hideInLegend: [yKey],
+                showInLegend: false,
             }
         }
 

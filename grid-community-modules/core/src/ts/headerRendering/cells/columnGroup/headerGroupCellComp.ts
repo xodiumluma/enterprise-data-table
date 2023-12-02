@@ -17,6 +17,8 @@ export class HeaderGroupCellComp extends AbstractHeaderCellComp<HeaderGroupCellC
 
     @RefSelector('eResize') private eResize: HTMLElement;
 
+    private headerGroupComp: IHeaderGroupComp | undefined;
+
     constructor(ctrl: HeaderGroupCellCtrl) {
         super(HeaderGroupCellComp.TEMPLATE, ctrl);
     }
@@ -29,14 +31,15 @@ export class HeaderGroupCellComp extends AbstractHeaderCellComp<HeaderGroupCellC
         const setAttribute = (key: string, value: string | undefined) =>
                 value != undefined ? eGui.setAttribute(key, value) : eGui.removeAttribute(key);
 
+        eGui.setAttribute("col-id", this.ctrl.getColId());
+
         const compProxy: IHeaderGroupCellComp = {
             addOrRemoveCssClass: (cssClassName, on) => this.addOrRemoveCssClass(cssClassName, on),
             setResizableDisplayed: (displayed) => setDisplayed(this.eResize, displayed),
             setWidth: width => eGui.style.width = width,
-            setColId: id => eGui.setAttribute("col-id", id),
             setAriaExpanded: expanded => setAttribute('aria-expanded', expanded),
-            setTitle: title => setAttribute("title", title),
-            setUserCompDetails: details => this.setUserCompDetails(details)
+            setUserCompDetails: details => this.setUserCompDetails(details),
+            getUserCompInstance: () => this.headerGroupComp,
         };
 
         this.ctrl.setComp(compProxy, eGui, this.eResize);
@@ -55,10 +58,14 @@ export class HeaderGroupCellComp extends AbstractHeaderCellComp<HeaderGroupCellC
             return;
         }
 
-        this.getGui().appendChild(headerGroupComp.getGui());
+        const eGui = this.getGui();
+        const eHeaderGroupGui = headerGroupComp.getGui();
+
+        eGui.appendChild(eHeaderGroupGui);
         this.addDestroyFunc(destroyFunc);
 
-        this.ctrl.setDragSource(headerGroupComp.getGui());
+        this.headerGroupComp = headerGroupComp;
+        this.ctrl.setDragSource(eGui);
     }
 
 }

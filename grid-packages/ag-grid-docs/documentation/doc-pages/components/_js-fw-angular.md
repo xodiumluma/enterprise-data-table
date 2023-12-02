@@ -1,8 +1,12 @@
-[[only-angular]]
-|## Component Lifecyle Hook agInit
-|
-|Each custom Angular component must implement the `agInit(params)` lifecyle hook. AgInit is called by AG Grid before any of the [Angular Lifecyle hooks](https://angular.io/guide/lifecycle-hooks#lifecycle-hooks), including `ngOnInit`. This order is deterministic and applies to all component types.
-|
+<framework-specific-section frameworks="angular">
+|## Component Lifecycle Hook agInit
+</framework-specific-section>
+
+<framework-specific-section frameworks="angular">
+<p>Each custom Angular component must implement the <code>agInit(params)</code> lifecycle hook. AgInit is called by AG Grid before any of the <a href="https://angular.io/guide/lifecycle-hooks#lifecycle-hooks">Angular Lifecycle hooks</a>, including <code>ngOnInit</code>. This order is deterministic and applies to all component types.</p>
+</framework-specific-section>
+
+<framework-specific-section frameworks="angular">
 |## Mixing JavaScript and Angular
 |
 |When providing Custom Components you have a choice of the following:
@@ -11,7 +15,10 @@
 |
 |The following code snippet shows how both JavaScript and Angular Components can be used at the same time:
 |
-|```tsx
+</framework-specific-section>
+
+<framework-specific-section frameworks="angular">
+<snippet transform={false} language="ts">
 |//...other imports
 |import { Component } from '@angular/core';
 |import JavascriptComponent from './JavascriptComponent.js';
@@ -20,9 +27,9 @@
 |@Component({
 |selector: 'app-root',
 |template: `
-|   <ag-grid-angular [columnDefs]="columnDefs" [components]="components"
+|   &lt;ag-grid-angular [columnDefs]="columnDefs" [components]="components"
 |                    ...other properties>
-|   </ag-grid-angular>
+|   &lt;/ag-grid-angular>
 |`
 |})
 |export class AppComponent {
@@ -56,6 +63,5 @@
 |
 |   //...other properties & methods
 |}
-|```
-|
-
+</snippet>
+</framework-specific-section>

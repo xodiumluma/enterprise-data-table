@@ -40,9 +40,7 @@
 
     .ag-chart-menu {
         position: absolute;
-        top: 10px;
-        width: 24px;
-        overflow: hidden;
+        top: 16px;
         display: flex;
         flex-direction: column;
 
@@ -198,6 +196,7 @@
         flex-direction: column;
         position: relative;
         @include ag.selectable(none);
+        padding-bottom: 16px;
     }
 
     .ag-chart-data-wrapper {
@@ -231,9 +230,8 @@
     .ag-chart .ag-chart-tool-panel-button-enable .ag-chart-menu {
         display: flex;
         flex-direction: row;
-        overflow: auto;
-        top: 5px;
-        gap: calc(var(--ag-grid-size) * 3 - 8px);
+        top: 8px;
+        gap: 20px;
         width: auto;
 
         @include ag.unthemed-rtl((
@@ -331,10 +329,6 @@
 
     .ag-chart-menu-icon {
         opacity: 0.5;
-        line-height: 24px;
-        font-size: 24px;
-        width: 24px;
-        height: 24px;
         margin: 2px 0;
         cursor: pointer;
         border-radius: var(--ag-card-radius);

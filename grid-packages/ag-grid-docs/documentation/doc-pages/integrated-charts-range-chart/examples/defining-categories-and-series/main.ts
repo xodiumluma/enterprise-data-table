@@ -1,4 +1,6 @@
-import { Grid, CreateRangeChartParams, FirstDataRenderedEvent, GridOptions } from '@ag-grid-community/core'
+import {createGrid, FirstDataRenderedEvent, GridApi, GridOptions,} from '@ag-grid-community/core';
+
+let gridApi: GridApi;
 
 const gridOptions: GridOptions = {
   columnDefs: [
@@ -16,15 +18,10 @@ const gridOptions: GridOptions = {
     { field: 'bronze' }, // inferred as series by grid
   ],
   defaultColDef: {
-    editable: true,
-    sortable: true,
-    flex: 1,
-    minWidth: 100,
-    filter: true,
-    resizable: true,
+    flex: 1
   },
-  popupParent: document.body,
   enableRangeSelection: true,
+  popupParent: document.body,
   enableCharts: true,
   chartThemeOverrides: {
     common: {
@@ -32,11 +29,8 @@ const gridOptions: GridOptions = {
         enabled: true,
         text: 'Medals by Age',
       },
-      legend: {
-        position: 'bottom',
-      },
     },
-    column: {
+    bar: {
       axes: {
         category: {
           label: {
@@ -50,28 +44,26 @@ const gridOptions: GridOptions = {
 }
 
 function onFirstDataRendered(params: FirstDataRenderedEvent) {
-  var createRangeChartParams: CreateRangeChartParams = {
+  params.api.createRangeChart({
+    chartContainer: document.querySelector('#myChart') as HTMLElement,
     cellRange: {
       rowStartIndex: 0,
       rowEndIndex: 79,
       columns: ['age', 'gold', 'silver', 'bronze'],
     },
     chartType: 'groupedColumn',
-    chartContainer: document.querySelector('#myChart') as any,
     aggFunc: 'sum',
-  }
-
-  params.api.createRangeChart(createRangeChartParams)
+  });
 }
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
-  var gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/wide-spread-of-sports.json')
     .then(response => response.json())
     .then(function (data) {
-      gridOptions.api!.setRowData(data)
+      gridApi!.setGridOption('rowData', data)
     })
 })

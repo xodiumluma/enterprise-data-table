@@ -85,11 +85,12 @@ Unmanaged dragging is the default dragging for the grid. To use it, do not set t
 - Dragging is allowed while filter is applied.
 - Dragging is allowed while row group or pivot is applied.
 
-[[note]]
-| It is not possible for the grid to provide a generic solution for row
-| dragging that fits all usage scenarios. The way around this is the grid
-| fires events and the application is responsible for implementing what
-| meets the application's requirements.
+<note>
+It is not possible for the grid to provide a generic solution for row
+dragging that fits all usage scenarios. The way around this is the grid
+fires events and the application is responsible for implementing what
+meets the application's requirements.
+</note>
 
 ### Row Drag Events
 
@@ -107,6 +108,11 @@ Typically a drag will fire the following events:
 1. `rowDragEnd` fired once - The drag has finished.
 
 Additional `rowDragLeave` and `rowDragEnter` events are fired if the mouse leaves or re-enters the grid. If the drag is finished outside of the grid, then the `rowDragLeave` is the last event fired and no `rowDragEnd` is fired, as the drag did not end on the grid.
+
+<note>
+When the Grid is created, a [Drop Zone](../row-dragging-to-external-dropzone/) that is responsible for firing all the Row Drag Events is added to the Grid Body. This why Row Drag Events (including `rowDragEnd`) are only fired when they happen on top of the Grid. If you need to monitor when a Row Drag ends outside of the Grid, for example, use the [DragStopped](../grid-events/#reference-miscellaneous-dragStopped) event.
+</note>
+
 
 Each of the four row drag events extend the `RowDragEvent` interface.
 
@@ -147,8 +153,9 @@ The simple example doesn't add anything that managed dragging gives (the first
 example on this page). Things get interesting when we introduce complex scenarios
 such as row grouping or tree data, which are explained below.
 
-[[note]]
-|Dragging Multiple Rows with unmanaged row dragging, the application is in control of what gets dragged, so it is possible to use the events to drag more than one row at a time, e.g. to move all selected rows in one go if using row selection.
+<note>
+Dragging Multiple Rows with unmanaged row dragging, the application is in control of what gets dragged, so it is possible to use the events to drag more than one row at a time, e.g. to move all selected rows in one go if using row selection.
+</note>
 
 ## Entire Row Dragging
 
@@ -169,18 +176,19 @@ const gridOptions = {
 
 The example below demonstrates entire row dragging with [Multi-Row Dragging](/row-dragging/#multi-row-dragging). Note the following:
 
-- Reordering rows by clicking and dragging anywhere on a row is possible as `rowDragEntireRow` enabled.
+- Reordering rows by clicking and dragging anywhere on a row is possible as `rowDragEntireRow` is enabled.
 - Multiple rows can be selected and dragged as `rowDragMultiRow` is also enabled with `rowSelection = 'multiple'`.
 - Row Drag Managed is being used, but it is not a requirement for `Entire Row Dragging`.
 
 <grid-example title='Entire Row Dragging' name='entire-row-dragging' type='generated' options='{ "enterprise": true, "modules": ["clientside"] }'></grid-example>
 
-[[warning]]
-|[Range Selection](/range-selection/) is not supported when `rowDragEntireRow` is enabled.
+<warning>
+|[Range Selection](../range-selection/) is not supported when `rowDragEntireRow` is enabled.
+</warning>
 
 ## Suppress Row Drag
 
-You can hide the draggable area by calling the grid API `setSuppressRowDrag()`
+You can hide the draggable area by calling the grid API `setGridOption('suppressRowDrag', suppressed)`
 or by setting the bound property `suppressRowDrag`.
 
 The example below is almost identical to the [Managed Dragging](#managed-dragging) example with the following differences:
@@ -216,7 +224,7 @@ The example below shows row dragging with [Row Grouping](/grouping/) where the f
 
 The example below shows [Tree Data](/tree-data/) and row dragging where the following can be noted:
 
-- The [auto-group column](/grouping/#auto-column-group) has row drag `true` for all rows.
+- The [auto-group column](/grouping/) has row drag `true` for all rows.
 
 -  The example registers for `onRowDragEnd` events and rearranges
    the rows when the drag completes.
@@ -281,7 +289,7 @@ const gridOptions = {
 
 The example below shows dragging with custom text. The following can be noted:
 
-- When you drag row of the year 2012, the `rowDragText` callback will add **(London Olympics)** to the floating drag element.
+- When you drag a row of the year 2012, the `rowDragText` callback will add **(London Olympics)** to the floating drag element.
 
 <grid-example title='Row Drag With Custom Text' name='custom-drag-text' type='generated'></grid-example>
 
@@ -316,7 +324,7 @@ const gridOptions = {
 
 The example below shows dragging with custom text and multiple column draggers. The following can be noted:
 
-- When you drag row of the year 2012, the `rowDragText` callback will add **(London Olympics)** to the floating drag element.
+- When you drag a row with a year of 2012 by the country row dragger, the `rowDragText` callback will add **(London Olympics)** to the floating drag element.
 
 - When you drag the row by the athlete row dragger, the `rowDragText` callback in the `gridOptions` will be overridden by the one in the `colDef` and will display the number of **athletes selected**.
 
@@ -325,20 +333,21 @@ The example below shows dragging with custom text and multiple column draggers. 
 
 ### Row Dragger inside Custom Cell Renderers
 
-Due to the complexity of some applications, it could be handy to render the Row Drag Component inside of a Custom Cell Renderer. This can be achieved, by using the `registerRowDragger` method in the [ICellRendererParams](/component-cell-renderer/#cell-renderer-component) as follows:
+Due to the complexity of some applications, it could be handy to render the Row Drag Component inside of a Custom Cell Renderer. This can be achieved, by using the `registerRowDragger` method in the [ICellRendererParams](/component-cell-renderer/) as follows:
 
-[[only-javascript]]
-| ```js
+<framework-specific-section frameworks="javascript">
+<snippet transform={false}>
 | // your custom cell renderer init code
 | const rowDragger = document.createElement('div')
 | this.eGui.appendChild(rowDragger);
 |
 | // register it as a row dragger
 | params.registerRowDragger(rowDragger);
-| ```
+</snippet>
+</framework-specific-section>
 
-[[only-angular]]
-| ```js
+<framework-specific-section frameworks="angular">
+<snippet transform={false}>
 | // your custom cell renderer code
 | @ViewChild('myref') myRef;
 |
@@ -349,10 +358,11 @@ Due to the complexity of some applications, it could be handy to render the Row 
 | ngAfterViewInit() {
 |     this.cellRendererParams.registerRowDragger(this.myRef.nativeElement);
 | }
-| ```
+</snippet>
+</framework-specific-section>
 
-[[only-react]]
-| ```js
+<framework-specific-section frameworks="react">
+<snippet transform={false}>
 | // your custom cell renderer code
 |
 | // this will hold the reference to the element you want to
@@ -362,20 +372,22 @@ Due to the complexity of some applications, it could be handy to render the Row 
 | componentDidMount() {
 |     this.props.registerRowDragger(this.myRef.current);
 | }
-| ```
+</snippet>
+</framework-specific-section>
 
-
-[[only-vue]]
-| ```js
+<framework-specific-section frameworks="vue">
+<snippet transform={false}>
 | // your custom cell renderer code
 | mounted() {
-|     this.params.registerRowDragger(this.$refs.myRef);
+|     this.params.registerRhahaowDragger(this.$refs.myRef);
 | }
-| ```
+</snippet>
+</framework-specific-section>
 
-[[warning]]
+<warning>
 | When using `registerRowDragger` you should **not** set the property `rowDrag=true` in the Column Definition.
 | Doing that will cause the cell to have two row draggers.
+</warning>
 
 The example below shows a custom cell renderer, with using the `registerRowDragger` callback to render the Row Dragger inside itself.
 

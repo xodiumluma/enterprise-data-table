@@ -3,8 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
-import { ModuleRegistry, ColDef, ColumnApi, GetRowIdParams, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-community/core';
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import { ModuleRegistry, ColDef, GetRowIdParams, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-community/core';
 import { ICellRendererAngularComp } from '@ag-grid-community/angular';
 
 // Register the required feature modules with the Grid
@@ -52,13 +52,14 @@ export class SportRenderer implements ICellRendererAngularComp {
                     </span>
                 </div>
             </div>
-            <div class="grid-wrapper ag-theme-alpine">
+            <div class="grid-wrapper">
                 <div class="panel panel-primary" style="margin-right: 10px;">
                     <div class="panel-heading">Athletes</div>
                     <div class="panel-body">
                         <div id="eLeftGrid">
                             <ag-grid-angular
                                     style="height: 100%;"
+                                    [class]="themeClass"
                                     [defaultColDef]="defaultColDef"
                                     rowSelection="multiple"
                                     [rowDragMultiRow]="true"
@@ -66,7 +67,6 @@ export class SportRenderer implements ICellRendererAngularComp {
                                     [getRowId]="getRowId"
                                     [rowDragManaged]="true"
                                     [suppressMoveWhenRowDragging]="true"
-                                    [animateRows]="true"
                                     [rowData]="leftRowData"
                                     [columnDefs]="leftColumns"
                                     (gridReady)="onGridReady($event, 0)">
@@ -80,10 +80,10 @@ export class SportRenderer implements ICellRendererAngularComp {
                         <div id="eRightGrid">
                             <ag-grid-angular
                                     style="height: 100%;"
+                                    [class]="themeClass"
                                     [defaultColDef]="defaultColDef"
                                     [getRowId]="getRowId"
                                     [rowDragManaged]="true"
-                                    [animateRows]="true"
                                     [rowData]="rightRowData"
                                     [columnDefs]="rightColumns"
                                     (gridReady)="onGridReady($event, 1)">
@@ -95,19 +95,17 @@ export class SportRenderer implements ICellRendererAngularComp {
         </div>`
 })
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     rawData: any[] = [];
     leftRowData: any[] = [];
     rightRowData: any[] = []
     leftApi!: GridApi;
-    leftColumnApi!: ColumnApi;
     rightApi!: GridApi;
 
     defaultColDef: ColDef = {
         flex: 1,
         minWidth: 100,
-        sortable: true,
         filter: true,
-        resizable: true
     };
 
     leftColumns: ColDef[] = [
@@ -195,8 +193,8 @@ export class AppComponent {
 
     checkboxSelectChange = () => {
         const checked = this.eSelectCheckbox.nativeElement.checked;
-        this.leftColumnApi.setColumnVisible('checkbox', checked);
-        this.leftApi.setSuppressRowClickSelection(checked);
+        this.leftApi.setColumnVisible('checkbox', checked);
+        this.leftApi.setGridOption('suppressRowClickSelection', checked);
     }
 
     getRowId = (params: GetRowIdParams) => params.data.athlete;
@@ -204,7 +202,6 @@ export class AppComponent {
     onGridReady(params: GridReadyEvent, side: number) {
         if (side === 0) {
             this.leftApi = params.api
-            this.leftColumnApi = params.columnApi;
         }
 
         if (side === 1) {
@@ -227,9 +224,7 @@ export class AppComponent {
                         })
                     });
                 } else if (deselectCheck) {
-                    nodes.forEach(function (node) {
-                        node.setSelected(false);
-                    });
+                    this.leftApi.setNodesSelected({ nodes, newValue: false });
                 }
             }
         });

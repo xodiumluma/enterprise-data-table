@@ -1,17 +1,9 @@
 ---
 title: "Tooltip Component"
 ---
- 
+  
 Tooltip components allow you to add your own tooltips to the grid's column headers and cells. Use these when the provided tooltip component or the default browser tooltip do not meet your requirements.
 
-## Simple Tooltip Component
-
-md-include:simple-tooltip-javascript.md
-md-include:simple-tooltip-angular.md
-md-include:simple-tooltip-react.md
-md-include:simple-tooltip-vue.md
-
-## Example: Custom Tooltip
 
 The example below demonstrates how to provide custom tooltips to the grid. Notice the following:
 
@@ -42,8 +34,9 @@ If you don't want to use the grid's tooltip component, you can use the `enableBr
 
 By default, when you hover on an item, it will take 2 seconds for the tooltip to be displayed and then 10 seconds for the tooltip to hide. If you need to change these delays, the `tooltipShowDelay` and `tooltipHideDelay` configs should be used, which are set in milliseconds.
 
-[[note]]
-| The delays will have no effect if you are using browser tooltips, as they are controlled entirely by the browser.
+<note>
+The delays will have no effect if you are using browser tooltips, as they are controlled entirely by the browser.
+</note>
 
 ## Showing Blank Values
 
@@ -63,8 +56,9 @@ The example below shows both displaying and not displaying the tooltip for blank
 
 When we want to display a header tooltip, we set the `headerTooltip` config as a `string`, and that string will be displayed as the tooltip. However, when working with custom tooltips we set `colDef.tooltipComponent` to assign the column's tooltip component and the `headerTooltip` value will passed to the `params` object.
 
-[[note]]
-| If `headerTooltip` is not present, the tooltip will not be rendered.
+<note>
+If `headerTooltip` is not present, the tooltip will not be rendered.
+</note>
 
 The example below shows how to set a custom tooltip to a header and to a grouped header. Note the following:
 
@@ -85,9 +79,37 @@ The example below shows how to use the default tooltip component with group colu
 
 The example below enables mouse tracking to demonstrate a scenario where tooltips need to follow the cursor. To enable this feature, set the `tooltipMouseTrack` to true in the gridOptions.
 
-<grid-example title='Tooltip Mouse Tracking' name='tooltip-mouse-tracking' type='generated' options='{ "extras": ["bootstrap"] }'></grid-example>
+<grid-example title='Tooltip Mouse Tracking' name='tooltip-mouse-tracking' type='generated'></grid-example>
 
-## Example: Using Browser Tooltips
+## Interactive Tooltips
+
+By default, it is impossible to click on tooltips and hovering them has no effect. If `tooltipInteraction=true` is set in the gridOptions, the tooltips will not disappear while being hovered and you will be able to click and select the text within the tooltip.
+
+<snippet>
+const gridOptions = {
+    tooltipInteraction: true
+}
+</snippet>
+
+The example below enables tooltip interaction to demonstrate a scenario where tooltips will not disappear while hovered. Note following: 
+
+- Tooltip is enabled for the **Athlete** and **Country** columns.
+- Tooltips will not disappear while being hovered.
+- Tooltips content can be selected and copied.
+
+<grid-example title='Tooltip Interaction' name='tooltip-interaction' type='generated'></grid-example>
+
+## Interactive Custom Tooltips
+
+The example below enables tooltip interaction with custom tooltips. Note following:
+
+- Tooltip is enabled for the Athlete and Country columns.
+- Tooltips will not disappear while being hovered.
+- The custom tooltip displays a text input and a Submit button which when clicked, updates the value of the `Athlete` Column cell in the hovered row and then closes itself by calling `hideTooltipCallback()`.
+
+<grid-example title='Custom Tooltip Interaction' name='custom-tooltip-interaction' type='generated'></grid-example>
+
+## Using Browser Tooltips
 
 The example below demonstrates how to use the default browser tooltips.
 

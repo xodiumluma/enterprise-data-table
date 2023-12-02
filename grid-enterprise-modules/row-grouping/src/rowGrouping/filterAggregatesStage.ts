@@ -7,6 +7,7 @@ import {
     FilterManager,
     RowNode,
     ColumnModel,
+    GridOptions,
 } from "@ag-grid-community/core";
 
 @Bean('filterAggregatesStage')
@@ -17,7 +18,8 @@ export class FilterAggregatesStage extends BeanStub implements IRowNodeStage {
 
     public execute(params: StageExecuteParams): void {
         const isPivotMode = this.columnModel.isPivotMode();
-        const isAggFilterActive = this.filterManager.isAggregateFilterPresent();
+        const isAggFilterActive = this.filterManager.isAggregateFilterPresent()
+            || this.filterManager.isAggregateQuickFilterPresent();
 
         // This is the default filter for applying only to leaf nodes, realistically this should not apply as primary agg columns,
         // should not be applied by the filterManager if getGroupAggFiltering is missing. Predicate will apply filters to leaf level.
@@ -105,7 +107,7 @@ export class FilterAggregatesStage extends BeanStub implements IRowNodeStage {
             return;
         }
 
-        if (this.gridOptionsService.isTreeData()) {
+        if (this.gridOptionsService.get('treeData')) {
             this.setAllChildrenCountTreeData(rowNode);
         } else {
             this.setAllChildrenCountGridGrouping(rowNode);

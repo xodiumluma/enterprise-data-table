@@ -6,17 +6,26 @@ import { exists } from "../../utils/generic";
 import { KeyCode } from '../../constants/keyCode';
 
 export interface ILargeTextEditorParams extends ICellEditorParams {
-/** Max number of characters to allow. Default: `200` */
+    /**
+     * Max number of characters to allow.
+     * @default 200
+     */
     maxLength: number;
-/** Number of character rows to display. Default: `10` */
+    /**
+     * Number of character rows to display.
+     * @default 10
+     */
     rows: number;
-/** Number of character columns to display. Default: `60` */
+    /**
+     * Number of character columns to display.
+     * @default 60
+     */
     cols: number;
 }
 
 export class LargeTextCellEditor extends PopupComponent implements ICellEditorComp {
     private static TEMPLATE = /* html */
-        `<div class="ag-large-text" tabindex="0">
+        `<div class="ag-large-text">
             <ag-input-text-area ref="eTextArea" class="ag-large-text-input"></ag-input-text-area>
         </div>`;
 
@@ -30,7 +39,6 @@ export class LargeTextCellEditor extends PopupComponent implements ICellEditorCo
 
     public init(params: ILargeTextEditorParams): void {
         this.params = params;
-
         this.focusAfterAttached = params.cellStartedEdit;
 
         this.eTextArea
@@ -43,6 +51,7 @@ export class LargeTextCellEditor extends PopupComponent implements ICellEditorCo
         }
 
         this.addGuiEventListener('keydown', this.onKeyDown.bind(this));
+        this.activateTabIndex();
     }
 
     private onKeyDown(event: KeyboardEvent): void {
@@ -68,6 +77,10 @@ export class LargeTextCellEditor extends PopupComponent implements ICellEditorCo
     }
 
     public getValue(): any {
-        return this.params.parseValue(this.eTextArea.getValue());
+        const value = this.eTextArea.getValue();
+        if (!exists(value) && !exists(this.params.value)) {
+            return this.params.value;
+        }
+        return this.params.parseValue(value!);
     }
 }

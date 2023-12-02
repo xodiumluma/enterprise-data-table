@@ -1,4 +1,20 @@
-import { Autowired, Bean, BeanStub, ChangedPath, Events, IRowModel, ISelectionService, IServerSideSelectionState, IServerSideGroupSelectionState, PostConstruct, RowNode, SelectionChangedEvent, SelectionEventSourceType, WithoutGridCommon, ISetNodeSelectedParams } from "@ag-grid-community/core";
+import {
+    Autowired,
+    Bean,
+    BeanStub,
+    ChangedPath,
+    Events,
+    IRowModel,
+    ISelectionService,
+    PostConstruct,
+    RowNode,
+    SelectionChangedEvent,
+    SelectionEventSourceType,
+    WithoutGridCommon,
+    ISetNodesSelectedParams,
+    ServerSideRowSelectionState,
+    ServerSideRowGroupSelectionState
+} from "@ag-grid-community/core";
 import { DefaultStrategy } from "./selection/strategies/defaultStrategy";
 import { GroupSelectsChildrenStrategy } from "./selection/strategies/groupSelectsChildrenStrategy";
 import { ISelectionStrategy } from "./selection/strategies/iSelectionStrategy";
@@ -6,11 +22,11 @@ import { ISelectionStrategy } from "./selection/strategies/iSelectionStrategy";
 @Bean('selectionService')
 export class ServerSideSelectionService extends BeanStub implements ISelectionService {
     @Autowired('rowModel') private rowModel: IRowModel;
-    selectionStrategy: ISelectionStrategy;
+    private selectionStrategy: ISelectionStrategy;
 
     @PostConstruct
     private init(): void {
-        const groupSelectsChildren = this.gridOptionsService.is('groupSelectsChildren');
+        const groupSelectsChildren = this.gridOptionsService.get('groupSelectsChildren');
         this.addManagedPropertyListener('groupSelectsChildren', (propChange) => {
             this.destroyBean(this.selectionStrategy);
 
@@ -25,32 +41,57 @@ export class ServerSideSelectionService extends BeanStub implements ISelectionSe
             this.eventService.dispatchEvent(event);
         });
 
+        this.addManagedPropertyListener('rowSelection', () => this.deselectAllRowNodes({ source: 'api' }));
+
         const StrategyClazz = !groupSelectsChildren ? DefaultStrategy : GroupSelectsChildrenStrategy;
         this.selectionStrategy = this.createManagedBean(new StrategyClazz());
     }
  
-    public getServerSideSelectionState() {
+    public getSelectionState(): string[] | ServerSideRowSelectionState | ServerSideRowGroupSelectionState | null {
         return this.selectionStrategy.getSelectedState();
     }
 
-    public setServerSideSelectionState(state: IServerSideSelectionState | IServerSideGroupSelectionState): void {
+    public setSelectionState(state: string[] | ServerSideRowSelectionState | ServerSideRowGroupSelectionState, source: SelectionEventSourceType): void {
+        if (Array.isArray(state)) { return; }
         this.selectionStrategy.setSelectedState(state);
         this.shotgunResetNodeSelectionState();
 
         const event: WithoutGridCommon<SelectionChangedEvent> = {
             type: Events.EVENT_SELECTION_CHANGED,
-            source: 'api',
+            source,
         };
         this.eventService.dispatchEvent(event);
     }
-    
-    public setNodeSelected(params: ISetNodeSelectedParams): number {
-        const changedNodes = this.selectionStrategy.setNodeSelected(params);
-        this.shotgunResetNodeSelectionState(params.source);
 
+    public setNodesSelected(params: ISetNodesSelectedParams): number {
+        const {nodes, ...otherParams} = params;
+
+        const rowSelection = this.gridOptionsService.get('rowSelection');
+        if (nodes.length > 1 && rowSelection !== 'multiple') {
+            console.warn(`AG Grid: cannot multi select while rowSelection='single'`);
+            return 0;
+        }
+
+        if (nodes.length > 1 && params.rangeSelect) {
+            console.warn(`AG Grid: cannot use range selection when multi selecting rows`);
+            return 0;
+        }
+
+        const adjustedParams = {
+            nodes: nodes.filter(node => node.selectable),
+            ...otherParams,
+        };
+
+        // if no selectable nodes, then return 0
+        if (!adjustedParams.nodes.length) {
+            return 0;
+        }
+ 
+        const changedNodes = this.selectionStrategy.setNodesSelected(adjustedParams);
+        this.shotgunResetNodeSelectionState(adjustedParams.source);
         const event: WithoutGridCommon<SelectionChangedEvent> = {
             type: Events.EVENT_SELECTION_CHANGED,
-            source: params.source,
+            source: adjustedParams.source,
         };
         this.eventService.dispatchEvent(event);
         return changedNodes;
@@ -105,6 +146,26 @@ export class ServerSideSelectionService extends BeanStub implements ISelectionSe
         this.selectionStrategy.processNewRow(rowNode);
 
         const isNodeSelected = this.selectionStrategy.isNodeSelected(rowNode);
+
+        // if the node was selected but node is not selectable, we deselect the node.
+        // (could be due to user applying selected state directly, or a change in selectable)
+        if (isNodeSelected != false && !rowNode.selectable) {
+            this.selectionStrategy.setNodesSelected({
+                nodes: [rowNode],
+                newValue: false,
+                source: 'api',
+            });
+
+            // we need to shotgun reset here as if this was hierarchical, some group nodes
+            // may be changing from indeterminate to unchecked.
+            this.shotgunResetNodeSelectionState();
+            const event: WithoutGridCommon<SelectionChangedEvent> = {
+                type: Events.EVENT_SELECTION_CHANGED,
+                source: 'api',
+            };
+            this.eventService.dispatchEvent(event);
+            return;
+        }
         rowNode.setSelectedInitialValue(isNodeSelected);
     }
 

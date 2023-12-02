@@ -12,14 +12,16 @@ import {siteMetadata} from './gatsby-config';
 import isDevelopment from './src/utils/is-development';
 import {isProductionBuild} from "./src/utils/consts";
 
+const PLAUSIBLE_DOMAIN = isProductionBuild()
+    ? 'ag-grid.com'
+    : 'testing.ag-grid.com';
+
 /**
  * This allows to customise the rendering of the body. We insert some scripts at the end of the body. It is better to
  * pull these files directly from a CDN rather than bundling them ourselves. However, the Node packages are still
  * required to be installed as they are used elsewhere, so we import the versions here to ensure we are consistent.
  */
 export const onRenderBody = ({setPostBodyComponents}) => {
-    const scrollOffset = 80;
-
     setPostBodyComponents([
         <script
             key="jquery"
@@ -35,14 +37,19 @@ export const onRenderBody = ({setPostBodyComponents}) => {
             crossOrigin="anonymous"/>,
 
         // This initialises the smooth scrolling when clicking hash links
+        // Gets scroll offset from the `--scroll-offset` CSS custom property set for :root
         <script key="initialise-smooth-scroll" dangerouslySetInnerHTML={{
             __html: `
+            var scrollOffsetCustomProp = () => {return window.getComputedStyle(document.body).getPropertyValue('--scroll-offset')};
+
             var scroll = new SmoothScroll(
                 'a[href*="#"]',
                 {
                     speed: 200,
                     speedAsDuration: true,
-                    offset: function() { return ${scrollOffset}; }
+                    offset: function() { 
+                        return scrollOffsetCustomProp() ? Number(scrollOffsetCustomProp().replace('px', '')) : 40; 
+                    }
                 });`
         }}/>,
     ]);
@@ -69,7 +76,7 @@ export const wrapPageElement = ({element, props: {location: {pathname}}}) => {
 /**
  * This allows us to customise the page before it is rendered.
  */
-export const onPreRenderHTML = ({getHeadComponents, replaceHeadComponents, pathname}) => {
+export const onPreRenderHTML = ({ getHeadComponents, replaceHeadComponents, pathname }) => {
     // Remove script that causes issues with scroll position when a page is first loaded
     const headComponents = getHeadComponents().filter(el => el.key !== 'gatsby-remark-autolink-headers-script');
 
@@ -105,19 +112,20 @@ export const onPreRenderHTML = ({getHeadComponents, replaceHeadComponents, pathn
         href="https://cdn.jsdelivr.net/npm/@fontsource/roboto@4.1.0/index.min.css"
         crossOrigin="anonymous"/>,
     );
-
-    // We import the Font Awesome CSS here even though it is also imported by the library to avoid a repaint flash
-    headComponents.unshift(
-        <link
-            key="fontawesome"
-            rel="stylesheet"
-            href={`https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-svg-core@${dependencies['@fortawesome/fontawesome-svg-core']}/styles.min.css`}
-            crossOrigin="anonymous"/>);
+    headComponents.unshift(<link
+        key="plex"
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&display=swap"
+        crossOrigin="anonymous"/>,
+    );
 
     // Add Plausible.io tracking
     if (!isDevelopment()) {
         headComponents.unshift(
-            <script defer data-domain="ag-grid.com" src="https://plausible.io/js/plausible.js"></script>
+            <>
+                <script defer data-domain={PLAUSIBLE_DOMAIN} src="https://plausible.io/js/script.tagged-events.outbound-links.js"></script>
+                <script>{`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}</script>
+            </>
         );
     }
 

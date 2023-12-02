@@ -5,9 +5,6 @@ frameworks: ["react"]
 
 This page explains best practices for using React Hooks with AG Grid.
 
-[[warning]]
-| This page assumes you are using [React Hooks](https://react.dev/reference/react) and not [React Classes](https://react.dev/reference/react/Component).
-
 ## Row Data
 
 When setting Row Data, we recommend using `useState` or `useMemo`.
@@ -30,9 +27,7 @@ the parent component is rendered. This will result in unexpected behaviour in th
 For applications that set data into the grid (as opposed to showing data statically), it makes sense to favour `useState`
 over `useMemo` as loading data usually aligns with changing state in your application.
 
-All examples in the documentation use `useState` for Row Data. However, all code snippets in the documentation leave 
-these hooks out for easier reading.
-
+All examples in the documentation use `useState` for Row Data. 
 ### Immutable Data
 
 If you are going to be updating Row Data then it is strongly recommended to provide the `getRowId` callback that returns a unique id for each row. The grid is then able to identify Rows between new lists of Row Data. For example, if Rows are selected, and new Row Data is provided such that some Rows are removed, the grid is able to maintain the selection across rows 
@@ -56,12 +51,13 @@ const App = () => {
 };
 ```
 
-If you do NOT use `useState` or `useMemo`, then the grid will be provided with a new set of Column Definitions each time
+If you do NOT use `useState` or `useMemo`, then the grid will be provided with a new set of Column Definitions **every time**
 the parent component is rendered. This will result in unexpected behaviour in the grid, such as the column state 
 (column order, width etc...) getting reset.
 
-It makes sense to use `useState` if your application intends changing Column Definitions and to use `useMemo` if your 
-application does not change Column Definitions.
+<warning>
+If your application changes Column Definitions use `useState`, otherwise use `useMemo`.
+</warning>
 
 ```jsx
 const App = () => {
@@ -74,9 +70,6 @@ const App = () => {
     return <AgGridReact columnDefs={columnDefs} />;
 };
 ```
-
-All examples in the documentation use `useState` for Column Definitions. However all code snippets in the documentation
-leave these hooks out for easier reading.
 
 ## Object Properties vs Simple Properties
 
@@ -114,7 +107,6 @@ const App = () => {
 
     const rowBuffer = 0;
     const rowSelection = 'multiple';
-    const animateRows = true;
 
     return (
         <AgGridReact 
@@ -122,7 +114,6 @@ const App = () => {
             // only set once
             rowBuffer={rowBuffer} 
             rowSelection={rowSelection} 
-            animateRows={animateRows} 
 
             // inline also works well, properties only set once
             rowModelType='clientSide'
@@ -166,7 +157,7 @@ const App = () => {
                 onCellClicked={onCellClicked} 
                 onCellValueChanged={onCellValueChanged}
                 onFilterOpened={onFilterOpened}
-                />;
+            />;
 };
 ```
 

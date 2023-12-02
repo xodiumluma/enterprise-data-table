@@ -2,7 +2,7 @@ import { Component, ViewChild } from '@angular/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 import { ModuleRegistry, ColDef, GridApi, GetRowIdParams, GridReadyEvent, RowDropZoneParams } from '@ag-grid-community/core';
 
 // Register the required feature modules with the Grid
@@ -10,7 +10,7 @@ ModuleRegistry.registerModules([ClientSideRowModelModule]);
 @Component({
     selector: 'my-app',
     template: `
-        <div class="example-wrapper ag-theme-alpine">
+        <div class="example-wrapper">
 
             <div class="inner-col">
                 <div class="toolbar">
@@ -27,12 +27,12 @@ ModuleRegistry.registerModules([ClientSideRowModelModule]);
                 <div style="height: 100%;" class="inner-col" #eLeftGrid>
                     <ag-grid-angular
                         style="height: 100%;"
+                        [class]="themeClass"
                         [defaultColDef]="defaultColDef"
                         [getRowId]="getRowId"
                         [rowClassRules]="rowClassRules"
                         [rowDragManaged]="true"
                         [suppressMoveWhenRowDragging]="true"
-                        [animateRows]="true"
                         [rowData]="leftRowData"
                         [columnDefs]="columns"
                         (gridReady)="onGridReady($event, 'Left')">
@@ -61,12 +61,12 @@ ModuleRegistry.registerModules([ClientSideRowModelModule]);
                 <div style="height: 100%;" class="inner-col" #eRightGrid>
                     <ag-grid-angular
                         style="height: 100%;"
+                        [class]="themeClass"
                         [defaultColDef]="defaultColDef"
                         [getRowId]="getRowId"
                         [rowClassRules]="rowClassRules"
                         [rowDragManaged]="true"
                         [suppressMoveWhenRowDragging]="true"
-                        [animateRows]="true"
                         [rowData]="rightRowData"
                         [columnDefs]="columns"
                         (gridReady)="onGridReady($event, 'Right')">
@@ -78,6 +78,7 @@ ModuleRegistry.registerModules([ClientSideRowModelModule]);
     `
 })
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
 
     leftRowData: any[] = [];
     rightRowData: any[] = []
@@ -93,9 +94,7 @@ export class AppComponent {
     defaultColDef: ColDef = {
         flex: 1,
         minWidth: 100,
-        sortable: true,
         filter: true,
-        resizable: true
     };
 
     columns: ColDef[] = [

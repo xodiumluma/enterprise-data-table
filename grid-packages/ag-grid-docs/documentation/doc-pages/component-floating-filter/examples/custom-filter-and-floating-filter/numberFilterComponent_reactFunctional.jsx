@@ -7,7 +7,7 @@ export default forwardRef((props, ref) => {
     const isNumeric = n => !isNaN(parseFloat(n)) && isFinite(n);
 
     useEffect(() => {
-        if(inputRef.current) {
+        if (inputRef.current) {
             inputRef.current.value = filterText;
         }
         props.filterChangedCallback();
@@ -28,21 +28,11 @@ export default forwardRef((props, ref) => {
             doesFilterPass(params) {
                 if (!this.isFilterActive()) { return; }
 
-                const { api, colDef, column, columnApi, context, valueGetter } = props;
                 const { node } = params;
             
-                const value = valueGetter({
-                    api,
-                    colDef,
-                    column,
-                    columnApi,
-                    context,
-                    data: node.data,
-                    getValue: (field) => node.data[field],
-                    node,
-                });        
+                const value = props.getValue(node);        
 
-                if (!value) return false;
+                if (value == null) return false;
                 return Number(value) > Number(filterText);
             },
 

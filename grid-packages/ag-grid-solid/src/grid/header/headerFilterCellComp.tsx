@@ -10,7 +10,7 @@ const HeaderFilterCellComp = (props: {ctrl: HeaderFilterCellCtrl}) => {
     const [getCssButtonWrapperClasses, setButtonWrapperCssClasses] = createSignal<CssClasses>(new CssClasses());
     const [getButtonWrapperAriaHidden, setButtonWrapperAriaHidden] = createSignal<"true" | "false">("false");
     const [getWidth, setWidth] = createSignal<string>();
-    const [getUserCompDetails, setUserCompDetails] = createSignal<UserCompDetails>();
+    const [getUserCompDetails, setUserCompDetails] = createSignal<UserCompDetails | null | undefined>();
 
     let eGui: HTMLDivElement;
     let eFloatingFilterBody: HTMLDivElement;
@@ -64,9 +64,9 @@ const HeaderFilterCellComp = (props: {ctrl: HeaderFilterCellCtrl}) => {
         width: getWidth()
     }));
     
-    const getCssClassesString = createMemo( ()=> 'ag-header-cell ag-floating-filter ' + getCssClasses.toString() );
-    const getBodyCssClassesString = createMemo( ()=> getCssBodyClasses.toString(), );
-    const getButtonWrapperCssClassesString = createMemo( ()=> 'ag-floating-filter-button ' + getCssButtonWrapperClasses.toString() );
+    const getCssClassesString = createMemo( ()=> 'ag-header-cell ag-floating-filter ' + getCssClasses().toString() );
+    const getBodyCssClassesString = createMemo( ()=> getCssBodyClasses().toString(), );
+    const getButtonWrapperCssClassesString = createMemo( ()=> 'ag-floating-filter-button ' + getCssButtonWrapperClasses().toString() );
     
     return (
         <div ref={eGui!} class={getCssClassesString()} style={getStyle()} role="gridcell" tabIndex={-1}>
@@ -74,7 +74,7 @@ const HeaderFilterCellComp = (props: {ctrl: HeaderFilterCellCtrl}) => {
                 { getUserCompDetails() && <UserComp compDetails={getUserCompDetails()!} ref={setRef}/> }
             </div>
             <div ref={eButtonWrapper!} aria-hidden={getButtonWrapperAriaHidden()} class={getButtonWrapperCssClassesString()} role="presentation">
-                <button ref={eButtonShowMainFilter!} type="button" aria-label="Open Filter Menu" class="ag-floating-filter-button-button" tabIndex={-1}></button>
+                <button ref={eButtonShowMainFilter!} type="button" class="ag-button ag-floating-filter-button-button" tabIndex={-1}></button>
             </div>
         </div>
     );

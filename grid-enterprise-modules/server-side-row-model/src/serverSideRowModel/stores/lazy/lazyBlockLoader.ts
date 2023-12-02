@@ -1,10 +1,9 @@
-import { BeanStub, Autowired, GridApi, ColumnApi, RowNode, IServerSideGetRowsParams, IServerSideGetRowsRequest, _, PostConstruct, RowNodeBlockLoader, ServerSideGroupLevelParams, LoadSuccessParams } from "@ag-grid-community/core";
+import { BeanStub, Autowired, GridApi, RowNode, IServerSideGetRowsParams, IServerSideGetRowsRequest, _, PostConstruct, RowNodeBlockLoader, ServerSideGroupLevelParams, LoadSuccessParams } from "@ag-grid-community/core";
 import { LazyCache } from "./lazyCache";
 
 export class LazyBlockLoader extends BeanStub {
 
     @Autowired('gridApi') private api: GridApi;
-    @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('rowNodeBlockLoader') private rowNodeBlockLoader: RowNodeBlockLoader;
 
     public static DEFAULT_BLOCK_SIZE = 100;
@@ -41,7 +40,7 @@ export class LazyBlockLoader extends BeanStub {
         const lastRowInViewport = this.api.getLastDisplayedRow();
 
         // quick look-up for priority rows needing loading in viewport.
-        for(let i = firstRowInViewport; i <= lastRowInViewport; i++) {
+        for (let i = firstRowInViewport; i <= lastRowInViewport; i++) {
             const node = this.cache.getNodeCachedByDisplayIndex(i);
 
             if (!node) {
@@ -55,7 +54,7 @@ export class LazyBlockLoader extends BeanStub {
                 continue;
             }
 
-            if(this.isRowLoading(lazyNode.index)) {
+            if (this.isRowLoading(lazyNode.index)) {
                 continue;
             }
 
@@ -72,6 +71,11 @@ export class LazyBlockLoader extends BeanStub {
                 nodeToRefresh = node;
                 return;
             }
+
+            if (this.isRowLoading(node.rowIndex)) {
+                return;
+            }
+        
             const distToViewportTop = Math.abs(firstRowInViewport - node.rowIndex);
             const distToViewportBottom = Math.abs(node.rowIndex - lastRowInViewport);
             if (distToViewportTop < nodeToRefreshDist) {
@@ -136,13 +140,11 @@ export class LazyBlockLoader extends BeanStub {
 
         const params: IServerSideGetRowsParams = {
             request,
-            successCallback: (rowData: any[], rowCount: number) => success({ rowData, rowCount }),
             success,
-            failCallback: fail,
             fail,
             parentNode: this.parentNode,
             api: this.api,
-            columnApi: this.columnApi,
+            columnApi: this.gridOptionsService.columnApi,
             context: this.gridOptionsService.context
         };
 
@@ -152,9 +154,6 @@ export class LazyBlockLoader extends BeanStub {
 
     private getNextBlockToLoad(): [string, number] | null {
         const result = this.getBlockToLoad();
-        if (result != null && result < 0) {
-            this.getBlockToLoad();
-        }
         if (result != null) {
             return [String(result), result + this.getBlockSize()];
         }
@@ -197,7 +196,7 @@ export class LazyBlockLoader extends BeanStub {
                 this.loaderTimeout = undefined;
                 this.attemptLoad(startRow, endRow);
                 this.nextBlockToLoad = undefined;
-            }, this.gridOptionsService.getNum('blockLoadDebounceMillis') ?? 0);
+            }, this.gridOptionsService.get('blockLoadDebounceMillis'));
         }
     }
 

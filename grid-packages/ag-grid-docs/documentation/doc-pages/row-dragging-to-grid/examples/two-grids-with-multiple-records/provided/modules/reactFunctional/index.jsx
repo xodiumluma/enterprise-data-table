@@ -4,7 +4,9 @@ import { AgGridReact } from '@ag-grid-community/react';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import './styles.css';
+
 
 import { ModuleRegistry } from '@ag-grid-community/core';
 // Register the required feature modules with the Grid
@@ -66,14 +68,11 @@ const rightColumns = [
 const defaultColDef = {
     flex: 1,
     minWidth: 100,
-    sortable: true,
     filter: true,
-    resizable: true
 };
 
 const GridExample = () => {
     const [leftApi, setLeftApi] = useState(null);
-    const [leftColumnApi, setLeftColumnApi] = useState(null);
     const [rightApi, setRightApi] = useState(null);
     const [rawData, setRawData] = useState([]);
     const [leftRowData, setLeftRowData] = useState(null);
@@ -112,11 +111,11 @@ const GridExample = () => {
     }, [rawData, loadGrids]);
 
     useEffect(() => {
-        if (leftColumnApi && leftApi) {
-            leftColumnApi.setColumnVisible('checkbox', checkBoxSelected);
-            leftApi.setSuppressRowClickSelection(checkBoxSelected);
+        if (leftApi) {
+            leftApi.setColumnVisible('checkbox', checkBoxSelected);
+            leftApi.setGridOption('suppressRowClickSelection', checkBoxSelected);
         }
-    }, [leftColumnApi, leftApi, checkBoxSelected]);
+    }, [leftApi, checkBoxSelected]);
 
     const reset = () => {
         setRadioChecked(0);
@@ -143,9 +142,7 @@ const GridExample = () => {
                 remove: nodes.map(function (node) { return node.data; })
             });
         } else if (radioChecked === 1) {
-            nodes.forEach(function (node) {
-                node.setSelected(false);
-            });
+            leftApi.setNodesSelected({ nodes, newValue: false });
         }
     }, [leftApi, radioChecked]);
 
@@ -160,7 +157,6 @@ const GridExample = () => {
     const onGridReady = (params, side) => {
         if (side === 0) {
             setLeftApi(params.api);
-            setLeftColumnApi(params.columnApi);
         }
 
         if (side === 1) {
@@ -171,19 +167,19 @@ const GridExample = () => {
     const getTopToolBar = () => (
         <div className="example-toolbar panel panel-default">
             <div className="panel-body">
-                <div style={{ display: 'inline-flex' }} onChange={onRadioChange} >
-                    <input type="radio" id="move" name="radio" value="0" checked={radioChecked === 0} />
-                    <label for="move">Remove Source Rows</label>
-                    <input type="radio" id="deselect" name="radio" value="1" checked={radioChecked === 1} />
-                    <label for="deselect">Only Deselect Source Rows</label>
-                    <input type="radio" id="none" name="radio" value="2" checked={radioChecked === 2} />
-                    <label for="none">None</label>
+                <div onChange={onRadioChange} >
+                    <input type="radio" id="move" name="radio" value="0" checked={radioChecked === 0} />{' '}
+                    <label htmlFor="move">Remove Source Rows</label>
+                    <input type="radio" id="deselect" name="radio" value="1" checked={radioChecked === 1} />{' '}
+                    <label htmlFor="deselect">Only Deselect Source Rows</label>
+                    <input type="radio" id="none" name="radio" value="2" checked={radioChecked === 2} />{' '}
+                    <label htmlFor="none">None</label>
                 </div>
                 <input type="checkbox" id="toggleCheck" checked={checkBoxSelected} onChange={onCheckboxChange} />
-                <label for="toggleCheck">Checkbox Select</label>
+                <label htmlFor="toggleCheck">Checkbox Select</label>
                 <span className="input-group-button">
-                    <button type="button" className="btn btn-default reset" style={{ marginLeft: '5px;' }} onClick={reset}>
-                        <i className="fas fa-redo" style={{ marginRight: '5px;' }}></i>Reset
+                    <button type="button" className="btn btn-default reset" style={{ marginLeft: '5px' }} onClick={reset}>
+                        <i className="fas fa-redo" style={{ marginRight: '5px' }}></i>Reset
                     </button>
                 </span>
             </div>
@@ -195,11 +191,10 @@ const GridExample = () => {
             <div className="panel-heading">{id === 0 ? 'Athletes' : 'Selected Athletes'}</div>
             <div className="panel-body">
                 <AgGridReact
-                    style={{ height: '100%;' }}
+                    style={{ height: '100%' }}
                     defaultColDef={defaultColDef}
                     getRowId={getRowId}
                     rowDragManaged={true}
-                    animateRows={true}
                     rowSelection={id === 0 ? "multiple" : undefined}
                     rowDragMultiRow={id === 0}
                     suppressRowClickSelection={id === 0}
@@ -207,8 +202,7 @@ const GridExample = () => {
 
                     rowData={id === 0 ? leftRowData : rightRowData}
                     columnDefs={id === 0 ? leftColumns : rightColumns}
-                    onGridReady={(params) => onGridReady(params, id)}>
-                </AgGridReact>
+                    onGridReady={(params) => onGridReady(params, id)} />
             </div>
         </div>
     )
@@ -216,7 +210,7 @@ const GridExample = () => {
     return (
         <div className="top-container">
             {getTopToolBar()}
-            <div class="grid-wrapper ag-theme-alpine">
+            <div className={'grid-wrapper ' + /** DARK MODE START **/document.documentElement.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                 {getGridWrapper(0)}
                 {getGridWrapper(1)}
             </div>

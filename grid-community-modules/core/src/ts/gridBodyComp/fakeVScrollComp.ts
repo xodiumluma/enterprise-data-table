@@ -1,7 +1,8 @@
 import { PostConstruct } from "../context/context";
 import { AbstractFakeScrollComp } from "./abstractFakeScrollComp";
-import { setFixedWidth } from "../utils/dom";
+import { isVisible, setFixedWidth } from "../utils/dom";
 import { SetHeightFeature } from "./rowContainer/setHeightFeature";
+import { Events } from "../eventKeys";
 
 export class FakeVScrollComp extends AbstractFakeScrollComp {
 
@@ -22,6 +23,8 @@ export class FakeVScrollComp extends AbstractFakeScrollComp {
 
         this.createManagedBean(new SetHeightFeature(this.eContainer));
         this.ctrlsService.registerFakeVScrollComp(this);
+
+        this.addManagedListener(this.eventService, Events.EVENT_ROW_CONTAINER_HEIGHT_CHANGED, this.onRowContainerHeightChanged.bind(this));
     }
 
     protected setScrollVisible(): void {
@@ -36,5 +39,23 @@ export class FakeVScrollComp extends AbstractFakeScrollComp {
         setFixedWidth(this.eViewport, adjustedScrollbarWidth);
         setFixedWidth(this.eContainer, adjustedScrollbarWidth);
         this.setDisplayed(vScrollShowing, { skipAriaHidden: true });
+    }
+
+    private onRowContainerHeightChanged(): void {
+        const gridBodyCtrl = this.ctrlsService.getGridBodyCtrl();
+        const gridBodyViewportEl = gridBodyCtrl.getBodyViewportElement();
+
+        if (this.eViewport.scrollTop != gridBodyViewportEl.scrollTop) {
+            this.eViewport.scrollTop = gridBodyViewportEl.scrollTop;
+        }
+    }
+
+    public getScrollPosition(): number {
+        return this.getViewport().scrollTop;
+    }
+
+    public setScrollPosition(value: number): void {
+        if (!isVisible(this.getViewport())) { this.attemptSettingScrollPosition(value); }
+        this.getViewport().scrollTop = value;
     }
 }

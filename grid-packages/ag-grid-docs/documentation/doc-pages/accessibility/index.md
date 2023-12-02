@@ -92,9 +92,10 @@ When inspecting the DOM you'll notice the following roles and properties have be
 
 These attributes will enable screen readers to interpret and navigate the columns and rows of the grid.
 
-[[note]]
-| Some other grids claim to provide support for complex grid layouts and interactions but based on our own
-| independent testing and the feedback we've received from our users this is clearly not the case.
+<note>
+Some other grids claim to provide support for complex grid layouts and interactions but based on our own
+independent testing and the feedback we've received from our users this is clearly not the case.
+</note>
 
 ## Customising the Grid for Accessibility
 
@@ -113,8 +114,9 @@ const gridOptions = {
 }
 </snippet>
 
-[[note]]
-| Animations won't work properly when the DOM order is forced, so ensure they are not enabled.</note>
+<note>
+Animations won't work properly when the DOM order is forced, so ensure they are not enabled.
+</note>
 
 ### Ensure all grid elements are always rendered
 
@@ -155,7 +157,7 @@ The example below presents a simple grid layout with the following properties en
 
 The grid has default ARIA labels for areas like `rows`, `group cells`, `filters`, `search fields` and so on. If there is a need to
 customise these labels, this could be achieved by changing the [localisation variables](/localisation/#creating-a-locale) for ARIA.
-See the [localisation example](/localisation/#example--localisation), inspect the items or use a screen reader to see the
+See the [localisation example](/localisation/#installing-a-locale), inspect the items or use a screen reader to see the
 customisation in action.
 
 ## Known Limitations

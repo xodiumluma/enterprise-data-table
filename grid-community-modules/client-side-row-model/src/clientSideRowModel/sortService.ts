@@ -23,13 +23,6 @@ export class SortService extends BeanStub {
     @Autowired('columnModel') private columnModel: ColumnModel;
     @Autowired('rowNodeSorter') private rowNodeSorter: RowNodeSorter;
 
-    private postSortFunc: ((params: WithoutGridCommon<PostSortRowsParams>) => void) | undefined;
-
-    @PostConstruct
-    public init(): void {
-        this.postSortFunc = this.getPostSortFunc();
-    }
-
     public sort(
         sortOptions: SortOption[],
         sortActive: boolean,
@@ -38,7 +31,7 @@ export class SortService extends BeanStub {
         changedPath: ChangedPath | undefined,
         sortContainsGroupColumns: boolean,
     ): void {
-        const groupMaintainOrder = this.gridOptionsService.is('groupMaintainOrder');
+        const groupMaintainOrder = this.gridOptionsService.get('groupMaintainOrder');
         const groupColumnsPresent = this.columnModel.getAllGridColumns().some(c => c.isRowGroupActive());
 
         let allDirtyNodes: { [key: string]: true } = {};
@@ -47,6 +40,7 @@ export class SortService extends BeanStub {
         }
 
         const isPivotMode = this.columnModel.isPivotMode();
+        const postSortFunc = this.gridOptionsService.getCallback('postSortRows');
 
         const callback = (rowNode: RowNode) => {
             // we clear out the 'pull down open parents' first, as the values mix up the sorting
@@ -69,7 +63,7 @@ export class SortService extends BeanStub {
                     childrenToBeSorted.sort((row1, row2) => (indexedOrders[row1.id!] ?? 0) - (indexedOrders[row2.id!] ?? 0));
                 }
                 rowNode.childrenAfterSort = childrenToBeSorted;
-            } else if(!sortActive || skipSortingPivotLeafs) {
+            } else if (!sortActive || skipSortingPivotLeafs) {
                 // if there's no sort to make, skip this step
                 rowNode.childrenAfterSort = rowNode.childrenAfterAggFilter!.slice(0);
             } else if (useDeltaSort) {
@@ -84,9 +78,9 @@ export class SortService extends BeanStub {
 
             this.updateChildIndexes(rowNode);
 
-            if (this.postSortFunc) {
+            if (postSortFunc) {
                 const params: WithoutGridCommon<PostSortRowsParams> = { nodes: rowNode.childrenAfterSort };
-                this.postSortFunc(params);
+                postSortFunc(params);
             }
         };
 
@@ -95,18 +89,6 @@ export class SortService extends BeanStub {
         }
 
         this.updateGroupDataForHideOpenParents(changedPath);
-    }
-
-    private getPostSortFunc() {
-        const postSortRows = this.gridOptionsService.getCallback('postSortRows');
-        if (postSortRows) {
-            return postSortRows;
-        }
-        // this is the deprecated way, so provide a proxy to make it compatible
-        const postSort = this.gridOptionsService.get('postSort');
-        if (postSort) {
-            return (params: WithoutGridCommon<PostSortRowsParams>) => postSort(params.nodes);
-        }
     }
 
     private calculateDirtyNodes(rowNodeTransactions?: RowNodeTransaction[] | null): { [nodeId: string]: true } {
@@ -146,7 +128,7 @@ export class SortService extends BeanStub {
         const touchedRows: RowNode[] = [];
 
         unsortedRows.forEach(row => {
-            if(allTouchedNodes[row.id!] || !changedPath.canSkip(row)) {
+            if (allTouchedNodes[row.id!] || !changedPath.canSkip(row)) {
                 touchedRows.push(row);
             } else {
                 untouchedRowsMap[row.id!] = true;
@@ -222,13 +204,12 @@ export class SortService extends BeanStub {
     }
 
     private updateGroupDataForHideOpenParents(changedPath?: ChangedPath) {
-        if (!this.gridOptionsService.is('groupHideOpenParents')) {
+        if (!this.gridOptionsService.get('groupHideOpenParents')) {
             return;
         }
 
-        if (this.gridOptionsService.isTreeData()) {
-            const msg = `AG Grid: The property hideOpenParents dose not work with Tree Data. This is because Tree Data has values at the group level, it doesn't make sense to hide them (as opposed to Row Grouping, which only has Aggregated Values at the group level).`;
-            _.doOnce(() => console.warn(msg), 'sortService.hideOpenParentsWithTreeData');
+        if (this.gridOptionsService.get('treeData')) {
+            _.warnOnce(`The property hideOpenParents dose not work with Tree Data. This is because Tree Data has values at the group level, it doesn't make sense to hide them.`);
             return false;
         }
 
@@ -248,7 +229,7 @@ export class SortService extends BeanStub {
     }
 
     private pullDownGroupDataForHideOpenParents(rowNodes: RowNode[] | null, clearOperation: boolean) {
-        if (!this.gridOptionsService.is('groupHideOpenParents') || _.missing(rowNodes)) { return; }
+        if (!this.gridOptionsService.get('groupHideOpenParents') || _.missing(rowNodes)) { return; }
 
         rowNodes.forEach(childRowNode => {
             const groupDisplayCols = this.columnModel.getGroupDisplayColumns();

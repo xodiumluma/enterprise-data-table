@@ -55,7 +55,15 @@
             '@ag-grid-community/vue3': {
                 main: './lib/AgGridVue.js',
                 defaultExtension: 'js'
-            }
+            },
+            'ag-charts-community': {
+                main: './dist/package/main.cjs.js',
+                defaultExtension: 'js'
+            },
+            // 'ag-charts-enterprise': {
+            //     main: './dist/package/main.cjs.js',
+            //     defaultExtension: 'js'
+            // },
         },
         meta: {
             '*.js': {
@@ -69,3 +77,7 @@
         }
     });
 })(this);
+
+window.addEventListener('error', e => {
+    console.error('ERROR', e.message, e.filename)
+});

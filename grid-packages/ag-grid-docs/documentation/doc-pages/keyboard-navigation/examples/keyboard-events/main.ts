@@ -1,4 +1,5 @@
-import { Grid, CellKeyDownEvent, CellKeyPressEvent, ColDef, GridOptions } from '@ag-grid-community/core'
+import { GridApi, createGrid, CellKeyDownEvent, ColDef, GridOptions } from '@ag-grid-community/core';
+import { KeyboardEvent } from 'react';
 
 const columnDefs: ColDef[] = [
   { field: 'athlete', minWidth: 170 },
@@ -13,30 +14,29 @@ const columnDefs: ColDef[] = [
   { field: 'total' },
 ]
 
+let gridApi: GridApi<IOlympicData>;
+
 const gridOptions: GridOptions<IOlympicData> = {
   rowData: null,
   columnDefs: columnDefs,
   defaultColDef: {
-    sortable: true,
     flex: 1,
     minWidth: 100,
     filter: true,
-    resizable: true,
   },
-  onCellKeyDown: onCellKeyDown,
-  onCellKeyPress: onCellKeyPress,
+  onCellKeyDown: onCellKeyDown
 }
 
 function onCellKeyDown(e: CellKeyDownEvent) {
-  console.log('onCellKeyDown', e)
-}
+  console.log('onCellKeyDown', e);
+  if (!e.event) { return; }
 
-function onCellKeyPress(e: CellKeyPressEvent) {
-  console.log('onCellKeyPress', e)
-  if (e.event) {
-    var keyPressed = (e.event as KeyboardEvent).key
-    console.log('Key Pressed = ' + keyPressed)
-    if (keyPressed === 's') {
+  const keyboardEvent = e.event as unknown as KeyboardEvent;
+  const key = keyboardEvent.key;
+
+  if (key.length) {
+    console.log('Key Pressed = ' + key)
+    if (key === 's') {
       var rowNode = e.node
       var newSelection = !rowNode.isSelected()
       console.log(
@@ -48,14 +48,15 @@ function onCellKeyPress(e: CellKeyPressEvent) {
       rowNode.setSelected(newSelection)
     }
   }
+  
 }
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
   var gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
-    .then((data: IOlympicData[]) => gridOptions.api!.setRowData(data))
+    .then((data: IOlympicData[]) => gridApi!.setGridOption('rowData', data))
 })

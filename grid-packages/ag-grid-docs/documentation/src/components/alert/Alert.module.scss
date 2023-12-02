@@ -1,34 +1,98 @@
 @use '../../design-system/' as *;
 
-$padding-size: $size-3;
-$icon-size: 30px;
-
 .alert {
-    padding: $padding-size;
-    background-color: var(--bright-blue-gray);
-    border-radius: var(--border-radius);
+    --alert-background-color: var(--background-500);
+    --icon-size: 1.5rem;
+
+    display: flex;
+    gap: $size-2;
+    align-items: center;
+    padding: $size-2;
+    background-color: var(--alert-background-color);
+    border-radius: 8px;
+    color: var(--text-color);
+
+    margin-top: $size-5 !important;
+    margin-bottom: $size-5;
+
+    :global(.icon) {
+        align-self: flex-start;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    p {
+        font-size: $font-size-medium !important;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    kbd {
+        margin: 0;
+        padding-top: 0.075em;
+        padding-bottom: 0.25em;
+    }
+
+
+    #{$darkmode-selector} & {
+        --alert-background-color: #121f29;
+
+        color: #c3cad3;
+        
+        border: 1px solid rgb(255, 255, 255, 0.15);
+
+        :global(.icon) {
+            opacity: 0.6;
+        }
+
+        a {
+            -webkit-font-smoothing: subpixel-antialiased;
+        }        
+    }
 }
 
 .alert.info {
-    padding-left: calc($padding-size + $icon-size + $size-2);
-    background-size: $icon-size $icon-size;
-    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgc3Ryb2tlPSIjRkZDMTA3IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PHBhdGggZD0iTTIwIDQ1bDEwLjUtM000NS41IDIwaC01TTMwLjUgMzZDMzAgMzEgMzcgMjkgMzcgMjFzLTctMTEtMTItMTEtMTEuNSAzLTExLjUgMTEgNyAxMSA3IDE2LjVjLTEuNSAzIDEwLTEuNSAxMC0xLjV6TTIwIDQybDEwLjUtM00yOC41IDQ2LjVjLTIuMzMzIDEuNjY3LTQuNSAxLjY2Ny02LjUgME0xMiAzMWwtMi41IDJNOS41IDIwaC01TTM4IDMxbDMgMk0zNiAxMWw0LTRNMjUgNi41VjFNMTQgMTFsLTQtMy41Ii8+PC9nPjwvc3ZnPg==);
-    background-repeat: no-repeat;
-    background-position-x: $padding-size;
-    background-position-y: $padding-size;
+    --text-color: var(--dark-blue-300);
+
+    #{$darkmode-selector} & {
+        --text-color: var(--default-text-color);
+
+        :global(.icon) {
+            --text-color: var(--default-text-color);
+
+        }
+    }
 }
 
-.alert.flag {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: $size-2;
-
-    @media screen and (min-width: $breakpoint-alert-flag-small) {
-        flex-direction: row;
+.alert.idea {
+    :global(.icon) {
+        --text-color: var(--orange-800);
     }
 
-    img {
-        width: 80px;
+    #{$darkmode-selector} & :global(.icon) {
+        --text-color: #ffd000;
+    }
+}
+
+.alert.warning {
+    --alert-background-color: var(--warning-background);
+    --text-color: var(--warning-text);
+
+    display: flex;
+    border: 1px solid rgba(209, 142, 0, 0.3);
+
+    :global(.icon) {
+        --text-color: #f4c000;
+    }
+
+    #{$darkmode-selector} & {
+        --alert-background-color: #262119;
+        --text-color: var(--default-text-color);
+
+        p {
+            color: rgb(255, 249, 235);
+        }
     }
 }

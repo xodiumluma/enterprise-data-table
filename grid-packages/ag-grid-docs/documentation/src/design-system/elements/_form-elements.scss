@@ -1,9 +1,8 @@
-@use "sass:math";
-@use "sass:map";
-@use "../core" as *;
-@use "button" as *;
+@use 'sass:math';
+@use 'sass:map';
+@use '../core' as *;
 
-fieldset {
+fieldset#{$exclude-grid-selector} {
     margin: 0;
     padding: 0;
     border: none;
@@ -13,17 +12,17 @@ fieldset {
     }
 }
 
-legend {
+legend#{$exclude-grid-selector} {
     padding: unset;
 }
 
-label {
+label#{$exclude-grid-selector} {
     fieldset & {
         display: block;
     }
 
-    + input,
-    + select {
+    + input#{$exclude-grid-selector},
+    + select#{$exclude-grid-selector} {
         margin-left: $size-1;
     }
 
@@ -38,51 +37,74 @@ label {
     }
 }
 
-input {
+input#{$exclude-grid-selector} {
     font-size: var(--font-size);
+}
+
+input[type='text']#{$exclude-grid-selector},
+input[type='search']#{$exclude-grid-selector},
+input[type='email']#{$exclude-grid-selector},
+input[type='checkbox']#{$exclude-grid-selector},
+input[type='number']#{$exclude-grid-selector},
+select#{$exclude-grid-selector} {
+    color: var(--default-text-color);
+
+    &:disabled,
+    &[readonly] {
+        background-color: var(--neutral-100);
+    }
 }
 
 input[type='text'],
 input[type='search'],
 input[type='email'],
-input[type='checkbox'],
-select {
-    &:disabled,
-    &[readonly] {
-        background-color: var(--ghost-white);
-    }
+input[type='number'] {
+    &#{$exclude-grid-selector} {
+        padding: math.div(6em, 16) math.div(12em, 16);
+        line-height: var(--line-height-normal);
+        border-radius: var(--border-radius);
+        background-color: var(--input-background-color);
+        border: 2px solid var(--input-border-color);
+        outline: none;
+        transition:
+            border-color $default-transition-timing,
+            box-shadow $default-transition-timing;
 
-    &:focus:not(:disabled):not([readonly]),
-    &:focus-visible:not(:disabled):not([readonly]) {
-        box-shadow: 0 0 0 3px var(--input-focus-box-shadow-color);
+    #{$darkmode-selector} & {
+        border: 1px solid var(--input-border-color);
     }
-}
-
-input[type='text'],
-input[type='search'],
-input[type='email'] {
-    padding: math.div(6em, 16) math.div(12em, 16);
-    line-height: var(--line-height-normal);
-    border-radius: var(--border-radius);
-    background-color: var(--input-background-color);
-    border: 2px solid var(--border-color);
-    outline: none;
-    transition: border-color $default-transition-timing, box-shadow $default-transition-timing;
 
     &::placeholder {
         font-style: italic;
         color: var(--secondary-text-color);
+
+        #{$darkmode-selector} & {
+            color: var(--neutral-800);
+        }
     }
 
-    &:hover:not(:disabled):not([readonly]),
-    &:focus:not(:disabled):not([readonly]),
-    &:focus-visible:not(:disabled):not([readonly]) {
-        border-color: var(--input-focus-border-color);
+        &:hover:not(:disabled):not([readonly]),
+        &:focus:not(:disabled):not([readonly]),
+        &:focus-visible:not(:disabled):not([readonly]) {
+            border-color: var(--input-focus-border-color);
+        }
+
+        #{$darkmode-selector} & {
+            border-width: 1px;
+        }
     }
 }
 
-input[type='checkbox'],
-input[type='radio'] {
+// Hide native search icons for iOS Safari
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+    display: none;
+}
+
+input[type='checkbox']#{$exclude-grid-selector},
+input[type='radio']#{$exclude-grid-selector} {
     $square-size: 1.25em;
 
     appearance: none;
@@ -101,13 +123,15 @@ input[type='radio'] {
     }
 }
 
-input[type='checkbox']:not(.switch) {
+input[type='checkbox']:not(.switch)#{$exclude-grid-selector} {
     $svg-tick: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><path d="m9 15 3.75 3.75L21 10.5"/></svg>');
 
     border-radius: var(--border-radius);
     border: 0.125em solid var(--input-secondary-border-color);
     background-image: $svg-tick;
-    transition: background-color $default-transition-timing, border-color $default-transition-timing,
+    transition:
+        background-color $default-transition-timing,
+        border-color $default-transition-timing,
         box-shadow $default-transition-timing;
 
     &:hover:not(:disabled):not([readonly]),
@@ -131,7 +155,9 @@ input[type='checkbox'].switch {
     );
     background-repeat: no-repeat;
     background-size: $height $height;
-    transition: background-position $default-transition-timing, background-color $default-transition-timing,
+    transition:
+        background-position $default-transition-timing,
+        background-color $default-transition-timing,
         box-shadow $default-transition-timing;
 
     &:checked {
@@ -140,26 +166,35 @@ input[type='checkbox'].switch {
     }
 }
 
-input[type='radio'] {
+input[type='radio']#{$exclude-grid-selector} {
     border-radius: 50%;
-    box-shadow: inset 0 0 0 0.125em var(--input-secondary-border-color),
+    box-shadow:
+        inset 0 0 0 0.125em var(--input-secondary-border-color),
         inset 0 0 0 0.25em var(--input-background-color);
-    transition: background-color $default-transition-timing, box-shadow $default-transition-timing;
+    transition:
+        background-color $default-transition-timing,
+        box-shadow $default-transition-timing;
 
     &:hover:not(:disabled):not([readonly]),
     &:checked {
-        box-shadow: inset 0 0 0 0.125em var(--input-primary-color), inset 0 0 0 0.25em var(--input-background-color);
+        box-shadow:
+            inset 0 0 0 0.125em var(--input-primary-color),
+            inset 0 0 0 0.25em var(--input-background-color);
     }
 
     &:focus:not(:disabled):not([readonly]),
     &:focus-visible:not(:disabled):not([readonly]) {
-        box-shadow: inset 0 0 0 0.125em var(--input-primary-color), inset 0 0 0 0.25em var(--input-background-color),
+        box-shadow:
+            inset 0 0 0 0.125em var(--input-primary-color),
+            inset 0 0 0 0.25em var(--input-background-color),
             0 0 0 3px var(--input-focus-box-shadow-color);
     }
 }
 
-select {
+select#{$exclude-grid-selector} {
     $svg-chevron-down: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23212529" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 30"><path d="m7.5 13.688 5.25 4.125L18 13.688"/></svg>');
+
+    $svg-chevron-down-dark: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23f8f9fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 30"><path d="m7.5 13.688 5.25 4.125L18 13.688"/></svg>');
 
     appearance: none;
     padding: math.div(6em, 16) math.div(36em, 16) math.div(6em, 16) math.div(12em, 16);
@@ -170,9 +205,15 @@ select {
     background-image: $svg-chevron-down;
     background-repeat: no-repeat;
     background-position: center right;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--input-border-color);
     outline: none;
-    transition: border-color $default-transition-timing, box-shadow $default-transition-timing;
+    transition:
+        border-color $default-transition-timing,
+        box-shadow $default-transition-timing;
+
+    #{$darkmode-selector} & {
+        border: 1px solid var(--input-border-color);
+    }
 
     &:not(:disabled) {
         cursor: pointer;
@@ -188,26 +229,63 @@ select {
     &:focus-visible:not(:disabled):not([readonly]) {
         border-color: var(--input-focus-border-color);
     }
+
+    #{$darkmode-selector} & {
+        background-image: $svg-chevron-down-dark;
+    }
 }
 
-input[type='range'] {
-    appearance: none;
-    background-color: transparent;
-    cursor: pointer;
-
-    &::-webkit-slider-runnable-track {
+input[type='range']#{$exclude-grid-selector} {
+    @mixin track {
         height: math.div(4em, 16);
         background-color: var(--input-secondary-background-color);
         border-radius: var(--border-radius);
     }
 
-    &::-webkit-slider-thumb {
+    @mixin thumb {
         appearance: none;
         width: 1em;
         height: 1em;
         margin-top: math.div(-6em, 16);
         border-radius: 50%;
+        border: none;
         background-color: var(--input-primary-color);
+        transition: background-color $default-transition-timing;
+    }
+
+    appearance: none;
+    min-height: $size-3;
+    border-radius: var(--border-radius);
+    background-color: transparent;
+    outline: none;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition:
+        border-color $default-transition-timing,
+        box-shadow $default-transition-timing;
+
+    &:focus-visible:not(:disabled):not([readonly]) {
+        border-color: var(--input-focus-border-color);
+        box-shadow: 0 0 0 3px var(--input-focus-box-shadow-color);
+    }
+
+    // Using mixins as -webkit & -moz properties cannot be used as comma seperted list
+    &::-webkit-slider-runnable-track {
+        @include track;
+    }
+    &::-moz-range-track {
+        @include track;
+    }
+    &::-webkit-slider-thumb {
+        @include thumb;
+    }
+    &::-moz-range-thumb {
+        @include thumb;
+    }
+
+    &:hover::-webkit-slider-thumb,
+    &:hover::-moz-range-thumb {
+        background-color: var(--link-hover-color);
     }
 }
 

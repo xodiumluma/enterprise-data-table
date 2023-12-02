@@ -16,12 +16,12 @@ export class CellRenderer implements ICellRendererAngularComp {
 
     agInit(params: ICellRendererParams<IOlympicData, string>): void {
         this.params = params;
-        this.displayValue = params.value
+        this.displayValue = params.value ?? '';
     }
 
     onClick() {
         this.params.api.startEditingCell({
-          rowIndex: this.params.rowIndex,
+          rowIndex: this.params.node.rowIndex!,
           colKey: this.params.column!.getId(),
         });
     }

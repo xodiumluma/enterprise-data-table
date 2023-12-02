@@ -10,7 +10,7 @@ const getBuilds = (umdModuleName, bundlePrefix, esmAutoRegister) => {
             format: 'cjs',
             env: 'development',
             extension: '.cjs.js',
-            config: {external: id => /@ag-grid-/.test(id)} // all other @ag-grid deps should be treated as externals so as to prevent duplicate modules when using more than one cjs file
+            config: {external: id => /@ag-grid-/.test(id) || (bundlePrefix === 'ag-charts-enterprise' && /ag-charts-community/.test(id))} // all other @ag-grid deps should be treated as externals so as to prevent duplicate modules when using more than one cjs file
 
         },
         {
@@ -19,25 +19,103 @@ const getBuilds = (umdModuleName, bundlePrefix, esmAutoRegister) => {
             format: 'cjs',
             env: 'production',
             extension: '.cjs.min.js',
-            config: {external: id => /@ag-grid-/.test(id)} // all other @ag-grid deps should be treated as externals so as to prevent duplicate modules when using more than one cjs file
+            config: {external: id => /@ag-grid-/.test(id) || (bundlePrefix === 'ag-charts-enterprise' && /ag-charts-community/.test(id))} // all other @ag-grid deps should be treated as externals so as to prevent duplicate modules when using more than one cjs file
 
-        },
-        {
+        }
+    ];
+
+    if (!process.env.AG_CJS_GENERATION_ONLY) {
+        entries.push({
             name: 'es-modules-dev',
-            inputMainFile: './dist/esm/es5/main.js',
+            inputMainFile: (bundlePrefix && !(bundlePrefix === 'ag-grid-community' || bundlePrefix === 'ag-grid-enterprise')) ? './dist/esm/es6/main.mjs' : './dist/esm/es6/main.js',
             format: 'es',
             env: 'development',
             extension: '.esm.js'
 
-        },
-        {
+        });
+        entries.push({
             name: 'es-modules-prod',
             inputMainFile: './dist/esm/es5/main.js',
             format: 'es',
             env: 'production',
             extension: '.esm.min.js',
+        });
+
+        if (esmAutoRegister) {
+            entries.push({
+                // contains only community or enterprise code (depending on source) - if enterprise community code is externalised
+                // module are self registered
+                name: 'es-modules-auto-dev',
+                inputMainFile: './esm-main.auto.js',
+                format: 'es',
+                env: 'development',
+                extension: '.auto.esm.js',
+                useEsmEs5: true,
+                config: {
+                    external: id => bundlePrefix === 'ag-grid-enterprise' ? 'ag-grid-community' === id || id.startsWith('@ag-grid-community') : false
+                },
+                plugins: bundlePrefix === 'ag-grid-enterprise' ? [
+                    replace({
+                        preventAssignment: true,
+                        values: {
+                            '@ag-grid-community/core': 'ag-grid-community',
+                            '@ag-grid-community/all-modules': 'ag-grid-community',
+                            '@ag-grid-community/csv-export': 'ag-grid-community',
+                            '@ag-grid-community/@ag-grid-community/client-side-row-model': 'ag-grid-community',
+                            '@ag-grid-community/infinite-row-model': 'ag-grid-community'
+                        },
+                        delimiters: ['', '']
+                    })
+                ] : []
+            });
+            entries.push({
+                // contains only community or enterprise code (depending on source) - if enterprise community code is externalised
+                // module are self registered
+                name: 'es-modules-auto-prod',
+                inputMainFile: './esm-main.auto.js',
+                format: 'es',
+                env: 'production',
+                extension: '.auto.esm.min.js',
+                useEsmEs5: true,
+                config: {
+                    external: id => bundlePrefix === 'ag-grid-enterprise' ? 'ag-grid-community' === id || id.startsWith('@ag-grid-community') : false
+                },
+                plugins: bundlePrefix === 'ag-grid-enterprise' ? [
+                    replace({
+                        preventAssignment: true,
+                        values: {
+                            '@ag-grid-community/core': 'ag-grid-community',
+                            '@ag-grid-community/all-modules': 'ag-grid-community',
+                            '@ag-grid-community/csv-export': 'ag-grid-community',
+                            '@ag-grid-community/@ag-grid-community/client-side-row-model': 'ag-grid-community',
+                            '@ag-grid-community/infinite-row-model': 'ag-grid-community'
+                        },
+                        delimiters: ['', '']
+                    })
+                ] : []
+            });
+            entries.push({
+                // like the umd bundles in that every is in here - both community and enterprise (if doing @ag-grid-enterprise/all-modules)
+                // module are self registered
+                // analogous to legacy ag-grid-community / ag-grid-enterprise packages
+                name: 'es-modules-complete-dev',
+                inputMainFile: './esm-main.complete.js',
+                format: 'es',
+                env: 'development',
+                extension: '.auto.complete.esm.js'
+            });
+            entries.push({
+                // like the umd bundles in that every is in here - both community and enterprise (if doing @ag-grid-enterprise/all-modules)
+                // module are self registered
+                // analogous to legacy ag-grid-community / ag-grid-enterprise packages
+                name: 'es-modules-complete-prod',
+                inputMainFile: './esm-main.complete.js',
+                format: 'es',
+                env: 'production',
+                extension: '.auto.complete.esm.min.js'
+            });
         }
-    ]
+    }
 
     if (umdModuleName) {
         entries.push({
@@ -60,79 +138,6 @@ const getBuilds = (umdModuleName, bundlePrefix, esmAutoRegister) => {
         });
     }
 
-    if (esmAutoRegister) {
-        entries.push({
-            // contains only community or enterprise code (depending on source) - if enterprise community code is externalised
-            // module are self registered
-            name: 'es-modules-auto-dev',
-            inputMainFile: './esm-main.auto.js',
-            format: 'es',
-            env: 'development',
-            extension: '.auto.esm.js',
-            config: {
-                external: id => bundlePrefix === 'ag-grid-enterprise' ? 'ag-grid-community' === id || id.startsWith('@ag-grid-community') : false
-            },
-            plugins: bundlePrefix === 'ag-grid-enterprise' ? [
-                replace({
-                    preventAssignment: true,
-                    values: {
-                        '@ag-grid-community/core': 'ag-grid-community',
-                        '@ag-grid-community/all-modules': 'ag-grid-community',
-                        '@ag-grid-community/csv-export': 'ag-grid-community',
-                        '@ag-grid-community/@ag-grid-community/client-side-row-model': 'ag-grid-community',
-                        '@ag-grid-community/infinite-row-model': 'ag-grid-community'
-                    },
-                    delimiters: ['', '']
-                })
-            ] : []
-        });
-        entries.push({
-            // contains only community or enterprise code (depending on source) - if enterprise community code is externalised
-            // module are self registered
-            name: 'es-modules-auto-prod',
-            inputMainFile: './esm-main.auto.js',
-            format: 'es',
-            env: 'production',
-            extension: '.auto.esm.min.js',
-            config: {
-                external: id => bundlePrefix === 'ag-grid-enterprise' ? 'ag-grid-community' === id || id.startsWith('@ag-grid-community') : false
-            },
-            plugins: bundlePrefix === 'ag-grid-enterprise' ? [
-                replace({
-                    preventAssignment: true,
-                    values: {
-                        '@ag-grid-community/core': 'ag-grid-community',
-                        '@ag-grid-community/all-modules': 'ag-grid-community',
-                        '@ag-grid-community/csv-export': 'ag-grid-community',
-                        '@ag-grid-community/@ag-grid-community/client-side-row-model': 'ag-grid-community',
-                        '@ag-grid-community/infinite-row-model': 'ag-grid-community'
-                    },
-                    delimiters: ['', '']
-                })
-            ] : []
-        });
-        entries.push({
-            // like the umd bundles in that every is in here - both community and enterprise (if doing @ag-grid-enterprise/all-modules)
-            // module are self registered
-            // analogous to legacy ag-grid-community / ag-grid-enterprise packages
-            name: 'es-modules-complete-dev',
-            inputMainFile: './esm-main.complete.js',
-            format: 'es',
-            env: 'development',
-            extension: '.auto.complete.esm.js'
-        });
-        entries.push({
-            // like the umd bundles in that every is in here - both community and enterprise (if doing @ag-grid-enterprise/all-modules)
-            // module are self registered
-            // analogous to legacy ag-grid-community / ag-grid-enterprise packages
-            name: 'es-modules-complete-prod',
-            inputMainFile: './esm-main.complete.js',
-            format: 'es',
-            env: 'production',
-            extension: '.auto.complete.esm.min.js'
-        });
-    }
-
     return entries;
 }
 
@@ -150,7 +155,7 @@ function genConfig(build, sourceDirectory, moduleName) {
         ...(build.config ? build.config : {}),
         input: path.resolve(sourceDirectory, build.inputMainFile),
         plugins: [
-            nodeResolve()      // for utils package - defaulting to use index.js
+            nodeResolve({useEsmEs5: build.useEsmEs5})      // for utils package - defaulting to use index.js
         ].concat(build.plugins || []),
         output: {
             file: path.resolve(sourceDirectory, `./dist/${moduleName}${build.extension}`),

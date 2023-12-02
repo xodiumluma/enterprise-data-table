@@ -63,7 +63,7 @@ export class Component extends BeanStub {
 
     @PreConstruct
     private preConstructOnComponent(): void {
-        this.usingBrowserTooltips = this.gridOptionsService.is('enableBrowserTooltips');
+        this.usingBrowserTooltips = this.gridOptionsService.get('enableBrowserTooltips');
     }
 
     public getCompId(): number {
@@ -77,7 +77,7 @@ export class Component extends BeanStub {
         };
     }
 
-    public setTooltip(newTooltipText?: string | null): void {
+    public setTooltip(newTooltipText?: string | null, showDelayOverride?: number, hideDelayOverride?: number): void {
 
         const removeTooltip = () => {
             if (this.usingBrowserTooltips) {
@@ -91,7 +91,7 @@ export class Component extends BeanStub {
             if (this.usingBrowserTooltips) {
                 this.getGui().setAttribute('title', this.tooltipText!);
             } else {
-                this.tooltipFeature = this.createBean(new CustomTooltipFeature(this));
+                this.tooltipFeature = this.createBean(new CustomTooltipFeature(this, showDelayOverride, hideDelayOverride));
             }
         };
 
@@ -205,6 +205,20 @@ export class Component extends BeanStub {
         }
     }
 
+    protected activateTabIndex(elements?: Element[]): void {
+        const tabIndex = this.gridOptionsService.get('tabIndex');
+
+        if (!elements) {
+            elements = [];
+        }
+
+        if (!elements.length) {
+            elements.push(this.getGui());
+        }
+
+        elements.forEach(el => el.setAttribute('tabindex', tabIndex.toString()));
+    }
+
     public setTemplate(template: string | null | undefined, paramsMap?: { [key: string]: any; }): void {
         const eGui = loadTemplate(template as string);
         this.setTemplateFromElement(eGui, paramsMap);
@@ -244,7 +258,7 @@ export class Component extends BeanStub {
             // the element. otherwise no way of components putting ref=xxx on the top
             // level element as querySelector only looks at children.
             const topLevelRefMatch = querySelector.refSelector
-                && this.eGui.getAttribute('ref') === querySelector.refSelector;
+                && this.getAttribute('ref') === querySelector.refSelector;
             if (topLevelRefMatch) {
                 setResult(this.eGui);
             } else {
@@ -264,6 +278,10 @@ export class Component extends BeanStub {
 
     public getFocusableElement(): HTMLElement {
         return this.eGui;
+    }
+
+    public getAriaElement(): Element {
+        return this.getFocusableElement();
     }
 
     public setParentComponent(component: Component) {

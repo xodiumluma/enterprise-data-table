@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
-import { AgGridReactUi } from './reactUi/agGridReactUi';
+import { AgGridReact } from './agGridReact';
 
 import '@ag-grid-community/styles/ag-grid.css';
-import '@ag-grid-community/styles/ag-theme-alpine.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
+import { ColDef } from 'ag-grid-community';
 
 
 const App = () => {
@@ -14,7 +15,7 @@ const App = () => {
         { make: 'Ford', model: 'Mondeo', price: 32000 },
         { make: 'Porsche', model: 'Boxster', price: 72000 }
     ]);
-    const [colDefs, setColDefs] = useState([
+    const [colDefs, setColDefs] = useState<ColDef[]>([
         { field: 'make' },
         { field: 'model' },
         { field: 'price' },
@@ -26,27 +27,22 @@ const App = () => {
 
     return (
         <div style={{ display: 'flex' }}>
-            <div className="ag-theme-alpine" style={{ height: 400, width: 600, margin: 10 }}>
-                <AgGridReactUi
+            <div className="ag-theme-quartz" style={{ height: 400, width: 600, margin: 10 }}>
+                <AgGridReact
                     defaultColDef={{
-                        resizable: true,
                         filter: true,
                         flex: 1,
-                        sortable: true
                     }}
                     rowSelection="multiple"
-                    animateRows={ true }
                     onGridReady={ onGridReady }
                     rowData={ rowData }
                     columnDefs={colDefs}
-                    modules={[ClientSideRowModelModule]}>
-                </AgGridReactUi>
+                    modules={[ClientSideRowModelModule]} />
+                
             </div>
         </div>
     );
 };
 
-ReactDOM.render(
-    <App />,
-    document.getElementById('root')
-);
+const root = createRoot(document.getElementById('root')!);
+root.render(<App />);

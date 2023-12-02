@@ -10,10 +10,6 @@ These properties can be used to change the different heights used in the headers
 
 <api-documentation source="grid-options/properties.json" section="headers"></api-documentation>
 
-All these properties also have setter methods that can be called from the API and will change the header heights dynamically.
-
-<api-documentation source="grid-api/api.json" section="headers"></api-documentation>
-
 ## Text Orientation
 
 By default, the text label for the header is display horizontally, i.e. as normal readable text. To display the text in another orientation you have to provide your own CSS to change the orientation and also provide the adequate header heights using the appropriate grid property.
@@ -127,6 +123,10 @@ The example below demonstrates using the `autoHeaderHeight` property in conjunct
 - Note that the long column header names wrap onto another line
 - Try making a column smaller by dragging the resize handle on the column header, observe that the header will expand so the full header content is still visible.
 
+<note>
+When `autoHeaderHeight=true` the Grid automatically disables Span Header Height, see: [Suppress Span Header Height](../column-groups/#suppress-span-header-height).
+</note>
+
 <grid-example title='Auto Header Height' name='auto-height' type='generated' options='{ "enterprise": true, "modules": ["clientside", "rowgrouping"] }'></grid-example>
 
 ## Header Tooltips
@@ -136,7 +136,7 @@ You can provide a tooltip to the header using `colDef.headerTooltip`.
 The example below shows header tooltips. Note the following:
 
 - All the columns, apart from **Country** and **Year**, have a header tooltip set.
-- We have set the Grid `tooltipShowDelay` property to 500ms to make the tooltips appear quicker.
+- We have set the Grid `tooltipShowDelay` property to 500ms to make the tooltips appear sooner.
 
 <grid-example title='Header Tooltip' name='header-tooltip' type='generated'></grid-example>
 
@@ -175,8 +175,9 @@ When you provide your own template, everything should work as expected as long a
 
 The ref parameters are used by the grid to identify elements to add functionality to. If you leave an element out of your template, the functionality will not be added. For example if you do not specify `eLabel` then the column will not react to click events for sorting.
 
-[[note]]
-| Templates are not meant to let you configure icons. If you are looking to change the icons, check our [icon docs](/custom-icons/).
+<note>
+Templates are not meant to let you configure icons. If you are looking to change the icons, check our [icon docs](../custom-icons/).
+</note>
 
 ### Example: Simple Header Templates
 

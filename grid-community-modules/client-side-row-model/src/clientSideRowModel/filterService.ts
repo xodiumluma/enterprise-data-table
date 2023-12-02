@@ -13,9 +13,7 @@ export class FilterService extends BeanStub {
     @Autowired('filterManager') private filterManager: FilterManager;
 
     public filter(changedPath: ChangedPath): void {
-        const filterActive: boolean = this.filterManager.isColumnFilterPresent()
-                                    || this.filterManager.isQuickFilterPresent() 
-                                    || this.filterManager.isExternalFilterPresent();
+        const filterActive: boolean = this.filterManager.isChildFilterPresent();
         this.filterNodes(filterActive, changedPath);
     }
 
@@ -88,6 +86,6 @@ export class FilterService extends BeanStub {
     }
 
     private doingTreeDataFiltering() {
-        return this.gridOptionsService.isTreeData() && !this.gridOptionsService.is('excludeChildrenWhenTreeDataFiltering');
+        return this.gridOptionsService.get('treeData') && !this.gridOptionsService.get('excludeChildrenWhenTreeDataFiltering');
     }
 }

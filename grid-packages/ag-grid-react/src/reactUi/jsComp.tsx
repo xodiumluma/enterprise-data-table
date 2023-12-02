@@ -6,15 +6,15 @@ import { MutableRefObject } from 'react';
  * @returns Effect Cleanup function
  */
 export const showJsComp = (
-    compDetails: UserCompDetails | undefined, 
+    compDetails: UserCompDetails | undefined | null, 
     context: Context, eParent: HTMLElement, 
     ref?: MutableRefObject<any> | ((ref: any)=>void)
 )  => {
 
-    const doNothing = !compDetails || compDetails.componentFromFramework;
+    const doNothing = !compDetails || compDetails.componentFromFramework || context.isDestroyed();
     if (doNothing) { return; }
 
-    const promise = compDetails.newAgStackInstance();
+    const promise = compDetails!.newAgStackInstance();
     if (!promise) { return; }
     
     // almost all JS Comps are NOT async, however the Floating Multi Filter is Async as it could

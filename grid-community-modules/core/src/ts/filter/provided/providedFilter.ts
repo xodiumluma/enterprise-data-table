@@ -2,17 +2,18 @@ import { IDoesFilterPassParams, IFilter, IFilterComp, IFilterParams } from '../.
 import { Autowired, PostConstruct } from '../../context/context';
 import { IRowModel } from '../../interfaces/iRowModel';
 import { ContainerType, IAfterGuiAttachedParams } from '../../interfaces/iAfterGuiAttachedParams';
-import { loadTemplate, setDisabled } from '../../utils/dom';
+import { clearElement, loadTemplate, removeFromParent, setDisabled } from '../../utils/dom';
 import { debounce } from '../../utils/function';
 import { AgPromise } from '../../utils/promise';
 import { PopupEventParams } from '../../widgets/popupService';
-import { IFilterLocaleText, IFilterTitleLocaleText, DEFAULT_FILTER_LOCALE_TEXT } from '../filterLocaleText';
+import { FILTER_LOCALE_TEXT } from '../filterLocaleText';
 import { ManagedFocusFeature } from '../../widgets/managedFocusFeature';
 import { convertToSet } from '../../utils/set';
 import { Component } from '../../widgets/component';
 import { IRowNode } from '../../interfaces/iRowNode';
 import { RefSelector } from '../../widgets/componentAnnotations';
 import { PositionableFeature } from '../../rendering/features/positionableFeature';
+import { FilterChangedEventSourceType } from '../../events';
 
 type FilterButtonType = 'apply' | 'clear' | 'reset' | 'cancel';
 
@@ -40,7 +41,7 @@ export interface IProvidedFilterParams {
      * If the Apply button is present, the filter popup will be closed immediately when the Apply
      * or Reset button is clicked if this is set to `true`.
      *
-     * Default: `false`
+     * @default false
      */
     closeOnApply?: boolean;
     /**
@@ -53,7 +54,7 @@ export interface IProvidedFilterParams {
      * If set to `true`, disables controls in the filter to mutate its state. Normally this would
      * be used in conjunction with the Filter API.
      *
-     * Default: `false`
+     * @default false
      */
     readOnly?: boolean;
 }
@@ -105,7 +106,10 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
 
     @RefSelector('eFilterBody') protected readonly eFilterBody: HTMLElement;
 
-    constructor(private readonly filterNameKey: keyof IFilterTitleLocaleText) {
+    private eButtonsPanel: HTMLElement;
+    private buttonListeners: ((() => null) | undefined)[] = [];
+
+    constructor(private readonly filterNameKey: keyof typeof FILTER_LOCALE_TEXT) {
         super();
     }
 
@@ -193,22 +197,53 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
 
     protected setParams(params: ProvidedFilterParams): void {
         this.providedFilterParams = params;
-
         this.applyActive = ProvidedFilter.isUseApplyButton(params);
 
-        this.createButtonPanel();
+        this.resetButtonsPanel();
     }
 
-    private createButtonPanel(): void {
-        const { buttons } = this.providedFilterParams;
+    protected updateParams(params: ProvidedFilterParams): void {
+        this.providedFilterParams = params;
+        this.applyActive = ProvidedFilter.isUseApplyButton(params);
 
-        if (!buttons || buttons.length < 1 || this.isReadOnly()) {
+        this.resetUiToActiveModel(this.getModel(), () => {
+            this.updateUiVisibility();
+            this.setupOnBtApplyDebounce();
+        });
+    }
+
+    private resetButtonsPanel(): void {
+        const { buttons } = this.providedFilterParams;
+        const hasButtons = buttons && buttons.length > 0 && !this.isReadOnly();
+
+        if (!this.eButtonsPanel) {
+            // Only create the buttons panel if we need to
+            if (hasButtons) {
+                this.eButtonsPanel = document.createElement('div');
+                this.eButtonsPanel.classList.add('ag-filter-apply-panel');
+            }
+        } else {
+            // Always empty the buttons panel before adding new buttons
+            clearElement(this.eButtonsPanel);
+            this.buttonListeners.forEach(destroyFunc => destroyFunc?.());
+            this.buttonListeners = [];
+
+        }
+
+        if (!hasButtons) {
+            // The case when we need to hide the buttons panel because there are no buttons
+            if (this.eButtonsPanel) {
+                removeFromParent(this.eButtonsPanel);
+            }
+
             return;
         }
 
-        const eButtonsPanel = document.createElement('div');
+        // At this point we know we have a buttons and a buttons panel has been created.
 
-        eButtonsPanel.classList.add('ag-filter-apply-panel');
+        // Instead of appending each button to the DOM individually, we create a fragment and append that
+        // to the DOM once. This is much faster than appending each button individually.
+        const fragment = document.createDocumentFragment();
 
         const addButton = (type: FilterButtonType): void => {
             let text;
@@ -242,18 +277,19 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
                 `<button
                     type="${buttonType}"
                     ref="${type}FilterButton"
-                    class="ag-standard-button ag-filter-apply-panel-button"
+                    class="ag-button ag-standard-button ag-filter-apply-panel-button"
                 >${text}
                 </button>`
             );
 
-            eButtonsPanel.appendChild(button);
-            this.addManagedListener(button, 'click', clickListener);
+            this.buttonListeners.push(this.addManagedListener(button, 'click', clickListener));
+            fragment.append(button);
         };
 
         convertToSet(buttons).forEach(type => addButton(type));
 
-        this.getGui().appendChild(eButtonsPanel);
+        this.eButtonsPanel.append(fragment);
+        this.getGui().appendChild(this.eButtonsPanel);
     }
 
     // subclasses can override this to provide alternative debounce defaults
@@ -290,7 +326,7 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
 
             // we set the model from the GUI, rather than the provided model,
             // so the model is consistent, e.g. handling of null/undefined will be the same,
-            // or if model is case insensitive, then casing is removed.
+            // or if model is case-insensitive, then casing is removed.
             this.applyModel('api');
         });
     }
@@ -361,7 +397,8 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
         if (this.applyModel(afterDataChange ? 'rowDataUpdated' : 'ui')) {
             // the floating filter uses 'afterFloatingFilter' info, so it doesn't refresh after filter changed if change
             // came from floating filter
-            this.providedFilterParams.filterChangedCallback({ afterFloatingFilter, afterDataChange });
+            const source: FilterChangedEventSourceType = 'columnFilter';
+            this.providedFilterParams.filterChangedCallback({ afterFloatingFilter, afterDataChange, source });
         }
 
         const { closeOnApply } = this.providedFilterParams;
@@ -401,8 +438,10 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
 
         if (this.applyActive && !this.isReadOnly()) {
             const isValid = this.isModelValid(this.getModelFromUi()!);
-
-            setDisabled(this.getRefElement('applyFilterButton'), !isValid);
+            const applyFilterButton = this.getRefElement('applyFilterButton');
+            if (applyFilterButton) {
+                setDisabled(applyFilterButton, !isValid);
+            }
         }
 
         if ((fromFloatingFilter && !apply) || apply === 'immediately') {
@@ -431,7 +470,7 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
         if (isFloatingFilter) {
             positionableFeature.restoreLastSize();
             positionableFeature.setResizable(
-                gridOptionsService.is('enableRtl')
+                gridOptionsService.get('enableRtl')
                     ? { bottom: true, bottomLeft: true, left: true }
                     : { bottom: true, bottomRight: true, right: true }
             );
@@ -468,6 +507,11 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
         return !!params.buttons && params.buttons.indexOf('apply') >= 0;
     }
 
+    public refresh(newParams: ProvidedFilterParams): boolean {
+        this.providedFilterParams = newParams;
+        return true;
+    }
+
     public destroy(): void {
         const eGui = this.getGui();
 
@@ -483,24 +527,14 @@ export abstract class ProvidedFilter<M, V> extends Component implements IProvide
         super.destroy();
     }
 
-    protected translate(key: keyof IFilterLocaleText | keyof IFilterTitleLocaleText): string {
+    protected translate(key: keyof typeof FILTER_LOCALE_TEXT): string {
         const translate = this.localeService.getLocaleTextFunc();
 
-        return translate(key, DEFAULT_FILTER_LOCALE_TEXT[key]);
+        return translate(key, FILTER_LOCALE_TEXT[key]);
     }
 
-    protected getCellValue(rowNode: IRowNode): V {
-        const { api, colDef, column, columnApi, context } = this.providedFilterParams;
-        return this.providedFilterParams.valueGetter({
-            api,
-            colDef,
-            column,
-            columnApi,
-            context,
-            data: rowNode.data,
-            getValue: (field) => rowNode.data[field],
-            node: rowNode,
-        });
+    protected getCellValue(rowNode: IRowNode): V | null | undefined {
+        return this.providedFilterParams.getValue(rowNode);
     }
 
     // override to control positionable feature

@@ -44,10 +44,11 @@ export class ChartMenu extends Component {
 
     private panels: ChartToolPanelMenuOptions[] = [];
     private defaultPanel: ChartToolPanelMenuOptions;
+    private buttonListenersDestroyFuncs: any[] = []
 
-    private static TEMPLATE = `<div>
+    private static TEMPLATE = /* html */ `<div>
         <div class="ag-chart-menu" ref="eMenu"></div>
-        <button class="ag-chart-menu-close" ref="eHideButton">
+        <button class="ag-button ag-chart-menu-close" ref="eHideButton">
             <span class="ag-icon ag-icon-contracted" ref="eHideButtonIcon"></span>
         </button>
     </div>`;
@@ -83,10 +84,12 @@ export class ChartMenu extends Component {
 
         this.refreshMenuClasses();
 
-        if (!this.gridOptionsService.is('suppressChartToolPanelsButton') && this.panels.length > 0) {
+        if (!this.gridOptionsService.get('suppressChartToolPanelsButton') && this.panels.length > 0) {
             this.getGui().classList.add('ag-chart-tool-panel-button-enable');
             this.addManagedListener(this.eHideButton, 'click', this.toggleMenu.bind(this));
         }
+
+        this.addManagedListener(this.chartController, ChartController.EVENT_CHART_API_UPDATE, this.createButtons.bind(this));
     }
 
     public isVisible(): boolean {
@@ -103,7 +106,7 @@ export class ChartMenu extends Component {
         }
 
         if (rightItems.some(v => this.chartToolbarOptions.includes(v))) {
-            result.push(this.gridOptionsService.is('enableRtl') ? 'left' : 'right');
+            result.push(this.gridOptionsService.get('enableRtl') ? 'left' : 'right');
         }
 
         return result;
@@ -173,7 +176,7 @@ export class ChartMenu extends Component {
             const toolbarItemsFunc = this.gridOptionsService.getCallback('getChartToolbarItems');
     
             if (toolbarItemsFunc) {
-                const isLegacyToolbar = this.gridOptionsService.is('suppressChartToolPanelsButton');
+                const isLegacyToolbar = this.gridOptionsService.get('suppressChartToolPanelsButton');
                 const params: WithoutGridCommon<GetChartToolbarItemsParams> = {
                     defaultItems: isLegacyToolbar ? tabOptions : CHART_TOOLBAR_ALLOW_LIST
                 };
@@ -234,8 +237,12 @@ export class ChartMenu extends Component {
     }
 
     private createButtons(): void {
+        this.buttonListenersDestroyFuncs.forEach(func => func());
+        this.buttonListenersDestroyFuncs = [];
+
         this.chartToolbarOptions = this.getToolbarOptions();
         const menuEl = this.eMenu;
+        _.clearElement(menuEl);
 
         this.chartToolbarOptions.forEach(button => {
             const buttonConfig = this.buttons[button];
@@ -253,7 +260,7 @@ export class ChartMenu extends Component {
                 buttonEl.title = tooltipTitle;
             }
 
-            this.addManagedListener(buttonEl, 'click', callback);
+            this.buttonListenersDestroyFuncs.push(this.addManagedListener(buttonEl, 'click', callback));
 
             menuEl.appendChild(buttonEl);
         });
@@ -381,7 +388,7 @@ export class ChartMenu extends Component {
         this.eChartContainer.classList.toggle('ag-chart-menu-visible', this.menuVisible);
         this.eChartContainer.classList.toggle('ag-chart-menu-hidden', !this.menuVisible);
 
-        if (!this.gridOptionsService.is('suppressChartToolPanelsButton')) {
+        if (!this.gridOptionsService.get('suppressChartToolPanelsButton')) {
             this.eHideButtonIcon.classList.toggle('ag-icon-contracted', this.menuVisible);
             this.eHideButtonIcon.classList.toggle('ag-icon-expanded', !this.menuVisible);
         }

@@ -2,10 +2,10 @@ import {
     _,
     ChartFormatPanel,
     ChartFormatPanelGroup,
+    ChartPanelGroupDef,
     ChartType,
     Component,
-    PostConstruct,
-    ChartPanelGroupDef
+    PostConstruct
 } from "@ag-grid-community/core";
 import { ChartController } from "../../chartController";
 import { LegendPanel } from "./legend/legendPanel";
@@ -53,15 +53,16 @@ export class FormatPanel extends Component {
     @PostConstruct
     private init() {
         this.createPanels();
-        this.addManagedListener(this.chartController, ChartController.EVENT_CHART_UPDATED, this.createPanels.bind(this));
+        this.addManagedListener(this.chartController, ChartController.EVENT_CHART_UPDATED, () => this.createPanels(true));
+        this.addManagedListener(this.chartController, ChartController.EVENT_CHART_API_UPDATE, () => this.createPanels(false));
     }
 
-    private createPanels() {
+    private createPanels(reuse?: boolean) {
         const chartType = this.chartController.getChartType();
         const isGrouping = this.chartController.isGrouping();
         const seriesType = getSeriesType(chartType);
 
-        if (chartType === this.chartType && isGrouping === this.isGrouping) {
+        if (reuse && chartType === this.chartType && isGrouping === this.isGrouping) {
             // existing panels can be re-used
             return;
         }
@@ -119,7 +120,7 @@ export class FormatPanel extends Component {
         }
 
         const cartesianOnlyGroupPanels = ['axis', 'navigator'];
-        const cartesianSeries = ['bar', 'column', 'line', 'area', 'scatter', 'histogram', 'cartesian'];
+        const cartesianSeries = ['bar', 'column', 'line', 'area', 'scatter', 'bubble', 'histogram', 'cartesian'];
         return !!(cartesianOnlyGroupPanels.includes(group) && cartesianSeries.includes(seriesType));
     }
 

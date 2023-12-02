@@ -6,13 +6,13 @@
 // to prevent AG Grid from loading the code twice
 
 import { Easing, Group } from '@tweenjs/tween.js';
-import { ColDef, GridOptions, MenuItemDef } from 'ag-grid-community';
+import { ColDef, GridOptions, GridApi, MenuItemDef } from 'ag-grid-community';
 import { createPeopleData } from '../../data/createPeopleData';
 import { INTEGRATED_CHARTS_ID } from '../../lib/constants';
 import { createMouse } from '../../lib/createMouse';
 import { isInViewport } from '../../lib/dom';
 import { getAdditionalContextMenuItems } from '../../lib/getAdditionalContextMenuItems';
-import { ScriptDebuggerManager } from '../../lib/scriptDebugger';
+import { ScriptDebugger, ScriptDebuggerManager } from '../../lib/scriptDebugger';
 import { RunScriptState, ScriptRunner } from '../../lib/scriptRunner';
 import { AutomatedExample } from '../../types';
 import { createScriptRunner } from './createScriptRunner';
@@ -23,6 +23,8 @@ let restartScriptTimeout;
 interface CreateAutomatedIntegratedChartsParams {
     gridClassname: string;
     mouseMaskClassname: string;
+    getOverlay: () => HTMLElement;
+    getContainerScale?: () => number;
     additionalContextMenuItems?: (string | MenuItemDef)[];
     onStateChange?: (state: RunScriptState) => void;
     onGridReady?: () => void;
@@ -31,6 +33,7 @@ interface CreateAutomatedIntegratedChartsParams {
     runOnce: boolean;
     scriptDebuggerManager: ScriptDebuggerManager;
     visibilityThreshold: number;
+    darkMode: boolean;
 }
 
 function numberCellFormatter(params) {
@@ -75,15 +78,13 @@ const columnDefs: ColDef[] = [
     { field: 'dec', type: ['measure', 'numericColumn'], enableRowGroup: true },
     { field: 'totalWinnings', type: ['measure', 'numericColumn'], enableRowGroup: true },
 ];
-
+let api: GridApi;
 const gridOptions: GridOptions = {
     columnDefs,
     defaultColDef: {
-        sortable: true,
         flex: 1,
         minWidth: 150,
         filter: true,
-        resizable: true,
     },
     autoGroupColumnDef: {
         minWidth: 280,
@@ -96,16 +97,21 @@ const gridOptions: GridOptions = {
             cellRenderer: 'agAnimateShowChangeCellRenderer',
         },
     },
-    animateRows: true,
     enableCharts: true,
     enableRangeSelection: true,
     suppressAggFuncInHeader: true,
     rowGroupPanelShow: 'always',
 };
 
+function getDarkModeChartThemes(darkMode: boolean) {
+    return darkMode ? ['ag-default-dark'] : ['ag-default'];
+}
+
 export function createAutomatedIntegratedCharts({
     gridClassname,
     mouseMaskClassname,
+    getContainerScale,
+    getOverlay,
     additionalContextMenuItems,
     onStateChange,
     onGridReady,
@@ -113,9 +119,11 @@ export function createAutomatedIntegratedCharts({
     scriptDebuggerManager,
     runOnce,
     visibilityThreshold,
+    darkMode
 }: CreateAutomatedIntegratedChartsParams): AutomatedExample {
     const gridSelector = `.${gridClassname}`;
     let gridDiv: HTMLElement;
+    let scriptDebugger: ScriptDebugger | undefined;
 
     const init = () => {
         gridDiv = document.querySelector(gridSelector) as HTMLElement;
@@ -129,20 +137,22 @@ export function createAutomatedIntegratedCharts({
             gridOptions.getContextMenuItems = () => getAdditionalContextMenuItems(additionalContextMenuItems);
         }
 
+        gridOptions.chartThemes = getDarkModeChartThemes(darkMode);
+
         gridOptions.onGridReady = () => {
             onGridReady && onGridReady();
         };
-        gridOptions.onFirstDataRendered = () => {
+        gridOptions.onFirstDataRendered = (e) => {
             if (suppressUpdates) {
                 return;
             }
 
-            const scriptDebugger = scriptDebuggerManager.add({
+            scriptDebugger = scriptDebuggerManager.add({
                 id: INTEGRATED_CHARTS_ID,
                 containerEl: gridDiv,
             });
 
-            const mouse = createMouse({ containerEl: gridDiv, mouseMaskClassname });
+            const mouse = createMouse({ containerEl: document.body, mouseMaskClassname });
             const tweenGroup = new Group();
 
             if (scriptRunner) {
@@ -152,18 +162,23 @@ export function createAutomatedIntegratedCharts({
             scriptRunner = createScriptRunner({
                 id: INTEGRATED_CHARTS_ID,
                 containerEl: gridDiv,
+                getContainerScale,
+                getOverlay,
                 mouse,
                 onStateChange,
                 tweenGroup,
-                gridOptions,
+                gridApi: e.api,
                 loop: !runOnce,
                 scriptDebugger,
                 defaultEasing: Easing.Quadratic.InOut,
             });
         };
 
-        new globalThis.agGrid.Grid(gridDiv, gridOptions);
+        api = globalThis.agGrid.createGrid(gridDiv, gridOptions);
     };
+    const updateDarkMode = (newDarkMode: boolean) => {
+        api?.setGridOption('chartThemes', getDarkModeChartThemes(newDarkMode));
+    }
 
     const loadGrid = function () {
         if (document.querySelector(gridSelector) && globalThis.agGrid) {
@@ -181,9 +196,20 @@ export function createAutomatedIntegratedCharts({
         inactive: () => scriptRunner?.inactive(),
         currentState: () => scriptRunner?.currentState(),
         isInViewport: () => {
-            return isInViewport(gridDiv, visibilityThreshold);
+            return isInViewport({ element: gridDiv, threshold: visibilityThreshold });
         },
+        getDebugger: () => scriptDebugger,
+        updateDarkMode
     };
+}
+
+export function cleanUp() {
+    clearTimeout(restartScriptTimeout);
+    if (scriptRunner) {
+        scriptRunner.stop();
+    }
+
+    api?.destroy();
 }
 
 /**
@@ -193,11 +219,6 @@ export function createAutomatedIntegratedCharts({
 if (import.meta.webpackHot) {
     // @ts-ignore
     import.meta.webpackHot.dispose(() => {
-        clearTimeout(restartScriptTimeout);
-        if (scriptRunner) {
-            scriptRunner.stop();
-        }
-
-        gridOptions.api?.destroy();
+        cleanUp();
     });
 }

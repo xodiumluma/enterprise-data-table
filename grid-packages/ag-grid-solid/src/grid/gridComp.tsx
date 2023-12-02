@@ -115,8 +115,6 @@ const GridComp = (props: {context: Context, class?: string})=> {
             destroyGridUi:
                 () => {}, // do nothing, as framework users destroy grid by removing the comp
             setRtlClass: setRtlClass,
-            addOrRemoveKeyboardFocusClass:
-                (addOrRemove: boolean) => setKeyboardFocusClass(addOrRemove ? FocusService.AG_KEYBOARD_FOCUS : ''),
             forceFocusOutOfContainer: () => {
                 tabGuardRef && tabGuardRef.forceFocusOutOfContainer();
             },
@@ -148,10 +146,10 @@ const GridComp = (props: {context: Context, class?: string})=> {
     const cssClasses = createMemo( () => classesList('ag-root-wrapper', rtlClass(), keyboardFocusClass(), layoutClass(), props.class) );
     const bodyCssClasses = createMemo( () => classesList('ag-root-wrapper-body', 'ag-focus-managed', layoutClass()));
 
-    const topStyle = createMemo( () => ({
-        userSelect: userSelect != null ? (userSelect as any) : '',
-        WebkitUserSelect: userSelect != null ? (userSelect as any) : '',
-        cursor: cursor != null ? cursor : ''
+    const topStyle: any = createMemo( () => ({
+        userSelect: userSelect != null ? userSelect() : '',
+        WebkitUserSelect: userSelect != null ? userSelect() : '',
+        cursor: cursor != null ? cursor() : ''
     }));
 
     return (

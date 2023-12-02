@@ -9,7 +9,7 @@ import styles from './FrameworkSelector.module.scss';
 export default function FrameworkSelector({ data, currentFramework, isFullWidth, showSelectedFramework }) {
     return (
         <div
-            className={classnames('ag-styles', styles.frameworkSelector, {
+            className={classnames(styles.frameworkSelector, {
                 [styles.fullWidth]: isFullWidth,
                 [styles.showSelected]: showSelectedFramework,
             })}
@@ -21,7 +21,7 @@ export default function FrameworkSelector({ data, currentFramework, isFullWidth,
 
                 return (
                     <a
-                        href={framework.url}
+                        href={`${framework.url}getting-started`}
                         key={framework.name}
                         className={classnames(styles.option, {
                             [styles.selected]: isSelected,

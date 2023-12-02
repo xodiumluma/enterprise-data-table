@@ -1,5 +1,6 @@
-import { Grid, ColDef, ColGroupDef, ColumnApi, GridOptions, IServerSideDatasource, IServerSideGetRowsRequest } from '@ag-grid-community/core'
+import { ColDef, createGrid, GridApi, GridOptions, IServerSideDatasource } from '@ag-grid-community/core';
 declare var FakeServer: any;
+let gridApi: GridApi<IOlympicData>;
 const gridOptions: GridOptions<IOlympicData> = {
   columnDefs: [
     { field: 'country', rowGroup: true },
@@ -12,8 +13,6 @@ const gridOptions: GridOptions<IOlympicData> = {
   ],
   defaultColDef: {
     width: 150,
-    resizable: true,
-    sortable: true,
   },
   autoGroupColumnDef: {
     minWidth: 200,
@@ -25,13 +24,35 @@ const gridOptions: GridOptions<IOlympicData> = {
   // enable pivoting
   pivotMode: true,
 
-  animateRows: true,
+
+  processPivotResultColDef: (colDef: ColDef) => {
+    const pivotValueColumn = colDef.pivotValueColumn;
+
+    if (!pivotValueColumn) return;
+
+    // if column is not the total column, it should only be shown when expanded.
+    // this will enable expandable column groups.
+    if (pivotValueColumn.getColId() !== 'total') {
+      colDef.columnGroupShow = 'open';
+    }
+  }
+}
+
+function expand(key?: string, open = false) {
+  if (key) {
+    gridApi!.setColumnGroupState([{ groupId: key, open: open }]);
+    return;
+  }
+
+  const existingState = gridApi!.getColumnGroupState();
+  const expandedState = existingState.map((s: { groupId: string, open: boolean }) => ({ groupId: s.groupId, open: open }));
+  gridApi!.setColumnGroupState(expandedState);
 }
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
   var gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
@@ -43,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var datasource = getServerSideDatasource(fakeServer)
 
       // register the datasource with the grid
-      gridOptions.api!.setServerSideDatasource(datasource)
+      gridApi!.setGridOption('serverSideDatasource', datasource)
     })
 })
 
@@ -56,81 +77,19 @@ function getServerSideDatasource(server: any): IServerSideDatasource {
 
       var response = server.getData(request)
 
-      // add pivot colDefs in the grid based on the resulting data
-      addPivotColDefs(request, response, params.columnApi)
-
       // simulating real server call with a 500ms delay
-      setTimeout(function () {
+      setTimeout(() => {
         if (response.success) {
           // supply data to grid
-          params.success({ rowData: response.rows, rowCount: response.lastRow })
+          params.success({
+            rowData: response.rows,
+            rowCount: response.lastRow,
+            pivotResultFields: response.pivotFields,
+          });
         } else {
           params.fail()
         }
       }, 500)
     },
   }
-}
-
-function addPivotColDefs(request: IServerSideGetRowsRequest, response: any, columnApi: ColumnApi) {
-  // check if pivot colDefs already exist
-  var existingPivotColDefs = columnApi.getPivotResultColumns()
-  if (existingPivotColDefs && existingPivotColDefs.length > 0) {
-    return
-  }
-
-  // create pivot colDef's based of data returned from the server
-  var pivotColDefs = createPivotColDefs(request, response.pivotFields)
-
-  // supply pivot result columns to the grid
-  columnApi.setPivotResultColumns(pivotColDefs)
-}
-
-function createPivotColDefs(request: IServerSideGetRowsRequest, pivotFields: string[]) {
-  function addColDef(colId: string, parts: string[], res: (ColDef | ColGroupDef)[]) {
-    if (parts.length === 0) return []
-
-    var first = parts.shift()
-
-    var existing: ColGroupDef = res.filter(function (r: ColDef | ColGroupDef) {
-      return 'groupId' in r && r.groupId === first;
-    })[0] as ColGroupDef;
-    if (existing) {
-      existing['children'] = addColDef(colId, parts, existing.children)
-    } else {
-      var colDef: any = {}
-      var isGroup = parts.length > 0
-      if (isGroup) {
-        colDef['groupId'] = first
-        colDef['headerName'] = first
-      } else {
-        var valueCol = request.valueCols.filter(function (r) {
-          return r.field === first
-        })[0]
-        colDef['colId'] = colId
-        colDef['headerName'] = valueCol.displayName
-        colDef['field'] = colId
-
-        // comment out this line to remove expandable groups
-        colDef['columnGroupShow'] = (valueCol.id === 'total') ? 'closed' : 'open';
-      }
-
-      var children = addColDef(colId, parts, [])
-      children.length > 0 ? (colDef['children'] = children) : null
-
-      res.push(colDef)
-    }
-
-    return res
-  }
-
-  if (request.pivotMode && request.pivotCols.length > 0) {
-    var pivotResultCols: ColGroupDef[] = []
-    pivotFields.forEach(function (field) {
-      addColDef(field, field.split('_'), pivotResultCols)
-    })
-    return pivotResultCols
-  }
-
-  return []
 }

@@ -2,7 +2,7 @@ import Vue from 'vue';
 import { AgGridVue } from '@ag-grid-community/vue';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 import DaysFrostRenderer from './daysFrostRendererVue.js';
 
 import { ModuleRegistry } from '@ag-grid-community/core';
@@ -73,7 +73,7 @@ const VueExample = {
             </div>
             <ag-grid-vue
                     style="width: 100%; height: 100%;"
-                    class="ag-theme-alpine"
+                    :class="themeClass"
                     :columnDefs="columnDefs"
                     :rowData="rowData"
                     :defaultColDef="defaultColDef"
@@ -101,7 +101,7 @@ const VueExample = {
                     headerName: "Month",
                     field: "Month",
                     width: 75,
-                    cellStyle: { color: "darkred" }
+                    cellStyle: { backgroundColor: "#CC222244" }
                 },
                 {
                     headerName: "Max Temp (\u02DAC)",
@@ -138,21 +138,20 @@ const VueExample = {
                 }
             ],
             defaultColDef: {
-                editable: true,
-                sortable: true,
-                flex: 1,
+                editable: true,flex: 1,
                 minWidth: 100,
                 filter: true,
-                resizable: true
+                
             },
-            rowData: null
+            rowData: null,
+            themeClass: /** DARK MODE START **/document.documentElement.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/,
         }
     },
     methods: {
         onGridReady(params) {
             this.gridApi = params.api;
 
-            const updateData = (data) => this.gridApi.setRowData(data);
+            const updateData = (data) => this.gridApi.setGridOption('rowData', data);
 
             fetch('https://www.ag-grid.com/example-assets/weather-se-england.json')
                 .then(resp => resp.json())

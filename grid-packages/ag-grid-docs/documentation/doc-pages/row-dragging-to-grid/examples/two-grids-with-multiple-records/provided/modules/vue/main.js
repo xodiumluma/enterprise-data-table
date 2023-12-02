@@ -4,7 +4,7 @@ import { AgGridVue } from '@ag-grid-community/vue';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 
 import '@ag-grid-community/styles/ag-grid.css';
-import '@ag-grid-community/styles/ag-theme-alpine.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
 
 import 'styles.css';
 
@@ -41,12 +41,13 @@ const VueExample = {
                     </span>
                 </div>
             </div>
-            <div class="grid-wrapper ag-theme-alpine">
+            <div class="grid-wrapper">
                 <div class="panel panel-primary" style="margin-right: 10px;">
                     <div class="panel-heading">Athletes</div>
                     <div class="panel-body">
                         <ag-grid-vue
                                 style="height: 100%;"
+                                :class="themeClass"
                                 :defaultColDef="defaultColDef"
                                 rowSelection="multiple"
                                 :rowDragMultiRow="true"
@@ -54,7 +55,6 @@ const VueExample = {
                                 :getRowId="getRowId"
                                 :rowDragManaged="true"
                                 :suppressMoveWhenRowDragging="true"
-                                :animateRows="true"
                                 :rowData="leftRowData"
                                 :columnDefs="leftColumns"
                                 @grid-ready="onGridReady($event, 0)"
@@ -67,10 +67,10 @@ const VueExample = {
                     <div class="panel-body">
                         <ag-grid-vue
                                 style="height: 100%;"
+                                :class="themeClass"
                                 :defaultColDef="defaultColDef"
                                 :getRowId="getRowId"
                                 :rowDragManaged="true"
-                                :animateRows="true"
                                 :rowData="rightRowData"
                                 :columnDefs="rightColumns"
                                 @grid-ready="onGridReady($event, 1)"
@@ -89,15 +89,12 @@ const VueExample = {
             leftRowData: null,
             rightRowData: [],
             leftApi: null,
-            leftColumnApi: null,
             rightApi: null,
 
             defaultColDef: {
                 flex: 1,
                 minWidth: 100,
-                sortable: true,
                 filter: true,
-                resizable: true
             },
             leftColumns: [
                 {
@@ -140,7 +137,8 @@ const VueExample = {
                     maxWidth: 50,
                     cellRenderer: 'SportRenderer'
                 }
-            ]
+            ],
+            themeClass: /** DARK MODE START **/document.documentElement.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/,
         };
     },
     beforeMount() {
@@ -183,14 +181,13 @@ const VueExample = {
 
         checkboxSelectChange() {
             const checked = this.$refs.eSelectCheckbox.checked;
-            this.leftColumnApi.setColumnVisible('checkbox', checked);
-            this.leftApi.setSuppressRowClickSelection(checked);
+            this.leftApi.setColumnVisible('checkbox', checked);
+            this.leftApi.setGridOption('suppressRowClickSelection', checked);
         },
 
         onGridReady(params, side) {
             if (side === 0) {
                 this.leftApi = params.api
-                this.leftColumnApi = params.columnApi;
             }
 
             if (side === 1) {
@@ -213,9 +210,7 @@ const VueExample = {
                             })
                         });
                     } else if (deselectCheck) {
-                        nodes.forEach(function (node) {
-                            node.setSelected(false);
-                        });
+                        this.leftApi.setNodesSelected({ nodes, newValue: false });
                     }
                 }
             });

@@ -1,31 +1,24 @@
+import { ColumnState } from "../columns/columnModel";
+import { ColumnUtils } from "../columns/columnUtils";
+import { Autowired, PostConstruct } from "../context/context";
+import { AgEvent, ColumnEvent, ColumnEventType } from "../events";
+import { EventService } from "../eventService";
+import { GridOptionsService } from "../gridOptionsService";
+import { IEventEmitter } from "../interfaces/iEventEmitter";
 import { IHeaderColumn } from "../interfaces/iHeaderColumn";
 import { IProvidedColumn } from "../interfaces/iProvidedColumn";
+import { IRowNode } from "../interfaces/iRowNode";
+import { ColumnHoverService } from "../rendering/columnHoverService";
+import { exists, missing } from "../utils/generic";
+import { mergeDeep } from "../utils/object";
 import {
     AbstractColDef,
     BaseColDefParams,
     ColDef,
-    ColSpanParams,
-    IAggFunc,
-    ColumnFunctionCallbackParams,
-    RowSpanParams,
-    ColumnMenuTab,
-    SortDirection
+    ColSpanParams, ColumnFunctionCallbackParams, ColumnMenuTab, IAggFunc, RowSpanParams, SortDirection
 } from "./colDef";
-import { EventService } from "../eventService";
-import { Autowired, PostConstruct } from "../context/context";
-import { ColumnUtils } from "../columns/columnUtils";
-import { IEventEmitter } from "../interfaces/iEventEmitter";
-import { ColumnEvent, ColumnEventType } from "../events";
 import { ColumnGroup, ColumnGroupShowType } from "./columnGroup";
 import { ProvidedColumnGroup } from "./providedColumnGroup";
-import { ModuleNames } from "../modules/moduleNames";
-import { ModuleRegistry } from "../modules/moduleRegistry";
-import { attrToNumber, attrToBoolean, exists, missing } from "../utils/generic";
-import { doOnce } from "../utils/function";
-import { mergeDeep } from "../utils/object";
-import { GridOptionsService } from "../gridOptionsService";
-import { ColumnHoverService } from "../rendering/columnHoverService";
-import { IRowNode } from "../interfaces/iRowNode";
 
 export type ColumnPinnedType = 'left' | 'right' | boolean | null | undefined;
 export type ColumnEventName =
@@ -42,7 +35,13 @@ export type ColumnEventName =
     'menuVisibleChanged' |
     'columnRowGroupChanged' |
     'columnPivotChanged' |
-    'columnValueChanged';
+    'columnValueChanged' |
+    'columnStateUpdated';
+
+const COL_DEF_DEFAULTS: Partial<ColDef> = {
+    resizable: true,
+    sortable: true
+};
 
 let instanceIdSequence = 0;
 export function getNextColInstanceId() {
@@ -55,7 +54,7 @@ export function getNextColInstanceId() {
 // appear as a child of either the original tree or the displayed tree. However the relevant group classes
 // for each type only implements one, as each group can only appear in it's associated tree (eg ProvidedColumnGroup
 // can only appear in OriginalColumn tree).
-export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
+export class Column<TValue = any> implements IHeaderColumn<TValue>, IProvidedColumn, IEventEmitter {
 
     // + renderedHeaderCell - for making header cell transparent when moving
     public static EVENT_MOVING_CHANGED: ColumnEventName = 'movingChanged';
@@ -85,13 +84,15 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     public static EVENT_PIVOT_CHANGED: ColumnEventName = 'columnPivotChanged';
     // + toolpanel, for gui updates
     public static EVENT_VALUE_CHANGED: ColumnEventName = 'columnValueChanged';
+    // + dataTypeService - when waiting to infer cell data types
+    public static EVENT_STATE_UPDATED: ColumnEventName = 'columnStateUpdated';
 
     @Autowired('gridOptionsService') private readonly gridOptionsService: GridOptionsService;
     @Autowired('columnUtils') private readonly columnUtils: ColumnUtils;
     @Autowired('columnHoverService') private readonly columnHoverService: ColumnHoverService;
 
     private readonly colId: any;
-    private colDef: ColDef;
+    private colDef: ColDef<TValue>;
 
     // used by React (and possibly other frameworks) as key for rendering. also used to
     // identify old vs new columns for destroying cols when no longer used.
@@ -101,7 +102,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     // when the user provides an updated list of columns - so we can check if we have a column already
     // existing for a col def. we cannot use the this.colDef as that is the result of a merge.
     // This is used in ColumnFactory
-    private userProvidedColDef: ColDef | null;
+    private userProvidedColDef: ColDef<TValue> | null;
 
     private actualWidth: any;
 
@@ -118,8 +119,8 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     private moving = false;
     private menuVisible = false;
 
-    private lastLeftPinned: boolean;
-    private firstRightPinned: boolean;
+    private lastLeftPinned: boolean = false;
+    private firstRightPinned: boolean = false;
 
     private minWidth: number | null | undefined;
     private maxWidth: number | null | undefined;
@@ -142,7 +143,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     private parent: ColumnGroup;
     private originalParent: ProvidedColumnGroup | null;
 
-    constructor(colDef: ColDef, userProvidedColDef: ColDef | null, colId: string, primary: boolean) {
+    constructor(colDef: ColDef<TValue>, userProvidedColDef: ColDef<TValue> | null, colId: string, primary: boolean) {
         this.colDef = colDef;
         this.userProvidedColDef = userProvidedColDef;
         this.colId = colId;
@@ -168,8 +169,8 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         }
 
         // sortIndex
-        const sortIndex = attrToNumber(colDef.sortIndex);
-        const initialSortIndex = attrToNumber(colDef.initialSortIndex);
+        const sortIndex = colDef.sortIndex;
+        const initialSortIndex = colDef.initialSortIndex;
         if (sortIndex !== undefined) {
             if (sortIndex !== null) {
                 this.sortIndex = sortIndex;
@@ -181,8 +182,8 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         }
 
         // hide
-        const hide = attrToBoolean(colDef.hide);
-        const initialHide = attrToBoolean(colDef.initialHide);
+        const hide = colDef.hide;
+        const initialHide = colDef.initialHide;
 
         if (hide !== undefined) {
             this.visible = !hide;
@@ -198,8 +199,8 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         }
 
         // flex
-        const flex = attrToNumber(colDef.flex);
-        const initialFlex = attrToNumber(colDef.initialFlex);
+        const flex = colDef.flex;
+        const initialFlex = colDef.initialFlex;
         if (flex !== undefined) {
             this.flex = flex;
         } else if (initialFlex !== undefined) {
@@ -208,12 +209,13 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     }
 
     // gets called when user provides an alternative colDef, eg
-    public setColDef(colDef: ColDef, userProvidedColDef: ColDef | null): void {
+    public setColDef(colDef: ColDef<TValue>, userProvidedColDef: ColDef<TValue> | null, source: ColumnEventType = 'api'): void {
         this.colDef = colDef;
         this.userProvidedColDef = userProvidedColDef;
         this.initMinAndMaxWidths();
         this.initDotNotation();
-        this.eventService.dispatchEvent(this.createColumnEvent('colDefChanged', "api"));
+        this.initTooltip();
+        this.eventService.dispatchEvent(this.createColumnEvent('colDefChanged', source));
     }
 
     /**
@@ -221,7 +223,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
      * This may not be correct, as items can be superseded by default column options.
      * However it's useful for comparison, eg to know which application column definition matches that column.
      */
-    public getUserProvidedColDef(): ColDef | null {
+    public getUserProvidedColDef(): ColDef<TValue> | null {
         return this.userProvidedColDef;
     }
 
@@ -238,6 +240,11 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         this.originalParent = originalParent;
     }
 
+    /**
+     * Used for marryChildren, helps with comparing when duplicate groups have been created to manage split groups.
+     * 
+     * Parent may contain a duplicate but not identical group when the group is split.
+     */
     public getOriginalParent(): ProvidedColumnGroup | null {
         return this.originalParent;
     }
@@ -252,12 +259,10 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         this.initDotNotation();
 
         this.initTooltip();
-
-        this.validate();
     }
 
     private initDotNotation(): void {
-        const suppressDotNotation = this.gridOptionsService.is('suppressFieldDotNotation');
+        const suppressDotNotation = this.gridOptionsService.get('suppressFieldDotNotation');
         this.fieldContainsDots = exists(this.colDef.field) && this.colDef.field.indexOf('.') >= 0 && !suppressDotNotation;
         this.tooltipFieldContainsDots = exists(this.colDef.tooltipField) && this.colDef.tooltipField.indexOf('.') >= 0 && !suppressDotNotation;
     }
@@ -272,8 +277,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     private initTooltip(): void {
         this.tooltipEnabled = exists(this.colDef.tooltipField) ||
             exists(this.colDef.tooltipValueGetter) ||
-            exists(this.colDef.tooltipComponent) ||
-            exists(this.colDef.tooltipComponentFramework);
+            exists(this.colDef.tooltipComponent);
     }
 
     public resetActualWidth(source: ColumnEventType = 'api'): void {
@@ -305,7 +309,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     public isFilterAllowed(): boolean {
         // filter defined means it's a string, class or true.
         // if its false, null or undefined then it's false.
-        const filterDefined = !!this.colDef.filter || !!this.colDef.filterFramework;
+        const filterDefined = !!this.colDef.filter;
         return filterDefined;
     }
 
@@ -319,84 +323,6 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
 
     public isTooltipFieldContainsDots(): boolean {
         return this.tooltipFieldContainsDots;
-    }
-
-    private validate(): void {
-
-        const colDefAny = this.colDef as any;
-
-        function warnOnce(msg: string, key: string, obj?: any) {
-            doOnce(() => {
-                if (obj) {
-                    console.warn(msg, obj);
-                } else {
-                    doOnce(() => console.warn(msg), key);
-                }
-            }, key);
-        }
-
-        const usingCSRM = this.gridOptionsService.isRowModelType('clientSide');
-        if (usingCSRM && !ModuleRegistry.isRegistered(ModuleNames.RowGroupingModule)) {
-            const rowGroupingItems: (keyof ColDef)[] = ['enableRowGroup', 'rowGroup', 'rowGroupIndex', 'enablePivot', 'enableValue', 'pivot', 'pivotIndex', 'aggFunc'];
-            const itemsUsed = rowGroupingItems.filter(x => exists(colDefAny[x]));
-            if (itemsUsed.length > 0) {
-                ModuleRegistry.assertRegistered(ModuleNames.RowGroupingModule, itemsUsed.map(i => 'colDef.' + i).join(', '));
-            }
-        }
-
-        if (this.colDef.cellEditor === 'agRichSelect' || this.colDef.cellEditor === 'agRichSelectCellEditor') {
-            ModuleRegistry.assertRegistered(ModuleNames.RichSelectModule, this.colDef.cellEditor);
-        }
-
-        if (this.gridOptionsService.isTreeData()) {
-            const itemsNotAllowedWithTreeData: (keyof ColDef)[] = ['rowGroup', 'rowGroupIndex', 'pivot', 'pivotIndex'];
-            const itemsUsed = itemsNotAllowedWithTreeData.filter(x => exists(colDefAny[x]));
-            if (itemsUsed.length > 0) {
-                warnOnce(`AG Grid: ${itemsUsed.join()} is not possible when doing tree data, your column definition should not have ${itemsUsed.join()}`, 'TreeDataCannotRowGroup');
-            }
-        }
-
-        if (exists(colDefAny.menuTabs)) {
-
-            if (Array.isArray(colDefAny.menuTabs)) {
-
-                const communityMenuTabs: ColumnMenuTab[] = ['filterMenuTab'];
-
-                const enterpriseMenuTabs: ColumnMenuTab[] = ['columnsMenuTab', 'generalMenuTab'];
-                const itemsUsed = enterpriseMenuTabs.filter(x => colDefAny.menuTabs.includes(x));
-                if (itemsUsed.length > 0) {
-                    ModuleRegistry.assertRegistered(ModuleNames.MenuModule, `menuTab(s): ${itemsUsed.map(t => `'${t}'`).join()}`);
-                }
-
-                colDefAny.menuTabs.forEach((tab: ColumnMenuTab) => {
-                    if (!enterpriseMenuTabs.includes(tab) && !communityMenuTabs.includes(tab)) {
-                        warnOnce(`AG Grid: '${tab}' is not valid for 'colDef.menuTabs'. Valid values are: ${[...communityMenuTabs, ...enterpriseMenuTabs].map(t => `'${t}'`).join()}.`, 'wrongValue_menuTabs_' + tab);
-                    }
-                });
-            } else {
-                warnOnce(`AG Grid: The typeof 'colDef.menuTabs' should be an array not:` + typeof colDefAny.menuTabs, 'wrongType_menuTabs');
-            }
-        }
-
-        if (exists(colDefAny.columnsMenuParams)) {
-            ModuleRegistry.assertRegistered(ModuleNames.MenuModule, 'columnsMenuParams');
-        }
-
-        if (exists(colDefAny.columnsMenuParams)) {
-            ModuleRegistry.assertRegistered(ModuleNames.ColumnsToolPanelModule, 'columnsMenuParams');
-        }
-
-        if (exists(this.colDef.width) && typeof this.colDef.width !== 'number') {
-            warnOnce('AG Grid: colDef.width should be a number, not ' + typeof this.colDef.width, 'ColumnCheck');
-        }
-
-        if (colDefAny.pinnedRowCellRenderer || colDefAny.pinnedRowCellRendererParams || colDefAny.pinnedRowCellRendererFramework) {
-            warnOnce('AG Grid: pinnedRowCellRenderer[Params,Framework] no longer exist. Use cellRendererSelector if you want a different Cell Renderer for pinned rows. Check params.node.rowPinned.', 'colDef.pinnedRowCellRenderer-deprecated');
-        }
-
-        if (exists(colDefAny.columnGroupShow) && colDefAny.columnGroupShow !== 'closed' && colDefAny.columnGroupShow !== 'open') {
-            warnOnce(`AG Grid: '${colDefAny.columnGroupShow}' is not valid for columnGroupShow. Valid values are 'open', 'closed', undefined, null`, 'columnGroupShow_invalid');
-        }
     }
 
     /** Add an event listener to the column. */
@@ -442,7 +368,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
      */
     public isCellEditable(rowNode: IRowNode): boolean {
         // only allow editing of groups if the user has this option enabled
-        if (rowNode.group && !this.gridOptionsService.is('enableGroupEdit')) {
+        if (rowNode.group && !this.gridOptionsService.get('enableGroupEdit')) {
             return false;
         }
 
@@ -450,15 +376,15 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     }
 
     public isSuppressFillHandle(): boolean {
-        return !!attrToBoolean(this.colDef.suppressFillHandle);
+        return !!this.colDef.suppressFillHandle;
     }
 
     public isAutoHeight(): boolean {
-        return !!attrToBoolean(this.colDef.autoHeight);
+        return !!this.colDef.autoHeight;
     }
 
     public isAutoHeaderHeight(): boolean {
-        return !!attrToBoolean(this.colDef.autoHeaderHeight);
+        return !!this.colDef.autoHeaderHeight;
     }
 
     public isRowDrag(rowNode: IRowNode): boolean {
@@ -478,7 +404,12 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     }
 
     public isResizable(): boolean {
-        return !!attrToBoolean(this.colDef.resizable);
+        return !!this.getColDefValue('resizable');
+    }
+    
+    /** Get value from ColDef or default if it exists. */
+    private getColDefValue<K extends keyof ColDef>(key: K): ColDef[K] {
+        return this.colDef[key] ?? COL_DEF_DEFAULTS[key];
     }
 
     private isColumnFunc(rowNode: IRowNode, value?: boolean | ((params: ColumnFunctionCallbackParams) => boolean) | null): boolean {
@@ -528,6 +459,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
             this.sort = sort;
             this.eventService.dispatchEvent(this.createColumnEvent('sortChanged', source));
         }
+        this.dispatchStateUpdatedEvent('sort');
     }
 
     public setMenuVisible(visible: boolean, source: ColumnEventType = "api"): void {
@@ -539,6 +471,10 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
 
     public isMenuVisible(): boolean {
         return this.menuVisible;
+    }
+
+    public isSortable(): boolean {
+        return !!this.getColDefValue('sortable');
     }
 
     public isSortAscending(): boolean {
@@ -563,10 +499,12 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
 
     public setSortIndex(sortOrder?: number | null): void {
         this.sortIndex = sortOrder;
+        this.dispatchStateUpdatedEvent('sortIndex');
     }
 
     public setAggFunc(aggFunc: string | IAggFunc | null | undefined): void {
         this.aggFunc = aggFunc;
+        this.dispatchStateUpdatedEvent('aggFunc');
     }
 
     /** If aggregation is set for the column, returns the aggregation function. */
@@ -625,6 +563,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         } else {
             this.pinned = null;
         }
+        this.dispatchStateUpdatedEvent('pinned');
     }
 
     public setFirstRightPinned(firstRightPinned: boolean, source: ColumnEventType = "api"): void {
@@ -671,6 +610,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
             this.visible = newValue;
             this.eventService.dispatchEvent(this.createColumnEvent('visibleChanged', source));
         }
+        this.dispatchStateUpdatedEvent('hide');
     }
 
     public isVisible(): boolean {
@@ -678,7 +618,8 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     }
 
     public isSpanHeaderHeight(): boolean {
-        return !!this.getColDef().spanHeaderHeight;
+        const colDef = this.getColDef();
+        return !colDef.suppressSpanHeaderHeight && !colDef.autoHeaderHeight;
     }
 
     /** Returns the column definition for this column.
@@ -686,7 +627,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
      * (e.g. `defaultColDef` grid option, or column types.
      *
      * Equivalent: `getDefinition` */
-    public getColDef(): ColDef {
+    public getColDef(): ColDef<TValue> {
         return this.colDef;
     }
 
@@ -715,7 +656,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         return this.colId;
     }
 
-    public getDefinition(): AbstractColDef {
+    public getDefinition(): AbstractColDef<TValue> {
         return this.colDef;
     }
 
@@ -784,6 +725,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
                 this.fireColumnWidthChangedEvent(source);
             }
         }
+        this.dispatchStateUpdatedEvent('width');
     }
 
     public fireColumnWidthChangedEvent(source: ColumnEventType): void {
@@ -813,6 +755,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
     // change flex when required by the applyColumnState method.
     public setFlex(flex: number | null) {
         if (this.flex !== flex) { this.flex = flex; }
+        this.dispatchStateUpdatedEvent('flex');
     }
 
     public setMinimum(source: ColumnEventType = "api"): void {
@@ -826,6 +769,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
             this.rowGroupActive = rowGroup;
             this.eventService.dispatchEvent(this.createColumnEvent('columnRowGroupChanged', source));
         }
+        this.dispatchStateUpdatedEvent('rowGroup');
     }
 
     /** Returns `true` if row group is currently active for this column. */
@@ -838,6 +782,7 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
             this.pivotActive = pivot;
             this.eventService.dispatchEvent(this.createColumnEvent('columnPivotChanged', source));
         }
+        this.dispatchStateUpdatedEvent('pivot');
     }
 
     /** Returns `true` if pivot is currently active for this column. */
@@ -885,5 +830,12 @@ export class Column implements IHeaderColumn, IProvidedColumn, IEventEmitter {
         }
 
         return menuTabs;
+    }
+
+    private dispatchStateUpdatedEvent(key: keyof ColumnState): void {
+        this.eventService.dispatchEvent({
+            type: Column.EVENT_STATE_UPDATED,
+            key
+        } as AgEvent);
     }
 }

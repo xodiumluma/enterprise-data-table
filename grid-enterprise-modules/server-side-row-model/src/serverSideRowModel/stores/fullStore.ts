@@ -9,6 +9,7 @@ import {
     LoadSuccessParams,
     NumberSequence,
     PostConstruct,
+    PostSortRowsParams,
     PreDestroy,
     RowBounds,
     RowNode,
@@ -26,9 +27,10 @@ import {
     StoreUpdatedEvent,
     WithoutGridCommon,
     IsApplyServerSideTransactionParams,
-    IRowNode
+    IRowNode,
+    ISelectionService,
 } from "@ag-grid-community/core";
-import { SSRMParams } from "../serverSideRowModel";
+import { SSRMParams, ServerSideRowModel } from "../serverSideRowModel";
 import { StoreUtils } from "./storeUtils";
 import { BlockUtils } from "../blocks/blockUtils";
 import { NodeManager } from "../nodeManager";
@@ -42,9 +44,11 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
     @Autowired('rowNodeBlockLoader') private rowNodeBlockLoader: RowNodeBlockLoader;
     @Autowired('rowNodeSorter') private rowNodeSorter: RowNodeSorter;
     @Autowired('sortController') private sortController: SortController;
+    @Autowired('selectionService') private selectionService: ISelectionService;
     @Autowired('ssrmNodeManager') private nodeManager: NodeManager;
     @Autowired('filterManager') private filterManager: FilterManager;
     @Autowired('ssrmTransactionManager') private transactionManager: TransactionManager;
+    @Autowired('rowModel') private serverSideRowModel: ServerSideRowModel;
 
     private readonly level: number;
     private readonly groupLevel: boolean | undefined;
@@ -75,6 +79,8 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
 
     private info: any = {};
 
+    private postSortFunc: ((params: WithoutGridCommon<PostSortRowsParams>) => void) | undefined;
+
     constructor(ssrmParams: SSRMParams, storeParams: ServerSideGroupLevelParams, parentRowNode: RowNode) {
         // finite block represents a cache with just one block, thus 0 is the id, it's the first block
         super(0);
@@ -87,7 +93,7 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
 
     @PostConstruct
     private postConstruct(): void {
-        this.usingTreeData = this.gridOptionsService.isTreeData();
+        this.usingTreeData = this.gridOptionsService.get('treeData');
         this.nodeIdPrefix = this.blockUtils.createNodeIdPrefix(this.parentRowNode);
 
         if (!this.usingTreeData && this.groupLevel) {
@@ -100,13 +106,22 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
         let initialRowCount = 1;
         const isRootStore = this.parentRowNode.level === -1;
         const userInitialRowCount = this.storeUtils.getServerSideInitialRowCount();
-        if (isRootStore && userInitialRowCount !== undefined) {
+        if (isRootStore && userInitialRowCount != null) {
             initialRowCount = userInitialRowCount;
         }
         this.initialiseRowNodes(initialRowCount);
 
         this.rowNodeBlockLoader.addBlock(this);
         this.addDestroyFunc(() => this.rowNodeBlockLoader.removeBlock(this));
+
+
+        this.postSortFunc = this.gridOptionsService.getCallback('postSortRows');
+
+        if (userInitialRowCount != null) {
+            this.eventService.dispatchEventOnce({
+                type: Events.EVENT_ROW_COUNT_READY
+            });
+        }
     }
 
     @PreDestroy
@@ -151,9 +166,7 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
             parentBlock: this,
             parentNode: this.parentRowNode,
             storeParams: this.ssrmParams,
-            successCallback: this.pageLoaded.bind(this, this.getVersion()),
             success: this.success.bind(this, this.getVersion()),
-            failCallback: this.pageLoadFailed.bind(this, this.getVersion()),
             fail: this.pageLoadFailed.bind(this, this.getVersion())
         });
     }
@@ -205,12 +218,16 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
         this.flushAsyncTransactions();
     }
 
-    protected processServerResult(params: LoadSuccessParams): void {
+    public processServerResult(params: LoadSuccessParams): void {
         if (!this.isAlive()) { return; }
 
-        const info = params.storeInfo || params.groupLevelInfo;
+        const info = params.groupLevelInfo;
         if (info) {
             Object.assign(this.info, info);
+        }
+
+        if (params.pivotResultFields) {
+            this.serverSideRowModel.generateSecondaryColumns(params.pivotResultFields);
         }
 
         const nodesToRecycle = this.allRowNodes.length > 0 ? this.allNodesMap : undefined;
@@ -221,14 +238,19 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
         this.allNodesMap = {};
 
         if (!params.rowData) {
-            const message = 'AG Grid: "params.data" is missing from Server-Side Row Model success() callback. Please use the "data" attribute. If no data is returned, set an empty list.';
-            _.doOnce(() => console.warn(message, params), 'FullStore.noData');
+            _.warnOnce('"params.data" is missing from Server-Side Row Model success() callback. Please use the "data" attribute. If no data is returned, set an empty list.');
         }
 
         this.createOrRecycleNodes(nodesToRecycle, params.rowData);
 
         if (nodesToRecycle) {
             this.blockUtils.destroyRowNodes(_.getAllValuesInObject(nodesToRecycle));
+        }
+
+        if (this.level === 0) {
+            this.eventService.dispatchEventOnce({
+                type: Events.EVENT_ROW_COUNT_READY
+            });
         }
 
         this.filterAndSortNodes();
@@ -242,7 +264,7 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
         const lookupNodeToRecycle = (data: any): RowNode | undefined => {
             if (!nodesToRecycle) { return undefined; }
 
-            const getRowIdFunc = this.gridOptionsService.getRowIdFunc();
+            const getRowIdFunc = this.gridOptionsService.getCallback('getRowId');
             if (!getRowIdFunc) { return undefined; }
 
             const parentKeys = this.parentRowNode.getGroupKeys();
@@ -300,10 +322,14 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
         }
 
         this.nodesAfterSort = this.rowNodeSorter.doFullSort(this.nodesAfterFilter, sortOptions);
+        if (this.postSortFunc) {
+            const params: WithoutGridCommon<PostSortRowsParams> = { nodes: this.nodesAfterSort };
+            this.postSortFunc(params);
+        }
     }
 
     private filterRowNodes(): void {
-        const serverIsFiltering = this.storeUtils.isServerSideFilterAllLevels() || this.storeUtils.isServerSideFilterOnServer();
+        const serverIsFiltering = !this.storeUtils.isServerSideOnlyRefreshFilteredGroups() || this.storeUtils.isServerSideFilterOnServer();
         // filtering for InFullStore only works at lowest level details.
         // reason is the logic for group filtering was to difficult to work out how it should work at time of writing.
         const groupLevel = this.groupLevel;
@@ -378,14 +404,18 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
         });
     }
 
-    public forEachNodeDeepAfterFilterAndSort(callback: (rowNode: RowNode, index: number) => void, sequence = new NumberSequence()): void {
+    public forEachNodeDeepAfterFilterAndSort(callback: (rowNode: RowNode, index: number) => void, sequence = new NumberSequence(), includeFooterNodes = false): void {
         this.nodesAfterSort.forEach(rowNode => {
             callback(rowNode, sequence.next());
             const childCache = rowNode.childStore;
             if (childCache) {
-                childCache.forEachNodeDeepAfterFilterAndSort(callback, sequence);
+                childCache.forEachNodeDeepAfterFilterAndSort(callback, sequence, includeFooterNodes);
             }
         });
+
+        if (includeFooterNodes && this.parentRowNode.sibling) {
+            callback(this.parentRowNode.sibling, sequence.next());
+        }
     }
 
     public getRowUsingDisplayIndex(displayRowIndex: number): IRowNode | undefined {
@@ -477,7 +507,7 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
     public refreshAfterFilter(params: StoreRefreshAfterParams): void {
         const serverIsFiltering = this.storeUtils.isServerSideFilterOnServer();
         const storeIsImpacted = this.storeUtils.isServerRefreshNeeded(this.parentRowNode, this.ssrmParams.rowGroupCols, params);
-        const serverIsFilteringAllLevels = this.storeUtils.isServerSideFilterAllLevels();
+        const serverIsFilteringAllLevels = !this.storeUtils.isServerSideOnlyRefreshFilteredGroups();
         if (serverIsFilteringAllLevels || (serverIsFiltering && storeIsImpacted)) {
             this.refreshStore(true);
             this.sortRowNodes();
@@ -521,7 +551,6 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
             const params: WithoutGridCommon<IsApplyServerSideTransactionParams> = {
                 transaction: transaction,
                 parentNode: this.parentRowNode,
-                storeInfo: this.info,
                 groupLevelInfo: this.info
             };
             const apply = applyCallback(params);
@@ -553,8 +582,12 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
     private updateSelection(nodesToUnselect: RowNode[]): void {
         const selectionChanged = nodesToUnselect.length > 0;
         if (selectionChanged) {
-            nodesToUnselect.forEach(rowNode => {
-                rowNode.setSelected(false, false, true, 'rowDataChanged');
+            this.selectionService.setNodesSelected({
+                newValue: false,
+                nodes: nodesToUnselect,
+                suppressFinishActions: true,
+                clearSelection: false,
+                source: 'rowDataChanged',
             });
 
             const event: WithoutGridCommon<SelectionChangedEvent> = {
@@ -638,7 +671,7 @@ export class FullStore extends RowNodeBlock implements IServerSideStore {
     }
 
     private lookupRowNode(data: any): RowNode | null {
-        const getRowIdFunc = this.gridOptionsService.getRowIdFunc();
+        const getRowIdFunc = this.gridOptionsService.getCallback('getRowId');
 
         let rowNode: RowNode;
         if (getRowIdFunc != null) {

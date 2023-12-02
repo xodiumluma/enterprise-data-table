@@ -1,12 +1,6 @@
-import {
-    _,
-    BeanStub,
-    ChartOptionsChanged,
-    ChartType,
-    Events,
-    WithoutGridCommon
-} from "@ag-grid-community/core";
-import { AgCartesianAxisType, AgChart, AgChartOptions } from "ag-charts-community";
+import { _, BeanStub, ChartOptionsChanged, ChartType, Events, WithoutGridCommon } from "@ag-grid-community/core";
+import { AgCartesianAxisType, AgCharts, AgChartOptions } from "ag-charts-community";
+
 import { ChartController } from "../chartController";
 import { AgChartActual } from "../utils/integration";
 import { deepMerge } from "../utils/object";
@@ -23,8 +17,6 @@ export class ChartOptionsService extends BeanStub {
     }
 
     public getChartOption<T = string>(expression: string): T {
-        // TODO: We shouldn't be reading the chart implementation directly, but right now
-        // it isn't possible to either get option defaults OR retrieve themed options.
         return _.get(this.getChart(), expression, undefined) as T;
     }
 
@@ -52,7 +44,8 @@ export class ChartOptionsService extends BeanStub {
 
     public awaitChartOptionUpdate(func: () => void) {
         const chart = this.chartController.getChartProxy().getChart();
-        chart.waitForUpdate().then(() => func());
+        chart.waitForUpdate().then(() => func())
+            .catch((e) => console.error(`AG Grid - chart update failed`, e));
     }
 
     public getAxisProperty<T = string>(expression: string): T {
@@ -121,7 +114,7 @@ export class ChartOptionsService extends BeanStub {
 
     private getUpdateAxisOptions<T = string>(chartAxis: ChartAxis, expression: string, value: T): AgChartOptions {
         const seriesType = getSeriesType(this.getChartType());
-        const validAxisTypes: AgCartesianAxisType[] = ['number', 'category', 'time', 'groupedCategory'];
+        const validAxisTypes: AgCartesianAxisType[] = ['number', 'category', 'time', 'grouped-category'];
 
         if (!validAxisTypes.includes(chartAxis.type)) {
             return {};
@@ -144,7 +137,7 @@ export class ChartOptionsService extends BeanStub {
 
     private updateChart(chartOptions: AgChartOptions) {
         const chartRef = this.chartController.getChartProxy().getChartRef();
-        AgChart.updateDelta(chartRef, chartOptions);
+        AgCharts.updateDelta(chartRef, chartOptions);
     }
 
     private createChartOptions<T>({ seriesType, expression, value }: {
@@ -178,10 +171,7 @@ export class ChartOptionsService extends BeanStub {
     }
 
     private static isMatchingSeries(seriesType: ChartSeriesType, series: SupportedSeries): boolean {
-        const mapTypeToImplType = (type: ChartSeriesType) => type === 'column' ? 'bar' : type;
-
-        return VALID_SERIES_TYPES.includes(seriesType) &&
-            series.type === mapTypeToImplType(seriesType);
+        return VALID_SERIES_TYPES.includes(seriesType) && series.type === seriesType;
     }
 
     protected destroy(): void {

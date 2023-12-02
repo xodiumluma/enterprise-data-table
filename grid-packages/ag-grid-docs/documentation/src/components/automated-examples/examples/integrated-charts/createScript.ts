@@ -1,9 +1,9 @@
 import { Group } from '@tweenjs/tween.js';
-import { GridOptions } from 'ag-grid-community';
+import { GridApi } from 'ag-grid-community';
 import { createAgElementFinder } from '../../lib/agElements';
 import { Mouse } from '../../lib/createMouse';
-import { getBottomMidPos, getOffset } from '../../lib/dom';
-import { addPoints } from '../../lib/geometry';
+import { getBottomMidPos, getOffset, getScrollOffset } from '../../lib/dom';
+import { addPoints, scalePoint } from '../../lib/geometry';
 import { clearAllRowHighlights } from '../../lib/scriptActions/clearAllRowHighlights';
 import { dragRange } from '../../lib/scriptActions/dragRange';
 import { moveTarget } from '../../lib/scriptActions/move';
@@ -12,17 +12,22 @@ import { ScriptAction } from '../../lib/scriptRunner';
 
 interface Params {
     containerEl: HTMLElement;
+    /**
+     * Whether the container element is scaled or not, and by how much
+     */
+    getContainerScale?: () => number;
     mouse: Mouse;
     tweenGroup: Group;
-    gridOptions: GridOptions;
+    gridApi: GridApi;
     scriptDebugger?: ScriptDebugger;
 }
 
 export const createScript = ({
     containerEl,
+    getContainerScale = () => 1,
     mouse,
     tweenGroup,
-    gridOptions,
+    gridApi,
     scriptDebugger,
 }: Params): ScriptAction[] => {
     const START_CELL_COL_INDEX = 0;
@@ -38,10 +43,24 @@ export const createScript = ({
             type: 'custom',
             action: () => {
                 // Move mouse to starting position
-                moveTarget({ target: mouse.getTarget(), coords: getOffscreenPos(), scriptDebugger });
+                moveTarget({
+                    target: mouse.getTarget(),
+                    coords: scalePoint(getOffscreenPos(), getContainerScale()),
+                    offset: addPoints(
+                        getOffset(containerEl),
+                        getScrollOffset(),
+                        scalePoint(
+                            {
+                                x: 0,
+                                y: -120,
+                            },
+                            getContainerScale()
+                        )
+                    ),
+                    scriptDebugger,
+                });
 
                 mouse.show();
-                clearAllRowHighlights();
             },
         },
         {
@@ -66,6 +85,12 @@ export const createScript = ({
             speed: 2,
         },
         { type: 'mouseDown' },
+        {
+            type: 'custom',
+            action: () => {
+                clearAllRowHighlights();
+            },
+        },
 
         // Range selection
         {
@@ -104,13 +129,13 @@ export const createScript = ({
             name: 'Create range chart',
             type: 'custom',
             action: () => {
-                const chartModels = gridOptions.api?.getChartModels() || [];
+                const chartModels = gridApi.getChartModels() || [];
 
                 if (chartModels.length) {
                     return; // Chart created, no need for fallback
                 }
 
-                const allColumns = gridOptions.columnApi?.getColumns() || [];
+                const allColumns = gridApi.getColumns() || [];
                 const colStartIndex = START_CELL_COL_INDEX;
                 const colEndIndex = END_CELL_COL_INDEX;
                 const columnStart = allColumns[colStartIndex];
@@ -125,7 +150,7 @@ export const createScript = ({
                     return;
                 }
 
-                gridOptions?.api?.createRangeChart({
+                gridApi.createRangeChart({
                     chartType: 'stackedColumn',
                     cellRange: {
                         rowStartIndex: START_CELL_ROW_INDEX,
@@ -275,6 +300,8 @@ export const createScript = ({
                     groupTitle: 'Legend',
                     selectLabel: 'Position',
                 },
+                // Picker element requires mousedown
+                useMouseDown: true
             },
         },
         { type: 'wait', duration: 300 },
@@ -284,7 +311,7 @@ export const createScript = ({
             actionParams: {
                 target: 'chartToolPanelSelectListItem',
                 targetParams: {
-                    text: 'Bottom',
+                    text: 'Top',
                 },
             },
         },

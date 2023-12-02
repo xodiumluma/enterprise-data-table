@@ -8,7 +8,7 @@ const moduleDirs = (grid, enterprise, packageName) => {
     const moduleName = `@ag-${grid ? 'grid' : 'charts'}-${enterprise ? 'enterprise' : 'community'}/${packageName}`;
     const moduleDirRoot = `${grid ? 'grid' : 'charts'}-${enterprise ? 'enterprise' : 'community'}-modules`;
     const moduleDir = `${moduleDirRoot}/${packageName}`;
-    const exampleDir = grid ? undefined : `charts-examples/ag-charts-enterprise-example/`;
+    const exampleDir = undefined;
 
     return { moduleName, moduleDirRoot, moduleDir, exampleDir };
 };
@@ -129,7 +129,7 @@ const main = async () => {
     templatePackageJson.license = enterprise ? 'Commercial' : 'MIT';
     templatePackageJson.dependencies[grid ? '@ag-grid-community/core' : 'ag-charts-community'] = `~${packageVersionNumber}`;
     if (enterprise) {
-        templatePackageJson.dependencies[grid ? '@ag-grid-enterprise/core' : '@ag-charts-enterprise/core'] = `~${packageVersionNumber}`;
+        templatePackageJson.dependencies[grid ? '@ag-grid-enterprise/core' : 'ag-charts-enterprise'] = `~${packageVersionNumber}`;
     }
     const templatePackageJsonLintStaged = templatePackageJson['lint-staged'];
     if (templatePackageJsonLintStaged) {

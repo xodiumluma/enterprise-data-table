@@ -1,19 +1,18 @@
 import { Component } from "@angular/core";
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 
 import { RatioParentComponent } from "./ratio.parent.component";
 import { ClickableParentComponent } from "./clickable.parent.component";
 import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
-import { ColDef, GridOptions, GridReadyEvent, Module } from "@ag-grid-community/core";
+import { ColDef, GridOptions, Module } from "@ag-grid-community/core";
 
 @Component({
     selector: 'my-app',
     template: `
-    <ag-grid-angular style="width: 100%; height: 360px;" class="ag-theme-alpine"
+    <ag-grid-angular style="width: 100%; height: 360px;" class="ag-theme-quartz"
                  [gridOptions]="gridOptions"
-                 (gridReady)="onGridReady($event)"
                  [modules]="modules">
     </ag-grid-angular>
     `
@@ -26,7 +25,10 @@ export class RichComponent {
         this.gridOptions = {
             rowData: RichComponent.createRowData(),
             columnDefs: RichComponent.createColumnDefs(),
-            rowHeight: 50
+            rowHeight: 50,
+            autoSizeStrategy: {
+                type: 'fitGridWidth'
+            },
         };
     }
 
@@ -37,7 +39,8 @@ export class RichComponent {
                 headerName: "Ratio Component",
                 field: "ratios",
                 cellRenderer: RatioParentComponent,
-                width: 350
+                width: 350,
+                cellDataType: false,
             },
             {
                 headerName: "Clickable Component",
@@ -64,9 +67,5 @@ export class RichComponent {
             { name: 'Edna Krabappel', ratios: { top: 0.39, bottom: 0.61 } },
             { name: 'Krusty', ratios: { top: 0.74, bottom: 0.26 } }
         ];
-    }
-
-    onGridReady(params: GridReadyEvent) {
-        params.api.sizeColumnsToFit();
     }
 }

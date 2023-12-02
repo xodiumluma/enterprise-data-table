@@ -23,7 +23,7 @@ export class SetFloatingFilterComp<V = string> extends Component implements IFlo
 
     constructor() {
         super(/* html */`
-            <div class="ag-floating-filter-input" role="presentation">
+            <div class="ag-floating-filter-input ag-set-floating-filter-input" role="presentation">
                 <ag-input-text-field ref="eFloatingFilterText"></ag-input-text-field>
             </div>`
         );
@@ -36,15 +36,25 @@ export class SetFloatingFilterComp<V = string> extends Component implements IFlo
     }
 
     public init(params: IFloatingFilterParams): void {
-        const displayName = this.columnModel.getDisplayNameForColumn(params.column, 'header', true);
-        const translate = this.localeService.getLocaleTextFunc();
+        this.params = params;
 
         this.eFloatingFilterText
             .setDisabled(true)
-            .setInputAriaLabel(`${displayName} ${translate('ariaFilterInput', 'Filter Input')}`)
-            .addGuiEventListener('click', () => params.showParentFilter());
+            .addGuiEventListener('click', () => this.params.showParentFilter());
 
+        this.setParams(params);
+    }
+
+    private setParams(params: IFloatingFilterParams): void {
+        const displayName = this.columnModel.getDisplayNameForColumn(params.column, 'header', true);
+        const translate = this.localeService.getLocaleTextFunc();
+
+        this.eFloatingFilterText.setInputAriaLabel(`${displayName} ${translate('ariaFilterInput', 'Filter Input')}`);
+    }
+
+    public onParamsUpdated(params: IFloatingFilterParams): void {
         this.params = params;
+        this.setParams(params);
     }
 
     public onParentModelChanged(parentModel: SetFilterModel): void {

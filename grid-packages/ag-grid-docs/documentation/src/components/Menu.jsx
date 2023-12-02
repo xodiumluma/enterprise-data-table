@@ -1,233 +1,228 @@
 import classnames from 'classnames';
-import Announcements from 'components/Announcements';
-import { Icon } from 'components/Icon';
-import { Link } from 'gatsby';
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
+import {Link} from 'gatsby';
+import { useWindowSize } from '../utils/use-window-size';
+import {Icon} from 'components/Icon';
 import convertToFrameworkUrl from 'utils/convert-to-framework-url';
-import rawMenuData from '../../doc-pages/licensing/menu.json';
-import { isProductionEnvironment } from '../utils/consts';
-import { findParentItems } from './menu-find-parent-items';
+import {Collapsible} from './Collapsible';
 import styles from './Menu.module.scss';
+import {toElementId, getActiveParentItems, getFilteredMenuData} from './menuUtils';
+import breakpoints from '../design-system/breakpoint.module.scss';
 
-const DOCS_BUTTON_ID = 'top-bar-docs-button';
+const SITE_HEADER_SMALL_WIDTH = parseInt(breakpoints['site-header-small'], 10);
 
-function filterProductionMenuData(data) {
-    if (!isProductionEnvironment()) {
-        // No filtering needed for non-production builds.
-        return data;
-    }
+const useDocsButtonState = () => {
+    const [isDocsButtonOpen, setIsDocsButtonOpen] = useState(true);
+    return [isDocsButtonOpen, setIsDocsButtonOpen];
+};
+
+const Menu = ({ currentFramework, path, menuData, expandAllGroups = false, hideChevrons = false }) => {
+    const [isDocsButtonOpen, setIsDocsButtonOpen] = useDocsButtonState();
+
+    const defaultActiveSections = expandAllGroups
+        ? new Set(menuData.map(group => group.items.map(item => item.title)).flat())
+        : new Set();
+
+    const whatsNewLink = menuData.find(item => item.whatsNewLink);
+    menuData = menuData.filter(item => !item.whatsNewLink);
+
+    const [activeSections, setActiveSections] = useState(defaultActiveSections);
+    const activeParentItems = getActiveParentItems(menuData, path);
+    const filteredMenuData = getFilteredMenuData(menuData, currentFramework, path);
+
+    const toggleActive = (title) => {
+        setActiveSections((prev) => prev.has(title) ? new Set() : new Set([title]));
+    };
+
+    const collapseAllGroups = useCallback(() => {
+        setActiveSections(new Set());
+    }, []);
 
     return (
-        data
-            // Filter out Charts Enterprise pages outside development environments.
-            .filter((item) => item.enterprise !== 'charts')
-            // Recursively filter children.
-            .map((item) => {
-                if (item.items == null) return item;
+        <nav className={classnames(styles.menu, 'font-size-responsive')}>
+            <ul id="side-nav" className={classnames(styles.menuInner, 'list-style-none', 'collapse')}>
+                {whatsNewLink && (
+                    <li className={styles.whatsNewLink}>
+                        <Link
+                            to={convertToFrameworkUrl(whatsNewLink.url, currentFramework)}
+                            onClick={collapseAllGroups}
+                        >
+                            {whatsNewLink.title}
+                        </Link>
+                    </li>
+                )}
 
-                return { ...item, items: filterProductionMenuData(item.items) };
-            })
+                {filteredMenuData.map(({group, items}, index) => (
+                    <React.Fragment key={group}>
+
+                        <h5>{group}</h5>
+                        {items.map(({title, items: childItems}) => (
+                            <MenuSection
+                                key={`${title}-menu`}
+                                title={title}
+                                items={childItems}
+                                currentFramework={currentFramework}
+                                toggleActive={() => toggleActive(title)}
+                                activeParentItems={activeParentItems}
+                                setActiveSections={setActiveSections}
+                                activeSections={activeSections}
+                                isDocsButtonOpen={isDocsButtonOpen}
+                                setIsDocsButtonOpen={setIsDocsButtonOpen}
+                                hideChevrons={hideChevrons}
+                                expandAllGroups={expandAllGroups}
+                            />
+                        ))}
+                        {index < filteredMenuData.length - 1 && <hr/>}
+                    </React.Fragment>
+                ))}
+            </ul>
+        </nav>
     );
-}
+};
 
-function toElementId(str) {
-    return 'menu-' + str.toLowerCase().replace('&', '').replace('/', '').replaceAll(' ', '-');
-}
+const MenuSection = ({title, items, currentFramework, activeParentItems, toggleActive, activeSections, setActiveSections, hideChevrons, expandAllGroups}) => {
+    const [shouldAutoExpand, setShouldAutoExpand] = useState(expandAllGroups);
+    const [isDocsButtonOpen, setIsDocsButtonOpen] = useDocsButtonState();
 
-const menuData = filterProductionMenuData(rawMenuData);
+    const isActive = activeSections.has(title);
 
-const MenuSection = ({ title, items, currentFramework, isActive, toggleActive, activeParentItems }) => {
+    const buttonClasses = classnames(styles.sectionHeader, 'button-style-none', {[styles.active]: isActive});
+    const iconClasses = classnames(styles.sectionIcon, {[styles.active]: isActive});
+    const elementId = toElementId(title);
+
+    useEffect(() => {
+        const isParentActive = activeParentItems.some(item => item.title === title);
+        setShouldAutoExpand(isParentActive);
+    }, [activeParentItems, title]);
+
+    useEffect(() => {
+        if (shouldAutoExpand) {
+            setActiveSections((prev) => {
+                const newSet = new Set(prev);
+                newSet.add(title);
+                return newSet;
+            });
+        }
+    }, [shouldAutoExpand]);
+
+    const handleToggle = () => {
+        if (!hideChevrons) {
+            toggleActive(title);
+        }
+    };
+
     return (
-        <li key={title} className={styles.menuSection}>
-            <button
-                onClick={toggleActive}
-                tabIndex="0"
-                className={classnames(styles.sectionHeader, isActive && styles.active, 'button-style-none')}
-                data-toggle="collapse"
-                data-target={`#${toElementId(title)}`}
-                aria-expanded={isActive}
-                aria-controls={`#${toElementId(title)}`}
-            >
-                <Icon name="chevronRight" svgClasses={classnames(styles.sectionIcon, isActive && styles.active)} />
-
+        <li className={styles.menuSection}>
+            <button onClick={handleToggle} tabIndex="0" className={buttonClasses} aria-expanded={isActive}
+                    aria-controls={`#${elementId}`}>
+                {!hideChevrons && title && <Icon name="chevronRight" svgClasses={iconClasses}/>}
                 {title}
             </button>
-
             <MenuGroup
-                group={{ group: title, items }}
+                group={{group: title, items}}
                 currentFramework={currentFramework}
                 isTopLevel={true}
                 isActive={isActive}
                 activeParentItems={activeParentItems}
+                isDocsButtonOpen={isDocsButtonOpen}
+                setIsDocsButtonOpen={setIsDocsButtonOpen}
             />
         </li>
     );
-};
+}
 
-const MenuGroup = ({ group, currentFramework, isTopLevel, isActive, activeParentItems }) => {
-    const containerRef = useRef(null);
-    useEffect(() => {
-        // NOTE: Using plain JavaScript DOM to add/remove class, so it doesn't
-        // interfere with bootstrap animations and allows for menu group to be
-        // shown on first load.
-        // Show class is from bootstrap collapse: https://getbootstrap.com/docs/4.0/components/collapse/
-        if (isActive) {
-            containerRef.current?.classList.add('show');
-        } else {
-            containerRef.current?.classList.remove('show');
-        }
-    }, [isActive, containerRef.current]);
+const MenuGroup = ({group, currentFramework, isTopLevel, isActive, activeParentItems}) => {
+    const [isDocsButtonOpen, setIsDocsButtonOpen] = useDocsButtonState();
+
+    const {items} = group;
+
+    // `useMemo` is worth it here as filtered items only change when switching frameworks.
+    const filteredItems = useMemo(() => {
+        return items.filter(item => !item.menuHide && (!item.frameworks || item.frameworks.includes(currentFramework)));
+    }, [items, currentFramework]);
+
+    const topLevelElementId = isTopLevel ? toElementId(group.group) : null;
 
     return (
-        <ul
-            ref={containerRef}
-            id={isTopLevel && toElementId(group.group)}
-            className={classnames(styles.menuGroup, 'list-style-none', isTopLevel && 'collapse')}
-            data-parent="#side-nav"
-        >
-            {group.items
-                .filter((item) => !item.menuHide && (!item.frameworks || item.frameworks.includes(currentFramework)))
-                .map((item) => (
+        <Collapsible id={topLevelElementId} isDisabled={!isTopLevel} isOpen={isTopLevel && isActive}>
+            <ul id={topLevelElementId} className={classnames(styles.menuGroup, 'list-style-none')}>
+                {filteredItems.map(item => (
                     <MenuItem
                         key={item.title}
                         item={item}
                         currentFramework={currentFramework}
                         activeParentItems={activeParentItems}
+                        isDocsButtonOpen={isDocsButtonOpen}
+                        setIsDocsButtonOpen={setIsDocsButtonOpen}
                     />
                 ))}
-        </ul>
+            </ul>
+        </Collapsible>
     );
-};
+}
 
-const MenuItem = ({ item, currentFramework, activeParentItems }) => {
-    const enterpriseIcon = item.enterprise && (
-        <span className={styles.enterpriseIcon}>
-            (e)
-            <Icon name="enterprise" />
-        </span>
-    );
-    const title = (
-        <>
-            {item.title}&nbsp;{enterpriseIcon}
-        </>
-    );
+const MenuItem = ({item, currentFramework, activeParentItems}) => {
+    const [isDocsButtonOpen, setIsDocsButtonOpen] = useDocsButtonState();
+    const { width } = useWindowSize();
+    const isDesktop = width >= SITE_HEADER_SMALL_WIDTH;
 
-    const isActiveParent = activeParentItems.some((parentItem) => {
-        const hasUrl = Boolean(parentItem.url);
-        return hasUrl ? parentItem.url === item.url : parentItem.title === item.title;
-    });
+    const isActiveParent = useMemo(() => activeParentItems.some(parentItem => {
+        return parentItem.url ? parentItem.url === item.url : parentItem.title === item.title;
+    }), [item, activeParentItems]);
+
+    const bootstrapCollapseProps = item.absoluteUrl ? {} : {
+        "data-toggle": "collapse",
+        "data-target": "#side-nav"
+    }
 
     return (
-        <li key={item.title}>
+        <li>
             {item.url ? (
                 <Link
-                    to={convertToFrameworkUrl(item.url, currentFramework)}
+                    to={item.absoluteUrl ? item.url : convertToFrameworkUrl(item.url, currentFramework)}
                     activeClassName={styles.activeMenuItem}
+                    target={item.newWindow ? '_blank' : '_self'}
                     className={isActiveParent ? styles.activeItemParent : undefined}
-                    onClick={() => {
-                        const docsButton = document.getElementById(DOCS_BUTTON_ID);
-                        const isOpen = !docsButton.classList.contains('collapsed');
-                        if (isOpen) {
-                            docsButton.click();
+                    onClick={(event) => {
+                        if (item.absoluteUrl) {
+                            return;
+                        }
+
+                        isDocsButtonOpen && setIsDocsButtonOpen(false);
+
+                        // Prevent bootstrap collapse on desktop
+                        if (isDesktop) {
+                            event.stopPropagation();
                         }
                     }}
+                    data-toggle={!item.newWindow ? "collapse" : undefined}
+                    data-target={!item.newWindow ? "#side-nav" : undefined}
                 >
-                    {title}
+                    {item.title}
+                    {item.enterprise && (
+                        <span className={styles.enterpriseIcon}>
+                            (e)
+                            <Icon name="enterprise"/>
+                        </span>
+                    )}
+                    {item.newWindow && <Icon name="newTab" svgClasses={styles.newWindowIcon} />}
                 </Link>
             ) : (
                 <span
-                    className={classnames(
-                        styles.groupLabel,
-                        isActiveParent ? styles.activeItemParent : undefined,
-                        'text-secondary'
-                    )}
-                >
-                    {title}
+                    className={classnames(styles.groupLabel, isActiveParent && styles.activeItemParent, 'text-secondary')}>
+                    {item.title}
                 </span>
             )}
             {item.items && !item.hideChildren && (
                 <MenuGroup
-                    group={{ group: item.title, items: item.items }}
+                    group={{group: item.title, items: item.items}}
                     currentFramework={currentFramework}
                     activeParentItems={activeParentItems}
+                    isDocsButtonOpen={isDocsButtonOpen}
+                    setIsDocsButtonOpen={setIsDocsButtonOpen}
                 />
             )}
         </li>
-    );
-};
-
-/**
- * This generates the navigation menu for the left-hand side. When a page loads, it will ensure the relevant section and
- * link is shown and highlighted.
- */
-const Menu = ({ currentFramework, currentPage, path }) => {
-    const groupItemHasApplicableChild = (items) => {
-        if (!items) {
-            return false;
-        }
-        return items.some(
-            (item) =>
-                item.frameworks === undefined ||
-                item.frameworks.includes(currentFramework) ||
-                groupItemHasApplicableChild(items.items)
-        );
-    };
-
-    const [activeSection, setActiveSection] = useState(null);
-    const combinedMenuItems = menuData
-        .reduce((combined, group) => [...combined, ...group.items], [])
-        .filter((group) => groupItemHasApplicableChild(group.items));
-
-    const pathSegment = `/${path.split('/').reverse()[1]}/`;
-    const activeParentItems = findParentItems(combinedMenuItems, pathSegment);
-
-    const containsPage = (items, frameworks) =>
-        items.reduce((hasPage, item) => {
-            const availableFrameworks = item.frameworks || frameworks;
-
-            return (
-                hasPage ||
-                (item.url === `/${currentPage}/` &&
-                    (!availableFrameworks || availableFrameworks.includes(currentFramework))) ||
-                (item.items && containsPage(item.items, availableFrameworks))
-            );
-        }, false);
-
-    useEffect(() => {
-        const sectionContainingPage = combinedMenuItems.filter((item) => containsPage(item.items))[0];
-
-        if (sectionContainingPage) {
-            setActiveSection(sectionContainingPage.title);
-        }
-    }, [currentPage, currentFramework]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    return (
-        <aside className={classnames(styles['menu'], 'ag-styles', 'font-size-responsive')}>
-            <ul id="side-nav" className={classnames(styles.menuInner, 'list-style-none', 'collapse')}>
-                {combinedMenuItems.map((item) => {
-                    const { title } = item;
-                    const isActive = title === activeSection;
-
-                    const toggleActive = (event) => {
-                        setActiveSection(isActive ? null : title);
-                    };
-
-                    return (
-                        <MenuSection
-                            key={title}
-                            title={title}
-                            items={item.items}
-                            currentFramework={currentFramework}
-                            isActive={isActive}
-                            toggleActive={toggleActive}
-                            activeParentItems={activeParentItems}
-                        />
-                    );
-                })}
-
-                <Announcements framework={currentFramework} />
-            </ul>
-        </aside>
     );
 };
 

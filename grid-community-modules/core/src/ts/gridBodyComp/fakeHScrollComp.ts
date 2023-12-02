@@ -1,6 +1,6 @@
 import { Autowired, PostConstruct } from "../context/context";
 import { AbstractFakeScrollComp } from "./abstractFakeScrollComp";
-import { setFixedHeight, setFixedWidth } from "../utils/dom";
+import { getScrollLeft, isVisible, setFixedHeight, setFixedWidth, setScrollLeft } from "../utils/dom";
 import { ColumnModel } from "../columns/columnModel";
 import { Events } from "../eventKeys";
 import { PinnedRowModel } from "../pinnedRowModel/pinnedRowModel";
@@ -43,12 +43,14 @@ export class FakeHScrollComp extends AbstractFakeScrollComp {
 
         this.ctrlsService.registerFakeHScrollComp(this);
         this.createManagedBean(new CenterWidthFeature(width => this.eContainer.style.width = `${width}px`));
+
+        this.addManagedPropertyListeners(['suppressHorizontalScroll'], this.onScrollVisibilityChanged.bind(this));
     }
 
     protected initialiseInvisibleScrollbar(): void {
         if (this.invisibleScrollbar !== undefined) { return; }
 
-        this.enableRtl = this.gridOptionsService.is('enableRtl');
+        this.enableRtl = this.gridOptionsService.get('enableRtl');
         super.initialiseInvisibleScrollbar();
 
         if (this.invisibleScrollbar) {
@@ -103,7 +105,7 @@ export class FakeHScrollComp extends AbstractFakeScrollComp {
     protected setScrollVisible(): void {
         const hScrollShowing = this.scrollVisibleService.isHorizontalScrollShowing();
         const invisibleScrollbar = this.invisibleScrollbar;
-        const isSuppressHorizontalScroll = this.gridOptionsService.is('suppressHorizontalScroll');
+        const isSuppressHorizontalScroll = this.gridOptionsService.get('suppressHorizontalScroll');
         const scrollbarWidth = hScrollShowing ? (this.gridOptionsService.getScrollbarWidth() || 0) : 0;
         const adjustedScrollbarWidth = (scrollbarWidth === 0 && invisibleScrollbar) ? 16 : scrollbarWidth;
         const scrollContainerSize = !isSuppressHorizontalScroll ? adjustedScrollbarWidth : 0;
@@ -113,5 +115,14 @@ export class FakeHScrollComp extends AbstractFakeScrollComp {
         setFixedHeight(this.eViewport, scrollContainerSize);
         setFixedHeight(this.eContainer, scrollContainerSize);
         this.setDisplayed(hScrollShowing, { skipAriaHidden: true });
+    }
+
+    public getScrollPosition(): number {
+        return getScrollLeft(this.getViewport(), this.enableRtl);
+    }
+
+    public setScrollPosition(value: number): void {
+        if (!isVisible(this.getViewport())) { this.attemptSettingScrollPosition(value); }
+        setScrollLeft(this.getViewport(), value, this.enableRtl);
     }
 }

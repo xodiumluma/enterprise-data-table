@@ -15,7 +15,7 @@ export class ToolPanelWrapper extends Component {
     @Autowired("userComponentFactory") private userComponentFactory: UserComponentFactory;
 
     private static TEMPLATE = /* html */
-        `<div class="ag-tool-panel-wrapper"/>`;
+        `<div class="ag-tool-panel-wrapper" role="tabpanel"/>`;
 
     private toolPanelCompInstance: IToolPanelComp;
     private toolPanelId: string;
@@ -30,6 +30,9 @@ export class ToolPanelWrapper extends Component {
     private setupResize(): void {
         const eGui = this.getGui();
         const resizeBar = this.resizeBar = this.createManagedBean(new HorizontalResizeComp());
+
+        eGui.setAttribute('id', `ag-${this.getCompId()}`);
+
         resizeBar.setElementToResize(eGui);
         this.appendChild(resizeBar);
     }
@@ -38,19 +41,17 @@ export class ToolPanelWrapper extends Component {
         return this.toolPanelId;
     }
 
-    public setToolPanelDef(toolPanelDef: ToolPanelDef): void {
+    public setToolPanelDef(toolPanelDef: ToolPanelDef, params: WithoutGridCommon<IToolPanelParams>): void {
         const { id, minWidth, maxWidth, width } = toolPanelDef;
 
         this.toolPanelId = id;
         this.width = width;
 
-        const params: WithoutGridCommon<IToolPanelParams> = {};
-
         const compDetails = this.userComponentFactory.getToolPanelCompDetails(toolPanelDef, params);
         const componentPromise = compDetails.newAgStackInstance();
 
         if (componentPromise == null) {
-            console.warn(`AG Grid: error processing tool panel component ${id}. You need to specify either 'toolPanel' or 'toolPanelFramework'`);
+            console.warn(`AG Grid: error processing tool panel component ${id}. You need to specify 'toolPanel'`);
             return;
         }
         componentPromise.then(this.setToolPanelComponent.bind(this));
@@ -82,7 +83,7 @@ export class ToolPanelWrapper extends Component {
     }
 
     public setResizerSizerSide(side: 'right' | 'left') {
-        const isRtl = this.gridOptionsService.is('enableRtl');
+        const isRtl = this.gridOptionsService.get('enableRtl');
         const isLeft = side === 'left';
         const inverted = isRtl ? isLeft : !isLeft;
 

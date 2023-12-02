@@ -17,18 +17,8 @@ export default forwardRef((props: IFilterParams, ref) => {
             },
 
             doesFilterPass(params: IDoesFilterPassParams) {
-                const { api, colDef, column, columnApi, context, valueGetter } = props;
                 const { node } = params;
-                const value = valueGetter({
-                    api,
-                    colDef,
-                    column,
-                    columnApi,
-                    context,
-                    data: node.data,
-                    getValue: (field) => node.data[field],
-                    node,
-                }).toString().toLowerCase();
+                const value = props.getValue(node).toString().toLowerCase();
 
                 return text.toLowerCase()
                     .split(' ')
@@ -72,9 +62,8 @@ export default forwardRef((props: IFilterParams, ref) => {
     }
 
     const style = {
-        border: '2px solid #22ff22',
         borderRadius: '5px',
-        backgroundColor: '#bbffbb',
+        backgroundColor: '#33CC3344',
         width: '200px',
         height: '50px'
     };

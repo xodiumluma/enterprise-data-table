@@ -1,4 +1,4 @@
-import { CellValueChangedEvent, Grid, GridOptions, ICellEditorParams } from '@ag-grid-community/core';
+import { CellValueChangedEvent, GridApi, createGrid, GridOptions, ICellEditorParams } from '@ag-grid-community/core';
 import { getData, IRow } from "./data";
 import { GenderCellRenderer } from "./genderCellRenderer_typescript";
 
@@ -13,6 +13,8 @@ const cellCellEditorParams = (params: ICellEditorParams<IRow>) => {
   }
 }
 
+let gridApi: GridApi;
+
 const gridOptions: GridOptions = {
   columnDefs: [
     { field: 'name' },
@@ -20,7 +22,6 @@ const gridOptions: GridOptions = {
       field: 'gender',
       cellRenderer: GenderCellRenderer,
       cellEditor: 'agRichSelectCellEditor',
-      cellEditorPopup: true,
       cellEditorParams: {
         values: ['Male', 'Female'],
         cellRenderer: GenderCellRenderer,
@@ -30,7 +31,6 @@ const gridOptions: GridOptions = {
     {
       field: 'country',
       cellEditor: 'agRichSelectCellEditor',
-      cellEditorPopup: true,
       cellEditorParams: {
         cellHeight: 50,
         values: ['Ireland', 'USA'],
@@ -39,7 +39,6 @@ const gridOptions: GridOptions = {
     {
       field: 'city',
       cellEditor: 'agRichSelectCellEditor',
-      cellEditorPopup: true,
       cellEditorParams: cellCellEditorParams,
     },
     { field: 'address', cellEditor: 'agLargeTextCellEditor', cellEditorPopup: true, minWidth: 550 },
@@ -48,7 +47,6 @@ const gridOptions: GridOptions = {
     flex: 1,
     minWidth: 130,
     editable: true,
-    resizable: true,
   },
   rowData: getData(),
   onCellValueChanged: onCellValueChanged,
@@ -82,5 +80,5 @@ function onCellValueChanged(params: CellValueChangedEvent) {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
   const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 })

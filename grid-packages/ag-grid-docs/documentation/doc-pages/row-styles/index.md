@@ -143,13 +143,29 @@ Note if you hover over a header group, all columns in the group will be highligh
 
 <grid-example title='Highlight Rows And Columns' name='highlight-rows-and-columns' type='generated'></grid-example>
 
-In this example both Rows and Columns are not highlighted by setting.
+In this example Column highlighting is disabled by default and Row highlighting has been disabled using `suppressRowHoverHighlight=true`.
 
 <grid-example title='No Highlighting Rows And Columns' name='highlight-nothing' type='generated'></grid-example>
 
-Rows highlight by default as this is a common requirement. Column highlighting is less common and as such needs to be opted it.
+Rows highlight by default as this is a common requirement. Column highlighting is less common and as such needs to be opted in.
 
 Row Highlighting works by the grid adding the CSS class `ag-row-hover` to the row's getting hovered. The grid cannot depend on using CSS `:hover` selector as this will not highlight the entire row if Columns are pinned.
 
 Column Highlighting works by the grid adding the CSS class `ag-column-hover`
 to all Cells to be highlighted.
+
+## Styling the First and Last Rows
+
+It's possible to style the first and last rows of the grid using CSS by targeting the `.ag-row-first` and `.ag-row-last` selectors as follows:
+
+```css
+.ag-row.ag-row-first .ag-cell {
+    background-color: darkblue;
+}
+
+.ag-row.ag-row-last .ag-cell {
+    background-color: gold;
+}
+```
+
+<grid-example title='Row Styling First and Last' name='row-styling-first-last' type='generated'></grid-example>

@@ -1,21 +1,6 @@
 {
   "javascript": [
     {
-      "title": "AG Grid Enterprise License Explained",
-      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNxijfRQxg5Mc6W4MzZHQ9MK",
-      "thumbnail": {
-        "image": "AgGridVideo.png",
-        "altText": "AG Grid Enterprise License"
-      },
-      "keyPoints": [
-        "Community MIT License.",
-        "Single App License.",
-        "Multiple App License.",
-        "Deployment License."
-      ],
-      "runningTime": "4:42"
-    },
-    {
       "title": "Getting Started with AG Grid Community",
       "url": "https://www.youtube.com/watch?v=j-Odsb0EjVo&list=PLsZlhayVgqNxijfRQxg5Mc6W4MzZHQ9MK",
       "thumbnail": {
@@ -23,10 +8,10 @@
         "altText": "Getting Started with AG Grid Community"
       },
       "keyPoints": [
-        "Set up Rows and Columns.",
-        "Simple Grid Properties.",
-        "Use Grid's API.",
-        "Listen to Grid Events."
+        "Set up Rows and Columns",
+        "Simple Grid Properties",
+        "Use Grid's API",
+        "Listen to Grid Events"
       ],
       "runningTime": "6:43"
     },
@@ -38,7 +23,7 @@
         "altText": "Getting Started with AG Grid Enterprise"
       },
       "keyPoints": [
-        "Configure AG Grid Enterprise."
+        "Configure AG Grid Enterprise"
       ],
       "runningTime": "3:21"
     },
@@ -50,9 +35,9 @@
         "altText": "JavaScript Cell Renderers"
       },
       "keyPoints": [
-        "Cell Renderers.",
-        "Cell Renderer Params.",
-        "Cell Renderer Selector."
+        "Cell Renderers",
+        "Cell Renderer Params",
+        "Cell Renderer Selector"
       ],
       "runningTime": "7:53"
     },
@@ -97,24 +82,24 @@
         "Auto Group Columns"
       ],
       "runningTime": "20:23"
-    }
-  ],
-  "react": [
+    },
     {
       "title": "AG Grid Enterprise License Explained",
-      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNwHNHeqpCkSgdRV08xrKtzW",
+      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNxijfRQxg5Mc6W4MzZHQ9MK",
       "thumbnail": {
         "image": "AgGridVideo.png",
         "altText": "AG Grid Enterprise License"
       },
       "keyPoints": [
-        "Community MIT License.",
-        "Single App License.",
-        "Multiple App License.",
-        "Deployment License."
+        "Community MIT License",
+        "Single App License",
+        "Multiple App License",
+        "Deployment License"
       ],
       "runningTime": "4:42"
-    },
+    }
+  ],
+  "react": [
     {
       "title": "Getting Started with AG Grid Community",
       "url": "https://www.youtube.com/watch?v=Pr__B6HM_s4&list=PLsZlhayVgqNwHNHeqpCkSgdRV08xrKtzW",
@@ -123,10 +108,10 @@
         "altText": "Getting Started with AG Grid Community"
       },
       "keyPoints": [
-        "Set up Rows and Columns.",
-        "Simple Grid Properties.",
-        "Use Grid's API.",
-        "Listen to Grid Events."
+        "Set up Rows and Columns",
+        "Simple Grid Properties",
+        "Use Grid's API",
+        "Listen to Grid Events"
       ],
       "runningTime": "7:24"
     },
@@ -138,7 +123,7 @@
         "altText": "Getting Started with AG Grid Enterprise"
       },
       "keyPoints": [
-        "Configure AG Grid Enterprise."
+        "Configure AG Grid Enterprise"
       ],
       "runningTime": "4:42"
     },
@@ -150,9 +135,9 @@
         "altText": "React Cell Renderers"
       },
       "keyPoints": [
-        "Cell Renderers.",
-        "Cell Renderer Params.",
-        "Cell Renderer Selector."
+        "Cell Renderers",
+        "Cell Renderer Params",
+        "Cell Renderer Selector"
       ],
       "runningTime": "7:53"
     },
@@ -164,9 +149,9 @@
         "altText": "React Rendering"
       },
       "keyPoints": [
-        "React Rendering.",
-        "React Developer Tools.",
-        "Grid Component Hierarchy."
+        "React Rendering",
+        "React Developer Tools",
+        "Grid Component Hierarchy"
       ],
       "runningTime": "4:09"
     },
@@ -282,24 +267,24 @@
         "Auto Group Columns"
       ],
       "runningTime": "20:23"
-    }
-  ],
-  "angular": [
+    },
     {
       "title": "AG Grid Enterprise License Explained",
-      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNw6VHFn4j6FcJM5vLACsf0x",
+      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNwHNHeqpCkSgdRV08xrKtzW",
       "thumbnail": {
         "image": "AgGridVideo.png",
         "altText": "AG Grid Enterprise License"
       },
       "keyPoints": [
-        "Community MIT License.",
-        "Single App License.",
-        "Multiple App License.",
-        "Deployment License."
+        "Community MIT License",
+        "Single App License",
+        "Multiple App License",
+        "Deployment License"
       ],
       "runningTime": "4:42"
-    },
+    }
+  ],
+  "angular": [
     {
       "title": "Getting Started with AG Grid Community",
       "url": "https://www.youtube.com/watch?v=_cRDVM6NlPk&list=PLsZlhayVgqNw6VHFn4j6FcJM5vLACsf0x",
@@ -308,10 +293,10 @@
         "altText": "Getting Started with AG Grid Community"
       },
       "keyPoints": [
-        "Set up Rows and Columns.",
-        "Simple Grid Properties.",
-        "Use Grid's API.",
-        "Listen to Grid Events."
+        "Set up Rows and Columns",
+        "Simple Grid Properties",
+        "Use Grid's API",
+        "Listen to Grid Events"
       ],
       "runningTime": "8:01"
     },
@@ -323,7 +308,7 @@
         "altText": "Getting Started with AG Grid Enterprise"
       },
       "keyPoints": [
-        "Configure AG Grid Enterprise."
+        "Configure AG Grid Enterprise"
       ],
       "runningTime": "4:37"
     },
@@ -335,9 +320,9 @@
         "altText": "Angular Cell Renderers"
       },
       "keyPoints": [
-        "Cell Renderers.",
-        "Cell Renderer Params.",
-        "Cell Renderer Selector."
+        "Cell Renderers",
+        "Cell Renderer Params",
+        "Cell Renderer Selector"
       ],
       "runningTime": "8:35"
     },
@@ -369,24 +354,24 @@
         "Auto Group Columns"
       ],
       "runningTime": "20:23"
-    }
-  ],
-  "vue": [
+    },
     {
       "title": "AG Grid Enterprise License Explained",
-      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNz5iC0wFQDgixcAepFyrWbP",
+      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNw6VHFn4j6FcJM5vLACsf0x",
       "thumbnail": {
         "image": "AgGridVideo.png",
         "altText": "AG Grid Enterprise License"
       },
       "keyPoints": [
-        "Community MIT License.",
-        "Single App License.",
-        "Multiple App License.",
-        "Deployment License."
+        "Community MIT License",
+        "Single App License",
+        "Multiple App License",
+        "Deployment License"
       ],
       "runningTime": "4:42"
-    },
+    }
+  ],
+  "vue": [
     {
       "title": "Getting Started with AG Grid Community",
       "url": "https://www.youtube.com/watch?v=V14w_NFuZB4&list=PLsZlhayVgqNz5iC0wFQDgixcAepFyrWbP",
@@ -395,10 +380,10 @@
         "altText": "Getting Started with AG Grid Community"
       },
       "keyPoints": [
-        "Set up Rows and Columns.",
-        "Simple Grid Properties.",
-        "Use Grid's API.",
-        "Listen to Grid Events."
+        "Set up Rows and Columns",
+        "Simple Grid Properties",
+        "Use Grid's API",
+        "Listen to Grid Events"
       ],
       "runningTime": "6:54"
     },
@@ -410,7 +395,7 @@
         "altText": "Getting Started with AG Grid Enterprise"
       },
       "keyPoints": [
-        "Configure AG Grid Enterprise."
+        "Configure AG Grid Enterprise"
       ],
       "runningTime": "3:54"
     },
@@ -422,9 +407,9 @@
         "altText": "Customising Cells - Cell Renderer"
       },
       "keyPoints": [
-        "Cell Renderers.",
-        "Cell Renderer Params.",
-        "Cell Renderer Selector."
+        "Cell Renderers",
+        "Cell Renderer Params",
+        "Cell Renderer Selector"
       ],
       "runningTime": "6:00"
     },
@@ -456,7 +441,21 @@
         "Auto Group Columns"
       ],
       "runningTime": "20:23"
+    },
+    {
+      "title": "AG Grid Enterprise License Explained",
+      "url": "https://www.youtube.com/watch?v=20SLdu4wLtI&list=PLsZlhayVgqNz5iC0wFQDgixcAepFyrWbP",
+      "thumbnail": {
+        "image": "AgGridVideo.png",
+        "altText": "AG Grid Enterprise License"
+      },
+      "keyPoints": [
+        "Community MIT License",
+        "Single App License",
+        "Multiple App License",
+        "Deployment License"
+      ],
+      "runningTime": "4:42"
     }
-
   ]
 }

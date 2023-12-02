@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 import { MySimpleEditor } from './mySimple-editor.component';
 import { ColDef, GridReadyEvent } from '@ag-grid-community/core';
 
@@ -9,7 +9,7 @@ import { ColDef, GridReadyEvent } from '@ag-grid-community/core';
     template: `
       <ag-grid-angular
           style="width: 100%; height: 100%;"
-          class="ag-theme-alpine"
+          [class]="themeClass"
           [columnDefs]="columnDefs"
           [defaultColDef]="defaultColDef"
           [rowData]="rowData"
@@ -18,6 +18,7 @@ import { ColDef, GridReadyEvent } from '@ag-grid-community/core';
     `
 })
 export class AppComponent implements OnDestroy {
+    public themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     public columnDefs: ColDef[] = [
         {
             field: "first_name",
@@ -60,11 +61,10 @@ export class AppComponent implements OnDestroy {
 
     public defaultColDef: ColDef = {
         editable: true,
-        sortable: true,
         flex: 1,
         minWidth: 100,
         filter: true,
-        resizable: true
+        
     };
 
     private interval!: number;

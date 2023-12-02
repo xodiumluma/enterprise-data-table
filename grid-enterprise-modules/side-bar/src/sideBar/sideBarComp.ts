@@ -10,27 +10,29 @@ import {
     RefSelector,
     SideBarDef,
     ToolPanelDef,
-    GridApi,
     ToolPanelVisibleChangedEvent,
-    InternalToolPanelVisibleChangedEvent,
     Autowired,
     ManagedFocusFeature,
     FocusService,
     KeyCode,
-    WithoutGridCommon
+    WithoutGridCommon,
+    FilterManager,
+    SideBarState
 } from "@ag-grid-community/core";
 import { SideBarButtonClickedEvent, SideBarButtonsComp } from "./sideBarButtonsComp";
 import { SideBarDefParser } from "./sideBarDefParser";
+import { SideBarService } from "./sideBarService";
 import { ToolPanelWrapper } from "./toolPanelWrapper";
 
 export class SideBarComp extends Component implements ISideBar {
-
-    @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('focusService') private focusService: FocusService;
+    @Autowired('filterManager') private filterManager: FilterManager;
+    @Autowired('sideBarService') private sideBarService: SideBarService;
     @RefSelector('sideBarButtons') private sideBarButtonsComp: SideBarButtonsComp;
 
     private toolPanelWrappers: ToolPanelWrapper[] = [];
     private sideBar: SideBarDef | undefined;
+    private position: 'left' | 'right';
 
     private static readonly TEMPLATE = /* html */
         `<div class="ag-side-bar ag-unselectable">
@@ -44,14 +46,16 @@ export class SideBarComp extends Component implements ISideBar {
     @PostConstruct
     private postConstruct(): void {
         this.sideBarButtonsComp.addEventListener(SideBarButtonsComp.EVENT_SIDE_BAR_BUTTON_CLICKED, this.onToolPanelButtonClicked.bind(this));
-        this.setSideBarDef();
+        const { sideBar: sideBarState } = this.gridOptionsService.get('initialState') ?? {};
+        this.setSideBarDef(sideBarState);
 
         this.addManagedPropertyListener('sideBar', () => {
             this.clearDownUi();
+            // don't re-assign initial state
             this.setSideBarDef();
         });
 
-        this.gridApi.registerSideBarComp(this);
+        this.sideBarService.registerSideBarComp(this);
         this.createManagedBean(new ManagedFocusFeature(
             this.getFocusableElement(),
             {
@@ -150,7 +154,7 @@ export class SideBarComp extends Component implements ISideBar {
         this.destroyToolPanelWrappers();
     }
 
-    private setSideBarDef(): void {
+    private setSideBarDef(sideBarState?: SideBarState): void {
         // initially hide side bar
         this.setDisplayed(false);
 
@@ -158,16 +162,24 @@ export class SideBarComp extends Component implements ISideBar {
         this.sideBar = SideBarDefParser.parse(sideBarRaw);
 
         if (!!this.sideBar && !!this.sideBar.toolPanels) {
-            const shouldDisplaySideBar = !this.sideBar.hiddenByDefault;
+            const toolPanelDefs = this.sideBar.toolPanels as ToolPanelDef[];
+            this.createToolPanelsAndSideButtons(toolPanelDefs, sideBarState);
+            if (!this.toolPanelWrappers.length) { return; }
+
+            const shouldDisplaySideBar = sideBarState ? sideBarState.visible : !this.sideBar.hiddenByDefault;
             this.setDisplayed(shouldDisplaySideBar);
 
-            const toolPanelDefs = this.sideBar.toolPanels as ToolPanelDef[];
-            this.sideBarButtonsComp.setToolPanelDefs(toolPanelDefs);
-            this.setupToolPanels(toolPanelDefs);
-            this.setSideBarPosition(this.sideBar.position);
+            this.setSideBarPosition(sideBarState ? sideBarState.position : this.sideBar.position);
 
-            if (!this.sideBar.hiddenByDefault) {
-                this.openToolPanel(this.sideBar.defaultToolPanel, 'sideBarInitializing');
+            if (shouldDisplaySideBar) {
+                if (sideBarState) {
+                    const { openToolPanel } = sideBarState;
+                    if (openToolPanel) {
+                        this.openToolPanel(openToolPanel, 'sideBarInitializing');
+                    }
+                } else {
+                    this.openToolPanel(this.sideBar.defaultToolPanel, 'sideBarInitializing');
+                }
             }
         }
     }
@@ -179,6 +191,8 @@ export class SideBarComp extends Component implements ISideBar {
     public setSideBarPosition(position?: 'left' | 'right'): this {
         if (!position) { position = 'right'; }
 
+        this.position = position;
+
         const isLeft =  position === 'left';
         const resizerSide = isLeft ? 'right' : 'left';
 
@@ -189,37 +203,79 @@ export class SideBarComp extends Component implements ISideBar {
             wrapper.setResizerSizerSide(resizerSide);
         });
 
+        this.eventService.dispatchEvent({ type: Events.EVENT_SIDE_BAR_UPDATED });
+
         return this;
     }
 
-    private setupToolPanels(defs: ToolPanelDef[]): void {
-        defs.forEach(def => {
-            if (def.id == null) {
-                console.warn(`AG Grid: please review all your toolPanel components, it seems like at least one of them doesn't have an id`);
-                return;
-            }
+    public setDisplayed(displayed: boolean, options?: { skipAriaHidden?: boolean | undefined; } | undefined): void {
+        super.setDisplayed(displayed, options);
+        this.eventService.dispatchEvent({ type: Events.EVENT_SIDE_BAR_UPDATED });
+    }
 
-            // helpers, in case user doesn't have the right module loaded
-            if (def.toolPanel === 'agColumnsToolPanel') {
-                const moduleMissing =
-                    !ModuleRegistry.assertRegistered(ModuleNames.ColumnsToolPanelModule, 'Column Tool Panel');
-                if (moduleMissing) { return; }
-            }
-
-            if (def.toolPanel === 'agFiltersToolPanel') {
-                const moduleMissing =
-                    !ModuleRegistry.assertRegistered(ModuleNames.FiltersToolPanelModule, 'Filters Tool Panel');
-                if (moduleMissing) { return; }
-            }
-
-            const wrapper = new ToolPanelWrapper();
-            this.getContext().createBean(wrapper);
-            wrapper.setToolPanelDef(def);
-            wrapper.setDisplayed(false);
-            this.getGui().appendChild(wrapper.getGui());
-
-            this.toolPanelWrappers.push(wrapper);
+    public getState(): SideBarState {
+        const toolPanels: { [id: string]: any } = {};
+        this.toolPanelWrappers.forEach(wrapper => {
+            toolPanels[wrapper.getToolPanelId()] = wrapper.getToolPanelInstance().getState?.();
         });
+        return {
+            visible: this.isDisplayed(),
+            position: this.position,
+            openToolPanel: this.openedItem(),
+            toolPanels
+        };
+    }
+
+    private createToolPanelsAndSideButtons(defs: ToolPanelDef[], sideBarState?: SideBarState): void {
+        for (const def of defs) {
+            this.createToolPanelAndSideButton(def, sideBarState?.toolPanels?.[def.id]);
+        }
+    }
+
+    private validateDef(def: ToolPanelDef): boolean {
+        if (def.id == null) {
+            console.warn(`AG Grid: please review all your toolPanel components, it seems like at least one of them doesn't have an id`);
+            return false;
+        }
+
+        // helpers, in case user doesn't have the right module loaded
+        if (def.toolPanel === 'agColumnsToolPanel') {
+            const moduleMissing =
+                !ModuleRegistry.__assertRegistered(ModuleNames.ColumnsToolPanelModule, 'Column Tool Panel', this.context.getGridId());
+            if (moduleMissing) { return false; }
+        }
+
+        if (def.toolPanel === 'agFiltersToolPanel') {
+            const moduleMissing =
+                !ModuleRegistry.__assertRegistered(ModuleNames.FiltersToolPanelModule, 'Filters Tool Panel', this.context.getGridId());
+            if (moduleMissing) { return false; }
+            if (this.filterManager.isAdvancedFilterEnabled()) {
+                _.warnOnce('Advanced Filter does not work with Filters Tool Panel. Filters Tool Panel has been disabled.');                
+                return false;
+            }
+        }
+
+        return true;
+
+    }
+
+    private createToolPanelAndSideButton(def: ToolPanelDef, initialState?: any): void {
+        if (!this.validateDef(def)) { return; }
+        const button = this.sideBarButtonsComp.addButtonComp(def);
+        const wrapper = this.getContext().createBean(new ToolPanelWrapper());
+
+        wrapper.setToolPanelDef(def, {
+            initialState,
+            onStateUpdated: () => this.eventService.dispatchEvent({ type: Events.EVENT_SIDE_BAR_UPDATED })
+        });
+        wrapper.setDisplayed(false);
+
+        const wrapperGui = wrapper.getGui();
+        this.appendChild(wrapperGui);
+
+        this.toolPanelWrappers.push(wrapper);
+
+        _.setAriaControls(button.getButtonElement(), wrapperGui);
     }
 
     public refresh(): void {
@@ -255,28 +311,24 @@ export class SideBarComp extends Component implements ISideBar {
     }
 
     private raiseToolPanelVisibleEvent(key: string | undefined, previousKey: string | undefined, source: 'sideBarButtonClicked' | 'sideBarInitializing' | 'api'): void {
-        // To be removed in v30
-        const oldEvent: WithoutGridCommon<ToolPanelVisibleChangedEvent> = {
-            type: Events.EVENT_TOOL_PANEL_VISIBLE_CHANGED,
-            source: key,
-        };
-        this.eventService.dispatchEvent(oldEvent);
-
+        const switchingToolPanel = !!key && !!previousKey;
         if (previousKey) {
-            const event: WithoutGridCommon<InternalToolPanelVisibleChangedEvent> = {
-                type: Events.EVENT_INTERNAL_TOOL_PANEL_VISIBLE_CHANGED,
+            const event: WithoutGridCommon<ToolPanelVisibleChangedEvent> = {
+                type: Events.EVENT_TOOL_PANEL_VISIBLE_CHANGED,
                 source,
                 key: previousKey,
                 visible: false,
+                switchingToolPanel,
             };
             this.eventService.dispatchEvent(event);
         }
         if (key) {
-            const event: WithoutGridCommon<InternalToolPanelVisibleChangedEvent> = {
-                type: Events.EVENT_INTERNAL_TOOL_PANEL_VISIBLE_CHANGED,
+            const event: WithoutGridCommon<ToolPanelVisibleChangedEvent> = {
+                type: Events.EVENT_TOOL_PANEL_VISIBLE_CHANGED,
                 source,
                 key,
                 visible: true,
+                switchingToolPanel,
             };
             this.eventService.dispatchEvent(event);
         }

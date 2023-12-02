@@ -109,8 +109,8 @@ const gridOptions = {
             cellClassRules: {
                 // apply green to 2008
                 'rag-green-outer': params => params.value === 2008,
-                // apply amber 2004
-                'rag-amber-outer': params => params.value === 2004,
+                // apply blue to 2004
+                'rag-blue-outer': params => params.value === 2004,
                 // apply red to 2000
                 'rag-red-outer': params => params.value === 2000,
             }
@@ -151,7 +151,7 @@ const gridOptions = {
             field: 'age',
             cellClassRules: {
                 'rag-green': 'x < 20',
-                'rag-amber': 'x >= 20 && x < 25',
+                'rag-blue': 'x >= 20 && x < 25',
                 'rag-red': 'x >= 25',
             }
         }
@@ -169,18 +169,18 @@ effect:
 - `cellClass`: All new classes are applied. Old classes are not removed so be aware that classes will accumulate. If you want to remove old classes, then use cellClassRules.
 - `cellClassRules`: Rules that return true will have the class applied the second time. Rules that return false will have the class removed second time.
 
-[[note]]
-| If you are using cellStyle to highlight changing data, then please take note that grid will not remove styles. For example if you are setting text color to 'red' for a condition, then you should explicitly set it back to default eg 'black' when the condition is not met. Otherwise the highlight will remain once it's first applied.
-|
-| ```js
-| // unsafe, the red will stay after initially applied
-| cellStyle: params => params.value > 80 ? { color: 'red' } : null
-| ```
-|
-| ```js
-| // safe, to black will override the red when the condition is not true
-| cellStyle: params => params.value > 80 ? { color: 'red' } : { color: 'black' }
-| ```
+<note>
+If you are using cellStyle to highlight changing data, then please take note that grid will not remove styles. For example if you are setting text color to 'red' for a condition, then you should explicitly set it back to default eg 'black' when the condition is not met. Otherwise the highlight will remain once it's first applied.
+</note>
+<snippet transform={false}>
+// unsafe, the red will stay after initially applied
+cellStyle: params => params.value > 80 ? { color: 'red' } : null
+</snippet>
+
+<snippet transform={false}>
+// safe, to black will override the red when the condition is not true
+cellStyle: params => params.value > 80 ? { color: 'red' } : { color: 'black' }
+</snippet>
 
 ## Cell Styling Example
 
@@ -193,3 +193,19 @@ Below shows both cssClassRules snippets above in a full working example. The exa
 - Silver and Bronze set `cellStyle` using a function and depends on the value. Editing will update the cellStyle.
 
 <grid-example title='Cell Styling' name='cell-styling' type='mixed'></grid-example>
+
+## Styling Cells in the First and Last Columns
+
+It's possible to style the cells in the first and last columns using CSS by targeting the `.ag-column-first` and `.ag-column-last` selectors as follows:
+
+```css
+.ag-cell.ag-column-first {
+    background-color: darkblue;
+}
+
+.ag-cell.ag-column-last {
+    background-color: gold;
+}
+```
+
+<grid-example title='Cell Styling' name='cell-styling-first-last' type='generated'></grid-example>

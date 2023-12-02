@@ -73,7 +73,7 @@ If you move columns so that columns in a group are no longer adjacent, then the 
 
 If you grab the group resize bar, it resizes each child in the group evenly distributing the new additional width. If you grab the child resize bar, only that one column will be resized.
 
-<image-caption src="column-groups/resources/header-resize.jpg" maxwidth="35rem" alt="Header Resize" centered="true"></image-caption>
+<image-caption src="column-groups/resources/header-resize.png" width="30rem" centered="true" alt="Header Resize" constrained="true" toggledarkmode="true"></image-caption>
 
 ## Colouring Groups
 
@@ -94,7 +94,7 @@ const gridOptions = {
 The labels in the grouping headers are positioned with `display: flex`. To make the group headers right-aligned, add the following rule set in your application, after the grid's stylesheets. Change the theme class to the one you use.
 
 ```css
-.ag-theme-alpine .ag-header-group-cell-label {
+.ag-theme-quartz .ag-header-group-cell-label {
     flex-direction: row-reverse;
 }
 ```
@@ -110,14 +110,14 @@ Sometimes you want columns of the group to always stick together. To achieve thi
 
 <grid-example title='Marry Children' name='marry-children' type='generated' options='{ "exampleHeight": 560 }'></grid-example>
 
-## Sticky Label
+## Suppressing Sticky Label
 
-When Column Groups are too wide, it might be useful to have the **Header Label** to be always visible while scrolling the grid horizontally. To achieve this, set the column group property `stickyLabel=true`. The example below demonstrates the following:
+When Column Groups are too wide, the **Header Label** is always visible while scrolling the grid horizontally. To suppress this behaviour, set the column group property `suppressStickyLabel=true`. The example below demonstrates the following:
 
-- Both 'Athlete Details' and 'Sport Results' have `stickyLabel=true`.
-- If you scroll the grid horizontally, the header label will always be visible until it's completely out of view.
+- Both 'Athlete Details' and 'Sport Results' have `suppressStickyLabel=true`.
+- If you scroll the grid horizontally, the header label will not be visible until the column is completely out of view.
 
-<grid-example title='Sticky Label' name='sticky-label' type='generated' options='{ "exampleHeight": 560 }'></grid-example>
+<grid-example title='Sticky Label' name='suppress-sticky-label' type='generated' options='{ "exampleHeight": 560 }'></grid-example>
 
 ## Advanced Grouping Example
 
@@ -151,40 +151,39 @@ The example above shows adding and removing groups. It is also possible to add a
 
 <grid-example title='Group Changes 2' name='group-changes-2' type='generated'></grid-example>
 
-## Span Header Height
+## Suppress Span Header Height
 
-By default the Grid will balance the column headers with different number of levels with an empty column group header cell, as shown in the example below. Note the following:
+By default the grid will resize the header cell to span the whole height of the header container, as shown in the example below.
 
-- The **Age** column has an empty column group header cell above it (shown with red borders).
-
-<grid-example title='Padded Header' name='padded-header' type='generated' options='{ "exampleHeight": 300 }'></grid-example>
-
-Using the **Column Property** `spanHeaderHeight` will allow the header cell to span the whole height of the header container instead of using padding.
-
-<snippet>
-const gridOptions = {
-  columnDefs: [
-    {
-      headerName: 'Athlete Details',
-      children: [
-        { field: 'athlete' },
-        { field: 'country' },
-      ],
-    },
-    {
-      field: 'age',
-      width: 90,
-      spanHeaderHeight: true
-    }
-  ]
-}
-</snippet>
-
-In the example below, note the following: 
+Note the following: 
 
 - The **Age** column header cell is not under a column group cell, but spans the entire height of the header container.
 
 <grid-example title='Span Header Height' name='span-header-height' type='generated' options='{ "exampleHeight": 300 }'></grid-example>
 
-[[warning]]
-| The property `spanHeaderHeight`  does not work with `autoHeaderHeight`.
+Using the **Column Property** `suppressSpanHeaderHeight` the Grid will balance the column headers with different number of levels with an empty column group header cell, as shown in the example below.
+
+<snippet>
+const gridOptions = {
+    columnDefs: [
+        {
+            headerName: 'Athlete Details',
+            children: [
+                { field: 'athlete' },
+                { field: 'country' },
+            ],
+        },
+        {
+            field: 'age',
+            width: 90,
+            suppressSpanHeaderHeight: true,
+        }
+    ]
+}
+</snippet>
+
+Note the following:
+
+- The **Age** column has an empty column group header cell above it (shown with red borders).
+
+<grid-example title='Padded Header' name='padded-header' type='generated' options='{ "exampleHeight": 300 }'></grid-example>

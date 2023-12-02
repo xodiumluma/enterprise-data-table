@@ -1,4 +1,16 @@
-import { CellEditingStartedEvent, CellEditingStoppedEvent, ColDef, Grid, GridOptions, ICellRendererComp, ICellRendererParams, KeyCreatorParams, RowEditingStartedEvent, RowEditingStoppedEvent } from '@ag-grid-community/core';
+import {
+    CellEditingStartedEvent,
+    CellEditingStoppedEvent,
+    ColDef,
+    GridApi,
+    createGrid,
+    GridOptions,
+    ICellRendererComp,
+    ICellRendererParams,
+    KeyCreatorParams,
+    RowEditingStartedEvent,
+    RowEditingStoppedEvent,
+} from '@ag-grid-community/core';
 import { getData } from "./data";
 import { GenderRenderer } from './genderRenderer_typescript';
 import { MoodEditor } from './moodEditor_typescript';
@@ -10,7 +22,7 @@ class CountryCellRenderer implements ICellRendererComp {
 
     init(params: ICellRendererParams) {
         this.eGui = document.createElement('div');
-        this.eGui.innerHTML = `${params.value.name}`;
+        this.eGui.innerHTML = `<span style="overflow: hidden; text-overflow: ellipsis">${params.value.name}</span>`;
     }
 
     getGui() {
@@ -31,7 +43,6 @@ const columnDefs: ColDef[] = [
         editable: true,
         cellRenderer: GenderRenderer,
         cellEditor: 'agRichSelectCellEditor',
-        cellEditorPopup: true,
         cellEditorParams: {
             cellRenderer: GenderRenderer,
             values: ['Male', 'Female'],
@@ -55,7 +66,6 @@ const columnDefs: ColDef[] = [
         field: 'country',
         width: 110,
         cellEditor: 'agRichSelectCellEditor',
-        cellEditorPopup: true,
         cellRenderer: CountryCellRenderer,
         keyCreator: (params: KeyCreatorParams) => {
             return params.value.name
@@ -69,6 +79,7 @@ const columnDefs: ColDef[] = [
             ],
         },
         editable: true,
+        cellDataType: false,
     },
     {
         field: 'address',
@@ -83,16 +94,16 @@ const columnDefs: ColDef[] = [
     },
 ]
 
+let gridApi: GridApi;
+
 const gridOptions: GridOptions = {
     columnDefs: columnDefs,
     rowData: getData(),
     defaultColDef: {
         editable: true,
-        sortable: true,
         flex: 1,
         minWidth: 100,
         filter: true,
-        resizable: true,
     },
     onRowEditingStarted: (event: RowEditingStartedEvent) => {
         console.log('never called - not doing row editing')
@@ -111,5 +122,5 @@ const gridOptions: GridOptions = {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-    new Grid(gridDiv, gridOptions)
+    gridApi = createGrid(gridDiv, gridOptions);
 })

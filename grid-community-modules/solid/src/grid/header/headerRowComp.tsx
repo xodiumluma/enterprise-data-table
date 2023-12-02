@@ -8,25 +8,20 @@ import HeaderGroupCellComp from './headerGroupCellComp';
 const HeaderRowComp = (props: {ctrl: HeaderRowCtrl}) => {
 
     const { gridOptionsService } = useContext(BeansContext);
-
-    const [ getTransform, setTransform ] = createSignal<string>();
+    const { ctrl } = props;
+    
+    const [ getTransform, setTransform ] = createSignal<string | undefined>(ctrl.getTransform()!);
     const [ getHeight, setHeight ] = createSignal<string>();
     const [ getTop, setTop ] = createSignal<string>();
     const [ getWidth, setWidth ] = createSignal<string>();
-    const [ getAriaRowIndex, setAriaRowIndex ] = createSignal<number>();
+    const [ getAriaRowIndex, setAriaRowIndex ] = createSignal<number>(ctrl.getAriaRowIndex());
     const [ getCellCtrls, setCellCtrls ] = createSignal<AbstractHeaderCellCtrl[]>([]);
 
     let eGui: HTMLDivElement;
 
-    const { ctrl } = props;
-
-    const typeColumn = ctrl.getType() === HeaderRowType.COLUMN;
-    const typeGroup = ctrl.getType() === HeaderRowType.COLUMN_GROUP;
-    const typeFilter = ctrl.getType() === HeaderRowType.FLOATING_FILTER;
-
     const setCellCtrlsMaintainOrder = (next: AbstractHeaderCellCtrl[]) => {
         const prev = getCellCtrls();
-        const isEnsureDomOrder = gridOptionsService.is('ensureDomOrder');
+        const isEnsureDomOrder = gridOptionsService.get('ensureDomOrder');
         const isPrintLayout = gridOptionsService.isDomLayout('print');
 
         // if we are ensuring dom order, we set the ctrls into the dom in the same order they appear on screen
@@ -39,8 +34,8 @@ const HeaderRowComp = (props: {ctrl: HeaderRowCtrl}) => {
         const prevMap = _.mapById(prev, c => c.getInstanceId());
         const nextMap = _.mapById(next, c => c.getInstanceId());
 
-        const oldCtrlsWeAreKeeping = prev.filter( c => nextMap.has(c.getInstanceId()) );
-        const newCtrls = next.filter( c => !prevMap.has(c.getInstanceId()) )
+        const oldCtrlsWeAreKeeping = prev.filter(c => nextMap.has(c.getInstanceId()));
+        const newCtrls = next.filter(c => !prevMap.has(c.getInstanceId()))
 
         const nextOrderMaintained = [...oldCtrlsWeAreKeeping, ...newCtrls];
         setCellCtrls(nextOrderMaintained);
@@ -48,12 +43,10 @@ const HeaderRowComp = (props: {ctrl: HeaderRowCtrl}) => {
 
     onMount(() => {
         const compProxy: IHeaderRowComp = {
-            setTransform: transform => setTransform(transform),
             setHeight: height => setHeight(height),
             setTop: top => setTop(top),
             setHeaderCtrls: ctrls => setCellCtrlsMaintainOrder(ctrls),
-            setWidth: width => setWidth(width),
-            setAriaRowIndex: rowIndex => setAriaRowIndex(rowIndex)
+            setWidth: width => setWidth(width)
         };
         ctrl.setComp(compProxy);
     });
@@ -65,11 +58,7 @@ const HeaderRowComp = (props: {ctrl: HeaderRowCtrl}) => {
         width: getWidth()
     }));
 
-    const cssClassesList: string[] = [`ag-header-row`]
-    typeColumn && cssClassesList.push(`ag-header-row-column`);
-    typeGroup && cssClassesList.push(`ag-header-row-column-group`);
-    typeFilter && cssClassesList.push(`ag-header-row-column-filter`);
-    const cssClasses = cssClassesList.join(' ');
+    const cssClasses = ctrl.getHeaderRowClass();
 
     const createCellJsx = (cellCtrl: AbstractHeaderCellCtrl) => {
         switch (ctrl.getType()) {

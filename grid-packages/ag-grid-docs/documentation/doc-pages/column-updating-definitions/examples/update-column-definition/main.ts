@@ -1,6 +1,6 @@
-import { Grid, ColDef, GridOptions } from '@ag-grid-community/core'
+import { GridApi, createGrid, ColDef, GridOptions } from '@ag-grid-community/core';
 
-function getColumnDefs() {
+function getColumnDefs(): ColDef<IOlympicData>[] {
   return [
     { field: 'athlete' },
     { field: 'age' },
@@ -15,58 +15,58 @@ function getColumnDefs() {
   ]
 }
 
+let gridApi: GridApi<IOlympicData>;
+
 const gridOptions: GridOptions<IOlympicData> = {
   defaultColDef: {
     initialWidth: 100,
-    sortable: true,
-    resizable: true,
     filter: true,
   },
   columnDefs: getColumnDefs(),
 }
 
 function setHeaderNames() {
-  const columnDefs: ColDef[] = getColumnDefs()
-  columnDefs.forEach(function (colDef, index) {
+  const columnDefs = getColumnDefs()
+  columnDefs.forEach((colDef, index) => {
     colDef.headerName = 'C' + index
   })
-  gridOptions.api!.setColumnDefs(columnDefs)
+  gridApi!.setGridOption('columnDefs', columnDefs)
 }
 
 function removeHeaderNames() {
-  const columnDefs: ColDef[] = getColumnDefs()
-  columnDefs.forEach(function (colDef, index) {
+  const columnDefs = getColumnDefs()
+  columnDefs.forEach((colDef, index) => {
     colDef.headerName = undefined
   })
-  gridOptions.api!.setColumnDefs(columnDefs)
+  gridApi!.setGridOption('columnDefs', columnDefs)
 }
 
 function setValueFormatters() {
-  const columnDefs: ColDef[] = getColumnDefs()
-  columnDefs.forEach(function (colDef, index) {
+  const columnDefs = getColumnDefs()
+  columnDefs.forEach((colDef, index) => {
     colDef.valueFormatter = function (params) {
       return '[ ' + params.value + ' ]'
     }
   })
-  gridOptions.api!.setColumnDefs(columnDefs)
+  gridApi!.setGridOption('columnDefs', columnDefs)
 }
 
 function removeValueFormatters() {
-  const columnDefs: ColDef[] = getColumnDefs()
-  columnDefs.forEach(function (colDef, index) {
+  const columnDefs = getColumnDefs()
+  columnDefs.forEach((colDef, index) => {
     colDef.valueFormatter = undefined
   })
-  gridOptions.api!.setColumnDefs(columnDefs)
+  gridApi!.setGridOption('columnDefs', columnDefs)
 }
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
   const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
     .then(data => {
-      gridOptions.api!.setRowData(data)
+      gridApi!.setGridOption('rowData', data)
     })
 })

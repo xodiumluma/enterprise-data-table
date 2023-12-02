@@ -2,8 +2,8 @@ import { Component, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
-import { ColDef, ColGroupDef, FirstDataRenderedEvent, GridOptions } from '@ag-grid-community/core';
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import { ColDef, ColGroupDef, GridOptions } from '@ag-grid-community/core';
 
 import { ModuleRegistry } from '@ag-grid-community/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
@@ -25,52 +25,45 @@ ModuleRegistry.registerModules([ClientSideRowModelModule])
         <ag-grid-angular
                 style="width: 100%; height: 45%"
                 #topGrid
-                class="ag-theme-alpine"
+                [class]="themeClass"
                 [rowData]="rowData"
                 [gridOptions]="topOptions"
-                [columnDefs]="columnDefs"
-                (firstDataRendered)="onFirstDataRendered($event)">
+                [alignedGrids]="[bottomGrid]"
+                [columnDefs]="columnDefs">
         </ag-grid-angular>
+
+        <div style='height: 5%'></div>
 
         <ag-grid-angular
                 style="width: 100%; height: 45%"
                 #bottomGrid
-                class="ag-theme-alpine"
+                [class]="themeClass"
                 [rowData]="rowData"
                 [gridOptions]="bottomOptions"
-                [columnDefs]="columnDefs"
-                (firstDataRendered)="onFirstDataRendered($event)">
+                [alignedGrids]="[topGrid]"
+                [columnDefs]="columnDefs">
         </ag-grid-angular>
     `
 })
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     columnDefs!: (ColDef | ColGroupDef)[];
+    defaultColDef: ColDef = {
+        filter: true,
+        minWidth: 100
+    };
     rowData!: any[];
     topOptions: GridOptions = {
-        alignedGrids: [],
-        defaultColDef: {
-            editable: true,
-            sortable: true,
-            resizable: true,
-            filter: true,
-            flex: 1,
-            minWidth: 100
-        }
+        defaultColDef: this.defaultColDef,
+        autoSizeStrategy: {
+            type: 'fitGridWidth'
+        },
     };
     bottomOptions: GridOptions = {
-        alignedGrids: [],
-        defaultColDef: {
-            editable: true,
-            sortable: true,
-            resizable: true,
-            filter: true,
-            flex: 1,
-            minWidth: 100
-        }
+        defaultColDef: this.defaultColDef,
     };
 
-    @ViewChild('topGrid') topGrid!: AgGridAngular<IOlympicData>;
-    @ViewChild('bottomGrid') bottomGrid!: AgGridAngular<IOlympicData>;
+    @ViewChild('topGrid') topGrid!: AgGridAngular;
 
     constructor(private http: HttpClient) {
         this.columnDefs = [
@@ -78,13 +71,12 @@ export class AppComponent {
             { field: 'age' },
             { field: 'country' },
             { field: 'year' },
-            { field: 'date' },
             { field: 'sport' },
             {
                 headerName: 'Medals',
                 children: [
                     {
-                        columnGroupShow: 'closed', field: "total",
+                        columnGroupShow: 'closed', colId: "total",
                         valueGetter: "data.gold + data.silver + data.bronze", width: 200
                     },
                     { columnGroupShow: 'open', field: "gold", width: 100 },
@@ -94,8 +86,6 @@ export class AppComponent {
             }
         ];
 
-        this.topOptions.alignedGrids!.push(this.bottomOptions);
-        this.bottomOptions.alignedGrids!.push(this.topOptions);
     }
 
     ngOnInit() {
@@ -107,21 +97,16 @@ export class AppComponent {
 
     onCbAthlete(value: boolean) {
         // we only need to update one grid, as the other is a slave
-        this.topGrid.columnApi.setColumnVisible('athlete', value);
+        this.topGrid.api.setColumnVisible('athlete', value);
     }
 
     onCbAge(value: boolean) {
         // we only need to update one grid, as the other is a slave
-        this.topGrid.columnApi.setColumnVisible('age', value);
+        this.topGrid.api.setColumnVisible('age', value);
     }
 
     onCbCountry(value: boolean) {
         // we only need to update one grid, as the other is a slave
-        this.topGrid.columnApi.setColumnVisible('country', value);
+        this.topGrid.api.setColumnVisible('country', value);
     }
-
-    onFirstDataRendered(params: FirstDataRenderedEvent) {
-        this.topGrid.api.sizeColumnsToFit();
-    }
-
 }

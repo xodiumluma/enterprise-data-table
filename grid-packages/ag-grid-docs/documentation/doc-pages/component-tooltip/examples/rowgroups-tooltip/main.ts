@@ -1,4 +1,4 @@
-import { Grid, ColDef, GridOptions } from '@ag-grid-community/core'
+import { GridApi, createGrid, ColDef, GridOptions } from '@ag-grid-community/core';
 
 const columnDefs: ColDef[] = [
   { field: 'country', width: 120, rowGroup: true },
@@ -12,6 +12,8 @@ const columnDefs: ColDef[] = [
   { field: 'age', width: 90 },
   { field: 'date', width: 110 },
 ]
+
+let gridApi: GridApi<IOlympicData>;
 
 const gridOptions: GridOptions<IOlympicData> = {
   autoGroupColumnDef: {
@@ -29,25 +31,22 @@ const gridOptions: GridOptions<IOlympicData> = {
   },
   defaultColDef: {
     editable: true,
-    sortable: true,
     flex: 1,
     minWidth: 100,
     filter: true,
-    resizable: true,
   },
   columnDefs: columnDefs,
-  animateRows: true,
   rowData: null,
 }
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
   const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
     .then(data => {
-      gridOptions.api!.setRowData(data)
+      gridApi!.setGridOption('rowData', data)
     })
 })

@@ -2,16 +2,16 @@
 title: "Row Selection"
 ---
 
-Select a row by clicking on it. Selecting a row will remove any previous selection unless you hold down <kbd>Ctrl</kbd> 
-while clicking. Selecting a row and holding down <kbd>Shift</kbd> while clicking a second row will select the range.
+Select a row by clicking on it. Selecting a row will remove any previous selection unless you hold down <kbd>^ Ctrl</kbd> 
+while clicking. Selecting a row and holding down <kbd>⇧ Shift</kbd> while clicking a second row will select the range.
 
 Configure row selection with the following properties:
 
 - `rowSelection`: Type of row selection, set to either `'single'` or `'multiple'` to enable selection. `'single'` will use single row selection, such that when you select a row, any previously selected row gets unselected. `'multiple'` allows multiple rows to be selected.
 
-- `rowMultiSelectWithClick`: Set to `true` to allow multiple rows to be selected with clicks. For example, if you click to select one row and then click to select another row, the first row will stay selected as well. Clicking a selected row in this mode will deselect the row. This is useful for touch devices where <kbd>Ctrl</kbd> and <kbd>Shift</kbd> clicking is not an option.
+- `rowMultiSelectWithClick`: Set to `true` to allow multiple rows to be selected with clicks. For example, if you click to select one row and then click to select another row, the first row will stay selected as well. Clicking a selected row in this mode will deselect the row. This is useful for touch devices where <kbd>^ Ctrl</kbd> and <kbd>⇧ Shift</kbd> clicking is not an option.
 
-- `suppressRowDeselection`: Set to `true` to prevent rows from being deselected if you hold down <kbd>Ctrl</kbd> and click the row (i.e. once a row is selected, it remains selected until another row is selected in its place). By default the grid allows deselection of rows.
+- `suppressRowDeselection`: Set to `true` to prevent rows from being deselected if you hold down <kbd>^ Ctrl</kbd> and click the row (i.e. once a row is selected, it remains selected until another row is selected in its place). By default the grid allows deselection of rows.
 
 - `suppressRowClickSelection`: If `true`, rows won't be selected when clicked. Use, for example, when you want checkbox selection or your managing selection from a custom component and don't want to select the row when the row is clicked.
 
@@ -33,16 +33,16 @@ The example below shows single row selection.
 
 The example below shows multi-row selection.
 
-- Property `rowSelection='multiple'` is set to enable multiple row selection. Selecting multiple rows can be achieved by holding down <kbd>Ctrl</kbd> and mouse clicking the rows. A range of rows can be selected by using <kbd>Shift</kbd>.
+- Property `rowSelection='multiple'` is set to enable multiple row selection. Selecting multiple rows can be achieved by holding down <kbd>^ Ctrl</kbd> and mouse clicking the rows. A range of rows can be selected by using <kbd>⇧ Shift</kbd>.
 
 <grid-example title='Multiple Row Selection' name='multiple-row-selection' type='generated'></grid-example>
 
 ### Example: Multi Select With Click
 
-The example below shows multi-select with click. Clicking multiple rows will select a range of rows without the need for <kbd>Ctrl</kbd> or <kbd>Shift</kbd> keys. Clicking a selected row will deselect it. This is useful for touch devices where <kbd>Ctrl</kbd> and <kbd>Shift</kbd> clicks are not available.
+The example below shows multi-select with click. Clicking multiple rows will select a range of rows without the need for <kbd>^ Ctrl</kbd> or <kbd>⇧ Shift</kbd> keys. Clicking a selected row will deselect it. This is useful for touch devices where <kbd>^ Ctrl</kbd> and <kbd>⇧ Shift</kbd> clicks are not available.
 
 - Property `rowMultiSelectWithClick=true` is set to enable multiple row selection with clicks.
-- Clicking multiple rows will select multiple rows without needing to press <kbd>Ctrl</kbd> or <kbd>Shift</kbd> keys.
+- Clicking multiple rows will select multiple rows without needing to press <kbd>^ Ctrl</kbd> or <kbd>⇧ Shift</kbd> keys.
 - Clicking a selected row will deselect that row.
 
 <grid-example title='Multi Select With Click' name='multi-select-single-click' type='generated'></grid-example>
@@ -135,7 +135,7 @@ To demonstrate, try this in the example:
 
 ## Header Checkbox Selection
 
-It is possible to have a checkbox in the header for selection. To configure the column to have a checkbox, set `colDef.headerCheckboxSelection=true`. `headerCheckboxSelection` can also be a function, if you want the checkbox to appear sometimes (e.g. if the column is ordered first in the grid).
+It is possible to have a checkbox in the header for selection. To configure the column to have a header checkbox, set `colDef.headerCheckboxSelection=true`. `headerCheckboxSelection` can also be a function, if you want the header checkbox to appear sometimes (e.g. if the column is ordered first in the grid).
 
 <api-documentation source='column-properties/properties.json' section='header' names='["headerCheckboxSelection"]'></api-documentation>
 
@@ -151,7 +151,7 @@ const gridOptions = {
         {
             field: 'country',
             headerCheckboxSelection: params => {
-                const displayedColumns = params.columnApi.getAllDisplayedColumns();
+                const displayedColumns = params.api.getAllDisplayedColumns();
                 return displayedColumns[0] === params.column;
             }
         },
@@ -165,11 +165,11 @@ If `headerCheckboxSelection` is a function, the function will be called every ti
 
 The header checkbox has three modes of operation, `'normal'`, `'filtered only'` and `'current page'`.
 
-- `colDef.headerCheckboxSelectionFilteredOnly=false`: The checkbox will select all rows when checked, and un-select all rows when unchecked. The checkbox will update its state based on all rows.
+- `colDef.headerCheckboxSelectionFilteredOnly=false`: The header checkbox will select all rows when checked, and un-select all rows when unchecked. The header checkbox will update its state based on all rows.
 
-- `colDef.headerCheckboxSelectionFilteredOnly=true`: The checkbox will select only filtered rows when checked and un-select only filtered rows when unchecked. The checkbox will update its state based only on filtered rows.
+- `colDef.headerCheckboxSelectionFilteredOnly=true`: The header checkbox will select only filtered rows when checked and un-select only filtered rows when unchecked. The header checkbox will update its state based only on filtered rows.
 
-- `colDef.headerCheckboxSelectionCurrentPageOnly=true`: The checkbox will select only the rows on the current page when checked, and un-select only the rows on the current page when unchecked.
+- `colDef.headerCheckboxSelectionCurrentPageOnly=true`: The header checkbox will select only the rows on the current page when checked, and un-select only the rows on the current page when unchecked.
 
 The examples below demonstrate all of these options.
 
@@ -177,9 +177,9 @@ The examples below demonstrate all of these options.
 
 This example has the following characteristics:
 
-- The checkbox works on filtered rows only. That means if you filter first, then hit the checkbox to select or un-select, then only the filtered rows are affected.
+- The header checkbox works on filtered rows only. That means if you filter first, then hit the header checkbox to select or un-select, then only the filtered rows are affected.
 
-- The checkbox is always on the athlete column, even if the athlete column is moved.
+- The header checkbox is always on the athlete column, even if the athlete column is moved.
 
 <grid-example title='Just Filtered' name='header-checkbox' type='generated' options='{ "exampleHeight": 590 }'></grid-example>
 
@@ -187,8 +187,8 @@ This example has the following characteristics:
 
 The next example is similar to the one above with the following changes:
 
-- The checkbox selects everything, not just filtered.
-- The column that the selection checkbox appears in is always the first column. This can be observed by dragging the columns to reorder them.
+- The header checkbox selects everything, not just filtered.
+- The column that the selection header checkbox appears in is always the first column. This can be observed by dragging the columns to reorder them.
 
 <grid-example title='Select Everything' name='header-checkbox-entire-set' type='generated' options='{ "exampleHeight": 590 }'></grid-example>
 
@@ -196,8 +196,8 @@ The next example is similar to the one above with the following changes:
 
 The next example demonstrates the `headerCheckboxSelectionCurrentPageOnly` property, note the following:
 
-- The checkbox selects collapsed groups and all of their children.
-- The checkbox will select expanded group nodes, but only the children which are also on the current page.
+- The header checkbox selects collapsed groups and all of their children.
+- The header checkbox will select expanded group nodes, but only the children which are also on the current page.
 
 <grid-example title='Selecting Current Page' name='header-checkbox-current-page' type='generated' options='{ "enterprise": true, "modules": ["clientside", "rowgrouping"] }'></grid-example>
 
@@ -205,8 +205,8 @@ The next example demonstrates the `headerCheckboxSelectionCurrentPageOnly` prope
 
 The next example demonstrates the `headerCheckboxSelectionCurrentPageOnly` property while using `groupSelectsChildren`, note the following:
 
-- The checkbox selects collapsed groups and all of their children.
-- The checkbox will select expanded group nodes only if all of the children are selected.
+- The header checkbox selects collapsed groups and all of their children.
+- The header checkbox will select expanded group nodes only if all of the children are selected, otherwise they will become indeterminate.
 
 <grid-example title='Selecting Current Page with Group Selects Children' name='header-checkbox-current-page-groups' type='generated' options='{ "enterprise": true, "modules": ["clientside", "rowgrouping"] }'></grid-example>
 
@@ -261,7 +261,7 @@ There are two events with regards to selection:<br/>
 
 To select rows programmatically, use the `node.setSelected(params)` method.
 
-<api-documentation source='row-object/resources/methods.json' section='rowNodeMethods' names='["setSelected", "isSelected"]'></api-documentation>
+<api-documentation source='row-object/resources/reference.json' section='selection' names='["setSelected", "isSelected"]'></api-documentation>
 
 <snippet>
 | // set selected, keep any other selections
@@ -283,21 +283,22 @@ The `isSelected()` method returns `true` if the node is selected, or `false` if 
 
 The grid API has the following methods for selection:
 
-<api-documentation source='grid-api/api.json' section='selection' names='["selectAll","deselectAll","selectAllFiltered","deselectAllFiltered","getSelectedNodes", "getSelectedRows"]'></api-documentation>
+<api-documentation source='grid-api/api.json' section='selection' names='["selectAll","deselectAll","selectAllFiltered","deselectAllFiltered","getSelectedNodes", "getSelectedRows", "setNodesSelected"]'></api-documentation>
 
-If you want to select only filtered-out row nodes, you could do this using the following:
+If you want to select only the filtered rows, you could do this using the following:
 
-<snippet>
-| // loop through each node when it is filtered out
-| gridOptions.api.forEachNodeAfterFilter(node => {
-|     // select the node
-|     node.setSelected(true);
-| });
+<snippet transform={false}>
+|// loop through each node after filter
+|const nodes = [];
+|api.forEachNodeAfterFilter(node => {
+|    nodes.push(node);
+|});
+|api.setNodesSelected({ nodes, newValue: true });
 </snippet>
 
 ### Example: Using forEachNode
 
-There is an API function `forEachNode`. This is useful for doing group selections on a business key. The example below shows selecting all rows with country = 'United States'. This method is also useful when you load data and need to know the node equivalent of the data for selection purposes.
+The Grid API function `forEachNode` can be used to select grid rows based on a business key. The example below shows selecting all rows with country = 'United States'. This method is also useful when you load data and need to know the node equivalent of the data for selection purposes.
 
 <grid-example title='Using forEachNode' name='using-foreachnode' type='generated' options='{ "exampleHeight": 590 }'></grid-example>
 
@@ -318,8 +319,8 @@ We need to provide a callback to the `navigateToNextCell` grid option to overrid
 |         const KEY_UP = 'ArrowUp';
 |         const KEY_DOWN = 'ArrowDown';
 | 
-|         const noUpOrDownKeyPressed = params.key!==KEY_DOWN && params.key!==KEY_UP;
-|         if (noUpOrDownKeyPressed) {
+|         const noUpOrDownKey = params.key !== KEY_DOWN && params.key !== KEY_UP;
+|         if (noUpOrDownKey) {
 |             return suggestedNextCell;
 |         }
 | 

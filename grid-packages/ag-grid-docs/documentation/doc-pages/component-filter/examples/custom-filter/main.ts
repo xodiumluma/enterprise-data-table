@@ -1,4 +1,4 @@
-import { Grid, ColDef, GridOptions, IDateFilterParams } from '@ag-grid-community/core'
+import { GridApi, createGrid, ColDef, GridOptions, IDateFilterParams } from '@ag-grid-community/core';
 import { PersonFilter } from './personFilter_typescript'
 import { YearFilter } from './yearFilter_typescript'
 
@@ -45,14 +45,14 @@ const columnDefs: ColDef[] = [
   { field: 'total', filter: 'agNumberColumnFilter' },
 ]
 
+let gridApi: GridApi<IOlympicData>;
+
 const gridOptions: GridOptions<IOlympicData> = {
   defaultColDef: {
     editable: true,
-    sortable: true,
     flex: 1,
     minWidth: 100,
     filter: true,
-    resizable: true,
   },
   columnDefs: columnDefs,
   rowData: null,
@@ -61,11 +61,11 @@ const gridOptions: GridOptions<IOlympicData> = {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
   const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
     .then(data => {
-      gridOptions.api!.setRowData(data)
+      gridApi!.setGridOption('rowData', data)
     })
 })

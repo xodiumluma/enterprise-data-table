@@ -1,13 +1,13 @@
 import { IDoesFilterPassParams, IFilterComp, IFilterParams } from "@ag-grid-community/core";
 
 export class PersonFilter implements IFilterComp {
-    params!: IFilterParams;
+    filterParams!: IFilterParams;
     filterText!: string | null;
     gui!: HTMLDivElement;
     eFilterText: any;
 
     init(params: IFilterParams) {
-        this.params = params;
+        this.filterParams = params;
         this.filterText = null;
         this.setupGui(params);
     }
@@ -24,7 +24,7 @@ export class PersonFilter implements IFilterComp {
                 <div style="margin-top: 20px;">This filter does partial word search on multiple words, eg "mich phel" still brings back Michael Phelps.</div>
                 <div style="margin-top: 20px;">Just to emphasise that anything can go in here, here is an image!!</div>
                 <div>
-                    <img src="https://www.ag-grid.com/images/ag-Grid2-200.png" style="width: 150px; text-align: center; padding: 10px; margin: 10px; border: 1px solid lightgrey;"/>
+                    <img src="https://www.ag-grid.com/images/ag-Grid2-200.png" style="width: 150px; text-align: center; padding: 10px; margin: 10px; border: 1px solid lightgrey; background-color: white;"/>
                 </div>
             </div>
         `;
@@ -45,22 +45,12 @@ export class PersonFilter implements IFilterComp {
     }
 
     doesFilterPass(params: IDoesFilterPassParams) {
-        const { api, colDef, column, columnApi, context } = this.params;
         const { node } = params;
 
         // make sure each word passes separately, ie search for firstname, lastname
         let passed = true;
         this.filterText?.toLowerCase().split(' ').forEach(filterWord => {
-            const value = this.params.valueGetter({
-                api,
-                colDef,
-                column,
-                columnApi,
-                context,
-                data: node.data,
-                getValue: (field) => node.data[field],
-                node,
-            });
+            const value = this.filterParams.getValue(node);
 
             if (value.toString().toLowerCase().indexOf(filterWord) < 0) {
                 passed = false;

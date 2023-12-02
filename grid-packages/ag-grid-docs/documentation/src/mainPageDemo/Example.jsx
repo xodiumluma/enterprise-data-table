@@ -3,6 +3,7 @@ import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-mod
 import { CsvExportModule } from '@ag-grid-community/csv-export';
 import { AgGridReact } from '@ag-grid-community/react';
 import '@ag-grid-community/styles/ag-grid.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
 import '@ag-grid-community/styles/ag-theme-alpine.css';
 import '@ag-grid-community/styles/ag-theme-balham.css';
 import '@ag-grid-community/styles/ag-theme-material.css';
@@ -43,6 +44,7 @@ import {
     suppressColumnMoveAnimation,
 } from './utils';
 import { WinningsFilter } from './WinningsFilter';
+import GlobalContextConsumer from 'components/GlobalContext';
 
 const IS_SSR = typeof window === 'undefined';
 
@@ -75,6 +77,8 @@ export class CountryCellRendererJs {
     init(params) {
         this.eGui = document.createElement('span');
         this.eGui.style.cursor = 'default';
+        this.eGui.style.overflow = 'hidden';
+        this.eGui.style.textOverflow = 'ellipsis';
 
         if (params.value === undefined) {
             return null;
@@ -108,14 +112,7 @@ function ratingFilterRenderer(params) {
         <span>
             {[...Array(5)].map((x, i) => {
                 return value > i ? (
-                    <img
-                        key={i}
-                        src="../images/star.svg"
-                        alt={`${value} stars`}
-                        className={styles['star']}
-                        width="12"
-                        height="12"
-                    />
+                    <img className={styles.starIcon} key={i} src="../images/star.svg" alt={`${value} stars`} width="12" height="12" />
                 ) : null;
             })}
             (No stars)
@@ -133,14 +130,7 @@ function ratingRenderer(params) {
         <span>
             {[...Array(5)].map((x, i) => {
                 return value > i ? (
-                    <img
-                        key={i}
-                        src="../images/star.svg"
-                        alt={`${value} stars`}
-                        className={styles['star']}
-                        width="12"
-                        height="12"
-                    />
+                    <img className={styles.starIcon} key={i} src="../images/star.svg" alt={`${value} stars`} width="12" height="12" />
                 ) : null;
             })}
         </span>
@@ -148,7 +138,7 @@ function ratingRenderer(params) {
 }
 
 const booleanCellRenderer = (props) => {
-    const [valueCleaned] = useState(booleanCleaner(props.value));
+    const valueCleaned = booleanCleaner(props.value);
     if (valueCleaned === true) {
         return <span title="true" className="ag-icon ag-icon-tick content-icon" />;
     }
@@ -189,11 +179,11 @@ const mobileDefaultCols = [
         cellClass: 'vAlign',
         checkboxSelection: (params) => {
             // we put checkbox on the name if we are not doing grouping
-            return params.columnApi.getRowGroupColumns().length === 0;
+            return params.api.getRowGroupColumns().length === 0;
         },
         headerCheckboxSelection: (params) => {
             // we put checkbox on the name if we are not doing grouping
-            return params.columnApi.getRowGroupColumns().length === 0;
+            return params.api.getRowGroupColumns().length === 0;
         },
         headerCheckboxSelectionFilteredOnly: true,
     },
@@ -229,7 +219,6 @@ const mobileDefaultCols = [
         editable: true,
         cellRenderer: 'countryCellRenderer',
         cellClass: 'vAlign',
-        cellEditorPopup: true,
         cellEditor: 'agRichSelectCellEditor',
         cellEditorParams: {
             cellRenderer: 'countryCellRenderer',
@@ -267,6 +256,10 @@ const mobileDefaultCols = [
         field: 'game.name',
         width: 180,
         editable: true,
+        cellEditor: 'agRichSelectCellEditor',
+        cellEditorParams: {
+            values: [...games].sort()
+        },
         filter: 'agSetColumnFilter',
         cellClass: () => 'alphabet',
     },
@@ -330,11 +323,11 @@ const desktopDefaultCols = [
                 floatingFilterComponent: 'personFloatingFilterComponent',
                 checkboxSelection: (params) => {
                     // we put checkbox on the name if we are not doing grouping
-                    return params.columnApi.getRowGroupColumns().length === 0;
+                    return params.api.getRowGroupColumns().length === 0;
                 },
                 headerCheckboxSelection: (params) => {
                     // we put checkbox on the name if we are not doing grouping
-                    return params.columnApi.getRowGroupColumns().length === 0;
+                    return params.api.getRowGroupColumns().length === 0;
                 },
                 headerCheckboxSelectionFilteredOnly: true,
             },
@@ -391,8 +384,8 @@ const desktopDefaultCols = [
                 width: 150,
                 editable: true,
                 cellRenderer: 'countryCellRenderer',
-                cellEditorPopup: true,
                 suppressFillHandle: true,
+                cellEditorPopup: false,
                 // pivotIndex: 1,
                 // rowGroupIndex: 1,
                 cellClass: ['countryCell', 'vAlign'],
@@ -479,6 +472,14 @@ const desktopDefaultCols = [
                 width: 180,
                 editable: true,
                 filter: 'agMultiColumnFilter',
+                cellEditor: 'agRichSelectCellEditor',
+                cellEditorParams: {
+                    values: [...games].sort(),
+                    allowTyping: true,
+                    searchType: 'matchAny',
+                    filterList: true,
+                    highlightMatch: true
+                },
                 tooltipField: 'game.name',
                 // wrapText: true,
                 // autoHeight: true,
@@ -588,7 +589,7 @@ const desktopDefaultCols = [
         cellRenderer: 'ratingRenderer',
         cellClass: 'vAlign',
         // floatCell: true,
-        spanHeaderHeight: true,
+        // suppressSpanHeaderHeight: true,
         enableRowGroup: true,
         enablePivot: true,
         enableValue: true,
@@ -617,16 +618,16 @@ const desktopDefaultCols = [
     },
 ];
 
-const Example = () => {
+const ExampleInner = ({darkMode}) => {
     const gridRef = useRef(null);
     const loadInstance = useRef(0);
-    const [gridTheme, setGridTheme] = useState(null);
+    const [gridTheme, setGridTheme] = useState('quartz');
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const theme = params.get('theme') || 'ag-theme-alpine';
-        setGridTheme(theme);
+        const themeFromURL = new URLSearchParams(window.location.search).get('theme');
+        if (themeFromURL) {
+            setGridTheme(themeFromURL);
+        }
     }, []);
-    const [bodyClass, setBodyClass] = useState('');
     const [base64Flags, setBase64Flags] = useState();
     const [defaultCols, setDefaultCols] = useState();
     const [isSmall, setIsSmall] = useState(false);
@@ -689,7 +690,7 @@ const Example = () => {
     );
 
     const selectionChanged = (event) => {
-        // console.log('Callback selectionChanged: selection count = ' + gridOptions.api.getSelectedNodes().length);
+        // console.log('Callback selectionChanged: selection count = ' + event.api.getSelectedNodes().length);
     };
 
     const rowSelected = (event) => {
@@ -739,10 +740,11 @@ const Example = () => {
             },
             defaultColDef: {
                 minWidth: 50,
-                sortable: true,
                 filter: true,
                 floatingFilter: !isSmall,
-                resizable: true,
+                cellDataType: false,
+                useValueFormatterForExport: false,
+                useValueParserForImport: false,
             },
             enableCellChangeFlash: true,
             rowDragManaged: true,
@@ -781,8 +783,8 @@ const Example = () => {
             // singleClickEdit: true,
             // suppressClickEdit: true,
             // suppressClipboardApi: true,
-            enterMovesDownAfterEdit: true,
-            enterMovesDown: true,
+            enterNavigatesVerticallyAfterEdit: true,
+            enterNavigatesVertically: true,
             // domLayout: 'autoHeight',
             // domLayout: 'forPrint',
             // groupDisplayType = 'groupRows'
@@ -808,7 +810,6 @@ const Example = () => {
             enableRtl: IS_SSR ? false : /[?&]rtl=true/.test(window.location.search),
             enableCharts: true,
             // multiSortKey: 'ctrl',
-            animateRows: true,
 
             enableRangeSelection: true,
             // enableRangeHandle: true,
@@ -827,7 +828,7 @@ const Example = () => {
             // paginateChildRows: true,
             // paginationPageSize: 10,
             // groupSelectsFiltered: true,
-            // groupRowsSticky: true,
+            // suppressGroupRowsSticky: true,
             suppressRowClickSelection: true, // if true, clicking rows doesn't select (useful for checkbox selection)
             // suppressColumnVirtualisation: true,
             // suppressContextMenu: true,
@@ -966,8 +967,8 @@ const Example = () => {
                 // lots and lots of times (especially if user does ctrl+a to copy everything, then paste)
                 // console.log("Callback onCellValueChanged:", params);
             },
-            onRowDataChanged: (params) => {
-                // console.log('Callback onRowDataChanged: ');
+            onRowDataUpdated: (params) => {
+                // console.log('Callback onRowDataUpdated: ');
             },
             // callback when cell double clicked
             onCellDoubleClicked: (params) => {
@@ -1193,7 +1194,7 @@ const Example = () => {
                         indent: 4,
                     },
                 },
-            ],
+            ]
         }),
         [isSmall]
     );
@@ -1287,6 +1288,21 @@ const Example = () => {
             }
         }, 0);
     };
+
+    const setCountryColumnPopupEditor = (theme, gridApi) => {
+        if (!columnDefs) {
+            return
+        }
+        const participantGroup = columnDefs.find(group => group.headerName === 'Participant');
+        if (!gridApi || !participantGroup) {
+            return
+        }
+
+        const countryColumn = participantGroup.children.find(column => column.field === 'country')
+        countryColumn['cellEditorPopup'] = theme.includes('material') ? true : false;
+
+        setColumnDefs(columnDefs);
+    }
 
     useEffect(() => {
         const small = IS_SSR
@@ -1404,24 +1420,21 @@ const Example = () => {
         }
     }, [dataSize]);
 
-    useEffect(() => {
-        if (!gridTheme) return;
-        const isDark = gridTheme.indexOf('dark') >= 0;
-
-        if (isDark) {
-            setBodyClass(styles['dark']);
-            gridOptions.chartThemes = [
-                'ag-default-dark',
-                'ag-material-dark',
-                'ag-pastel-dark',
-                'ag-vivid-dark',
-                'ag-solar-dark',
-            ];
-        } else {
-            setBodyClass('');
-            gridOptions.chartThemes = null;
+    const isAutoTheme = gridTheme.includes('auto');
+    let themeClass = gridTheme;
+    if (!themeClass.startsWith('ag-theme-')) {
+        themeClass = 'ag-theme-' + themeClass;
+        if (darkMode && themesWithDarkVariant.includes(themeClass)) {
+            themeClass += '-dark';
         }
-    }, [gridTheme]);
+    }
+    const isDarkTheme = themeClass.includes('dark');
+
+    const defaultChartThemes = ['ag-default', 'ag-material', 'ag-sheets', 'ag-polychroma', 'ag-vivid'];
+    const [chartThemes, setChartThemes] = useState(defaultChartThemes);
+    useEffect(() => {
+        setChartThemes(darkMode ? defaultChartThemes.map(theme => theme + '-dark') : defaultChartThemes);
+    }, [darkMode]);
 
     return (
         <>
@@ -1429,7 +1442,7 @@ const Example = () => {
                 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" />
                 {helmet.map((entry) => entry)}
             </Helmet>
-            <div className={classnames(styles.exampleWrapper, bodyClass)}>
+            <div className={classnames(styles.exampleWrapper, isAutoTheme ? styles.exampleWrapperAuto : (isDarkTheme ? styles.exampleWrapperDark : null))}>
                 <Toolbar
                     gridRef={gridRef}
                     dataSize={dataSize}
@@ -1437,6 +1450,7 @@ const Example = () => {
                     rowCols={rowCols}
                     gridTheme={gridTheme}
                     setGridTheme={setGridTheme}
+                    setCountryColumnPopupEditor={setCountryColumnPopupEditor}
                 />
                 <span className={classnames({ [styles.messages]: true, [styles.show]: showMessage })}>
                     {message}
@@ -1444,13 +1458,13 @@ const Example = () => {
                 </span>
                 <section className={styles.gridWrapper} style={{ padding: '1rem', paddingTop: 0 }}>
                     {gridTheme && (
-                        <div id="myGrid" style={{ flex: '1 1 auto', overflow: 'hidden' }} className={gridTheme}>
+                        <div id="myGrid" style={{ flex: '1 1 auto', overflow: 'hidden' }} className={themeClass}>
                             <AgGridReactMemo
-                                key={gridTheme}
                                 ref={gridRef}
                                 modules={modules}
                                 gridOptions={gridOptions}
                                 columnDefs={columnDefs}
+                                chartThemes={chartThemes}
                                 rowData={rowData}
                                 defaultCsvExportParams={defaultExportParams}
                                 defaultExcelExportParams={defaultExportParams}
@@ -1462,5 +1476,15 @@ const Example = () => {
         </>
     );
 };
+
+const themesWithDarkVariant = ['ag-theme-quartz', 'ag-theme-alpine', 'ag-theme-balham']
+
+const Example = () => (
+    <GlobalContextConsumer>
+        {({ darkMode }) => (
+            <ExampleInner darkMode={darkMode} />
+        )}
+    </GlobalContextConsumer>
+);
 
 export default Example;

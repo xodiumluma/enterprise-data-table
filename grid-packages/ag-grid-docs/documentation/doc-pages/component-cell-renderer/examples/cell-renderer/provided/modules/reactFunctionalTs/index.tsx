@@ -1,11 +1,13 @@
 'use strict';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AgGridReact } from '@ag-grid-community/react';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import './styles.css';
+
 import DaysFrostRenderer, { ImageCellRendererParams } from './daysFrostRenderer';
 
 import { ModuleRegistry, ICellRendererParams, ColDef } from '@ag-grid-community/core';
@@ -79,7 +81,7 @@ const GridExample = () => {
             headerName: "Month",
             field: "Month",
             width: 75,
-            cellStyle: { color: "darkred" }
+            cellStyle: { backgroundColor: "#CC222244" }
         },
         {
             headerName: "Max Temp (\u02DAC)",
@@ -137,6 +139,13 @@ const GridExample = () => {
         });
     }
 
+    const defaultColDef = useMemo(() => ({
+        editable: true,
+        flex: 1,
+        minWidth: 100,
+        filter: true,
+    }), []);
+
     return (
         <div style={{ width: '100%', height: '100%' }}>
             <div className="example-wrapper">
@@ -151,19 +160,12 @@ const GridExample = () => {
                         height: '100%',
                         width: '100%'
                     }}
-                    className="ag-theme-alpine">
+                    className={/** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                     <AgGridReact
                         ref={gridRef}
                         rowData={rowData}
                         columnDefs={columnDefs}
-                        defaultColDef={{
-                            editable: true,
-                            sortable: true,
-                            flex: 1,
-                            minWidth: 100,
-                            filter: true,
-                            resizable: true
-                        }}
+                        defaultColDef={defaultColDef}
                         onGridReady={onGridReady}
                     />
                 </div>

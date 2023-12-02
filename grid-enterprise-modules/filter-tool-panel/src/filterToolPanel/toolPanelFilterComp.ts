@@ -41,7 +41,7 @@ export class ToolPanelFilterComp extends Component {
     private expanded: boolean = false;
     private underlyingFilter: IFilterComp | null;
 
-    constructor(hideHeader = false) {
+    constructor(hideHeader: boolean, private readonly expandedCallback: () => void) {
         super(ToolPanelFilterComp.TEMPLATE);
         this.hideHeader = hideHeader;
     }
@@ -59,7 +59,8 @@ export class ToolPanelFilterComp extends Component {
         this.eFilterName.innerText = this.columnModel.getDisplayNameForColumn(this.column, 'filterToolPanel', false) || '';
         this.addManagedListener(this.eFilterToolPanelHeader, 'click', this.toggleExpanded.bind(this));
         this.addManagedListener(this.eFilterToolPanelHeader, 'keydown', (e: KeyboardEvent) => {
-            if (e.key === KeyCode.ENTER) {
+            if (e.key === KeyCode.ENTER || e.key === KeyCode.SPACE) {
+                e.preventDefault();
                 this.toggleExpanded();
             }
         });
@@ -135,6 +136,8 @@ export class ToolPanelFilterComp extends Component {
         _.setDisplayed(this.eExpandUnchecked, false);
 
         this.addFilterElement();
+
+        this.expandedCallback();
     }
 
     private addFilterElement(): void {
@@ -175,6 +178,8 @@ export class ToolPanelFilterComp extends Component {
         _.setDisplayed(this.eExpandUnchecked, true);
 
         this.underlyingFilter?.afterGuiDetached?.();
+
+        this.expandedCallback();
     }
 
     private removeFilterElement(): void {

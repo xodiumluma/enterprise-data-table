@@ -2,21 +2,23 @@
 title: "Column Filters"
 ---
 
-[[only-javascript-or-angular-or-vue]]
+<framework-specific-section frameworks="javascript,angular,vue">
 |Column Filters are filters that are applied to the data at the column level. Many Column Filters can be active at once (e.g. filters set on different columns) and the grid will display rows that pass every column's filter.
+</framework-specific-section>
 
-[[only-react]]
-|<video-section id="pebXUHUdlos" title="React Column Filters" header="true">
-|Column Filters are filters that are applied to the data at the column level. Many Column Filters can be active at once (e.g. filters set on different columns) and the grid will display rows that pass every column's filter.
-|</video-section>
+<framework-specific-section frameworks="react">
+<video-section id="pebXUHUdlos" title="React Column Filters" header="true">
+Column Filters are filters that are applied to the data at the column level. Many Column Filters can be active at once (e.g. filters set on different columns) and the grid will display rows that pass every column's filter.
+</video-section>
+</framework-specific-section>
 
 Column Filters are accessed in the grid UI either through the [Column Menu](/column-menu/) or the [Tool Panel](/tool-panel/).
 
 <div style="display: flex; justify-content: center;">
-    <image-caption src="filtering/resources/open-column.gif" alt="Open Column" width="25rem" constrained="true">
+    <image-caption src="filtering/resources/open-column.gif" alt="Open Column" width="25rem" constrained="true" toggledarkmode="true">
         Access via Column Menu
     </image-caption>
-    <image-caption src="filtering/resources/open-tool-panel.gif" alt="Open Tool Panel" width="25rem" constrained="true">
+    <image-caption src="filtering/resources/open-tool-panel.gif" alt="Open Tool Panel" width="25rem" constrained="true" toggledarkmode="true">
         Access via Tool Panel
     </image-caption>
 </div>

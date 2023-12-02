@@ -1,71 +1,35 @@
 import React from 'react';
-import { Announcement } from './Announcement';
+import {Announcement} from './Announcement';
+import { hostPrefix } from '../utils/consts';
 import styles from './Announcements.module.scss';
+import versionStyles from './Version.module.scss';
 import DocumentationLink from './DocumentationLink';
 import Version from './Version';
+import {Icon} from "./Icon";
 
 /**
  * These are the announcement cards shown underneath the left-hand navigation menu.
  */
-const Announcements = ({ framework }) => (
-    <div className={styles['announcements']}>
+const Announcements = ({framework}) => (
+    <>
         <div className={styles.versions}>
             <Version
-                version="29.3.0"
-                date="Apr 20"
+                version="30.2.0"
+                date="Sep 26"
                 highlights={[
                     {
-                        text: 'Sticky Column Group Labels',
-                        url: 'https://ag-grid.com/javascript-data-grid/column-groups/#sticky-label',
+                        text: 'Advanced Filter Builder',
+                        url: 'https://www.ag-grid.com/javascript-data-grid/filter-advanced/#advanced-filter-builder',
                     },
                     {
-                        text: 'SSRM Sticky Group Rows',
-                        url: 'https://ag-grid.com/javascript-data-grid/server-side-model-grouping/#sticky-groups',
+                        text: 'Dynamic Group Footers',
+                        url: 'https://www.ag-grid.com/javascript-data-grid/grouping-footers/#dynamic-group-footers',
                     },
-                    {
-                        text: 'Chart Tooltip Positioning',
-                        url: 'https://ag-grid.com/javascript-charts/tooltips/#tooltip-position',
-                    },
-                ]}
-            ></Version>
-            <Version
-                version="29.2.0"
-                date="Mar 21"
-                highlights={[
-                    {
-                        text: 'Multiple Filter Conditions',
-                        url: 'https://ag-grid.com/javascript-data-grid/filter-conditions/#number-of-conditions',
-                    },
-                    {
-                        text: 'SSRM Header Checkbox Selection',
-                        url:
-                            'https://ag-grid.com/javascript-data-grid/server-side-model-selection/#header-checkbox-selection',
-                    },
-                    {
-                        text: 'Span Header Height',
-                        url: 'https://ag-grid.com/javascript-data-grid/column-groups/#span-header-height',
-                    },
-                    {
-                        text: 'Chart Interaction Ranges',
-                        url: 'https://ag-grid.com/javascript-charts/events/#interaction-ranges',
-                    },
-                    { text: 'Chart Overlays', url: 'https://ag-grid.com/javascript-charts/overlays/' },
-                ]}
-            ></Version>
-            <Version
-                version="29.1.0"
-                date="Feb 17"
-                highlights={[
-                    {
-                        text: 'Row Group Column Filter',
-                        url: 'https://ag-grid.com/javascript-data-grid/grouping-column-filter/',
-                    },
-                    { text: 'Axis Ticks Enhancements', url: 'https://ag-grid.com/javascript-charts/axes/#axis-ticks' },
                 ]}
             ></Version>
         </div>
 
-        <SimpleMailingListSignup />
+        <SimpleMailingListSignup/>
 
         <Announcement title="Community or Enterprise?">
             <p className="font-size-small">
@@ -82,7 +46,7 @@ const Announcements = ({ framework }) => (
                 developing for production.
             </p>
         </Announcement>
-    </div>
+    </>
 );
 
 /**
@@ -112,7 +76,7 @@ const SimpleMailingListSignup = () => {
                             placeholder="email address"
                             required
                         />
-                        <div style={{ position: 'absolute', left: '-5000px' }} aria-hidden="true">
+                        <div style={{position: 'absolute', left: '-5000px'}} aria-hidden="true">
                             <input
                                 type="text"
                                 name="b_9b44b788c97fa5b498fbbc9b5_9353cf87ce"

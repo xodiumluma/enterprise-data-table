@@ -11,6 +11,7 @@ export const toInput = property => `:${property.name}="${property.name}"`;
 export const toConst = property => `:${property.name}="${property.value}"`;
 export const toOutput = event => `@${toKebabCase(event.name)}="${event.handlerName}"`;
 export const toMember = property => `${property.name}: null`;
+export const toRef = property => `const ${property.name} = ref(null)`;
 export const toComponent = property => `'${property.name}': ${property.name}`;
 
 export function toAssignment(property: any): string {
@@ -22,7 +23,7 @@ export function toAssignment(property: any): string {
 
 export function getImport(filename: string, tokenReplace, replaceValue) {
     let componentName = filename.split('.')[0];
-    if(tokenReplace) {
+    if (tokenReplace) {
         componentName = componentName.replace(tokenReplace, replaceValue);
     }
     return `import ${toTitleCase(componentName)} from './${filename}';`;

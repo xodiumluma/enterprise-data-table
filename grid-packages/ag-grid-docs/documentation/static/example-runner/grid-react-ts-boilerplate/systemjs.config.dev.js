@@ -4,7 +4,7 @@
         typescriptOptions: {
             module: 'system',
             moduleResolution: 'node',
-            target: 'es5',
+            target: 'es2015',
             noImplicitAny: false,
             sourceMap: true,
             jsx: 'react',
@@ -22,8 +22,8 @@
             react: 'npm:react@18.2.0',
             'react-dom': 'npm:react-dom@18.2.0',
             'react-dom/client': 'npm:react-dom@18.2.0',
-            redux: 'npm:redux@3.6.0',
-            'react-redux': 'npm:react-redux@5.0.6',
+            redux: 'npm:redux@4.2.1',
+            'react-redux': 'npm:react-redux@8.0.5',
             'prop-types': 'npm:prop-types@15.8.1',
 
             ts: "npm:plugin-typescript@8.0.0/lib/plugin.js",
@@ -38,10 +38,10 @@
             css: {
             },
             react: {
-                main: './umd/react.development.min.js'
+                main: './umd/react.development.js'
             },
             'react-dom': {
-                main: './umd/react-dom.development.min.js'
+                main: './umd/react-dom.development.js'
             },
             'react-dom/server': {
                 main: '../umd/react-dom-server.browser.production.min.js'
@@ -64,7 +64,7 @@
                 defaultExtension: 'tsx'
             },
             'ag-grid-react': {
-                main: './main.js',
+                main: './lib/main.js',
                 defaultExtension: 'js'
             },
             'ag-grid-community': {
@@ -76,9 +76,17 @@
                 defaultExtension: 'js'
             },
             '@ag-grid-community/react': {
-                main: './main.js',
+                main: './lib/main.mjs',
+                defaultExtension: 'mjs'
+            },
+            'ag-charts-community': {
+                main: './dist/package/main.cjs.js',
                 defaultExtension: 'js'
             },
+            // 'ag-charts-enterprise': {
+            //     main: './dist/package/main.cjs.js',
+            //     defaultExtension: 'js'
+            // },
             // these are a little different in that they're in a directory and sjs doesn't default to the index.js inside...
             '@ag-grid-community/core/dist/cjs/es5/utils': {
                 main: './index.js',
@@ -109,7 +117,7 @@
                 main: './dist/cjs/es5/main.js',
                 defaultExtension: 'js'
             },
-            'ag-charts-community': {
+            '@ag-grid-enterprise/advanced-filter': {
                 main: './dist/cjs/es5/main.js',
                 defaultExtension: 'js'
             },
@@ -199,3 +207,7 @@
         },
     });
 })(this);
+
+window.addEventListener('error', e => {
+    console.error('ERROR', e.message, e.filename)
+});

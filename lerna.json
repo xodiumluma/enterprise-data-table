@@ -2,14 +2,11 @@
   "packages": [
     "grid-community-modules/*",
     "grid-enterprise-modules/*",
-    "charts-community-modules/*",
-    "charts-enterprise-modules/*",
     "grid-packages/*",
-    "charts-examples/*",
     "grid-examples/*",
     "grid-packages/ag-grid-docs/documentation/"
   ],
-  "useNx": false,
+  "useNx": true,
   "command": {
     "bootstrap": {
       "npmClientArgs": [
@@ -18,5 +15,5 @@
       ]
     }
   },
-  "version": "29.3.0"
+  "version": "31.0.0"
 }

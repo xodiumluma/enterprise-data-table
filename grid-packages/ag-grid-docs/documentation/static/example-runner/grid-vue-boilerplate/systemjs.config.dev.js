@@ -52,6 +52,14 @@
                 main: './lib/AgGridVue.js',
                 defaultExtension: 'js'
             },
+            'ag-charts-community': {
+                main: './dist/package/main.cjs.js',
+                defaultExtension: 'js'
+            },
+            // 'ag-charts-enterprise': {
+            //     main: './dist/package/main.cjs.js',
+            //     defaultExtension: 'js'
+            // },
             // these are a little different in that they're in a directory and sjs doesn't default to the index.js inside...
             '@ag-grid-community/core/dist/cjs/es5/utils': {
                 main: './index.js',
@@ -82,7 +90,7 @@
                 main: './dist/cjs/es5/main.js',
                 defaultExtension: 'js'
             },
-            'ag-charts-community': {
+            '@ag-grid-enterprise/advanced-filter': {
                 main: './dist/cjs/es5/main.js',
                 defaultExtension: 'js'
             },
@@ -176,3 +184,7 @@
         }
     });
 })(this);
+
+window.addEventListener('error', e => {
+    console.error('ERROR', e.message, e.filename)
+});

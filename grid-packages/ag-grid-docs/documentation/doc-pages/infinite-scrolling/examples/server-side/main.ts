@@ -1,4 +1,14 @@
-import { ColDef, Grid, GridOptions, ICellRendererParams, IDatasource, IGetRowsParams, SortModelItem, GetRowIdParams } from '@ag-grid-community/core'
+import {
+    ColDef,
+    GridApi,
+    createGrid,
+    GridOptions,
+    ICellRendererParams,
+    IDatasource,
+    IGetRowsParams,
+    SortModelItem,
+    GetRowIdParams,
+} from '@ag-grid-community/core';
 
 declare function getCountries(): string[];
 
@@ -49,13 +59,13 @@ const columnDefs: ColDef[] = [
     { field: 'total', suppressMenu: true },
 ]
 
+let gridApi: GridApi<IOlympicData>;
+
 const gridOptions: GridOptions<IOlympicData> = {
     columnDefs: columnDefs,
     defaultColDef: {
         flex: 1,
         minWidth: 150,
-        sortable: true,
-        resizable: true,
         floatingFilter: true,
     },
     rowSelection: 'multiple',
@@ -156,7 +166,7 @@ function filterData(filterModel: any, data: any[]) {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', function () {
     const gridDiv = document.querySelector<HTMLElement>('#myGrid')!;
-    new Grid(gridDiv, gridOptions)
+    gridApi = createGrid(gridDiv, gridOptions);
 
     fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
         .then(response => response.json())
@@ -174,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // At this point in your code, you would call the server.
                     // To make the demo look real, wait for 500ms before returning
-                    setTimeout(function () {
+                    setTimeout(() => {
                         // take a slice of the total rows
                         const dataAfterSortingAndFiltering = sortAndFilter(
                             data,
@@ -196,6 +206,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
             };
 
-            gridOptions.api!.setDatasource(dataSource)
+            gridApi!.setGridOption('datasource', dataSource)
         })
 })

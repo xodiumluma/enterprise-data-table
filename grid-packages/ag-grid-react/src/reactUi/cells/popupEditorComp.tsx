@@ -3,7 +3,7 @@ import React, { useState, memo, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { EditDetails } from './cellComp';
 import { BeansContext } from '../beansContext';
-import { useLayoutEffectOnce } from '../useEffectOnce';
+import { useEffectOnce } from '../useEffectOnce';
 
 const PopupEditorComp = (props: {
             editDetails: EditDetails, 
@@ -17,11 +17,11 @@ const PopupEditorComp = (props: {
 
     const { context, popupService, localeService, gridOptionsService } = useContext(BeansContext);
 
-    useLayoutEffectOnce(() => {
+    useEffectOnce(() => {
         const {editDetails, cellCtrl, eParentCell} = props;
         const {compDetails} = editDetails;
 
-        const useModelPopup = gridOptionsService.is('stopEditingWhenCellsLoseFocus');
+        const useModelPopup = gridOptionsService.get('stopEditingWhenCellsLoseFocus');
         
         const wrapper = context.createBean(new PopupEditorWrapper(compDetails.params));
         const ePopupGui = wrapper.getGui();

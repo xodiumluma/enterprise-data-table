@@ -65,7 +65,10 @@ const umd = () => {
                 'ag-grid-community': 'agGrid'
             },
         },
-        plugins: [typescript(), commonjs(), uglify()]
+        plugins: [
+            typescript({ tsconfig: "tsconfig.umd.json"}),
+            commonjs(),
+            uglify()]
     })
         .pipe(source('ag-grid-react.min.js'))
         .pipe(gulp.dest('./bundles'))
@@ -131,11 +134,7 @@ const copyFromModuleSource = () => {
         .pipe(replace('@ag-grid-enterprise', 'ag-grid-enterprise'))
         .pipe(gulp.dest("./src"), {cwd: '.'});
 
-    const copyMain = gulp.src(["../../grid-community-modules/react/main.d.ts",
-        "../../grid-community-modules/react/main.js"])
-        .pipe(gulp.dest("./"));
-
-    return merge(copySource, copyMain);
+    return merge(copySource);
 };
 
 gulp.task('copy-from-module-source', copyFromModuleSource);

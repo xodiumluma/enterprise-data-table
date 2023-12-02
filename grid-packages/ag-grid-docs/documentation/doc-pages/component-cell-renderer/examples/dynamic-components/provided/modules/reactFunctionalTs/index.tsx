@@ -6,7 +6,9 @@ import { AgGridReact } from '@ag-grid-community/react';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { GridApi } from '@ag-grid-community/core';
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import './styles.css';
+
 
 import { ColDef, ICellRendererParams, ModuleRegistry } from '@ag-grid-community/core';
 // Register the required feature modules with the Grid
@@ -124,6 +126,13 @@ const GridExample = () => {
         gridRef.current!.api.refreshCells({ columns: ['currency'] })
     };
 
+    const defaultColDef = useMemo(() => ({
+        editable: true,
+        flex: 1,
+        minWidth: 100,
+        filter: true,
+    }), []);
+
     return (
         <div style={{ width: '100%', height: '100%' }}>
             <div className="example-wrapper">
@@ -136,7 +145,7 @@ const GridExample = () => {
                         height: '100%',
                         width: '100%'
                     }}
-                    className="ag-theme-alpine">
+                    className={/** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                     <AgGridReact
                         ref={gridRef}
                         rowData={rowData}
@@ -145,15 +154,7 @@ const GridExample = () => {
                         context={{
                             methodFromParent
                         }}
-                        defaultColDef={{
-                            editable: true,
-                            sortable: true,
-                            flex: 1,
-                            minWidth: 100,
-                            filter: true,
-                            resizable: true
-                        }}>
-                    </AgGridReact>
+                        defaultColDef={defaultColDef} />
                 </div>
             </div>
         </div>

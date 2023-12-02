@@ -4,9 +4,11 @@ import { PostConstruct } from "../context/context";
 import { escapeString } from "../utils/string";
 import { KeyCode } from '../constants/keyCode';
 import { setAriaPosInSet, setAriaRole, setAriaSelected, setAriaSetSize } from '../utils/aria';
+import { Events } from "../eventKeys";
+import { isVisible } from "../utils/dom";
 
-export interface ListOption {
-    value: string;
+export interface ListOption<TValue = string> {
+    value: TValue;
     text?: string;
 }
 
@@ -159,7 +161,7 @@ export class AgList extends Component {
     }
 
     private highlightItem(el: HTMLElement): void {
-        if (!el.offsetParent) { return; }
+        if (!isVisible(el)) { return; }
 
         this.clearHighlighted();
         this.highlightedEl = el;
@@ -171,7 +173,7 @@ export class AgList extends Component {
     }
 
     private clearHighlighted(): void {
-        if (!this.highlightedEl || !this.highlightedEl.offsetParent) { return; }
+        if (!this.highlightedEl || !isVisible(this.highlightedEl)) { return; }
 
         this.highlightedEl.classList.remove(AgList.ACTIVE_CLASS);
         setAriaSelected(this.highlightedEl, false);
@@ -180,7 +182,7 @@ export class AgList extends Component {
     }
 
     private fireChangeEvent(): void {
-        this.dispatchEvent({ type: AgAbstractField.EVENT_CHANGED });
+        this.dispatchEvent({ type: Events.EVENT_FIELD_VALUE_CHANGED });
         this.fireItemSelected();
     }
 

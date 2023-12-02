@@ -20,23 +20,21 @@
 }
 
 @mixin keyboard-focus($selectors, $offset) {
-    .ag-keyboard-focus {
-        @each $selector in $selectors {
-            .#{$selector}:focus {
-                outline: none;
-                &::after {
-                    content: '';
-                    position: absolute;
-                    background-color: transparent;
-                    pointer-events: none;
-                    top: $offset;
-                    left: $offset;
-                    display: block;
-                    width: calc(100% - #{$offset * 2});
-                    height: calc(100% - #{$offset * 2});
-                    border: 1px solid;
-                    border-color: var(--ag-input-focus-border-color);
-                }
+    @each $selector in $selectors {
+        .#{$selector}:focus-visible {
+            outline: none;
+            &::after {
+                content: '';
+                position: absolute;
+                background-color: transparent;
+                pointer-events: none;
+                top: $offset;
+                left: $offset;
+                display: block;
+                width: calc(100% - #{$offset * 2});
+                height: calc(100% - #{$offset * 2});
+                border: 1px solid;
+                border-color: var(--ag-input-focus-border-color);
             }
         }
     }
@@ -70,7 +68,7 @@
 
 @mixin card() {
     border: var(--ag-borders) var(--ag-border-color);
-    
+
     background: var(--ag-background-color);
     border-radius: var(--ag-card-radius);
     box-shadow: var(--ag-card-shadow);

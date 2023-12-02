@@ -39,12 +39,11 @@ export class StickyRowFeature extends BeanStub {
         return this.stickyRowCtrls;
     }
 
-    public checkStickyRows(): void {
+    public checkStickyRows(): boolean {
         let height = 0;
 
-        if (!this.gridOptionsService.is('groupRowsSticky')) {
-            this.refreshNodesAndContainerHeight([], height);
-            return;
+        if (!this.gridOptionsService.isGroupRowsSticky()) {
+            return this.refreshNodesAndContainerHeight([], height);
         }
 
         const stickyRows: RowNode[] = [];
@@ -57,7 +56,7 @@ export class StickyRowFeature extends BeanStub {
 
             if (this.isClientSide) {
                 let lastAncestor = stickyRow;
-                while (lastAncestor.expanded) {
+                while (lastAncestor.isExpandable() && lastAncestor.expanded) {
                     if (lastAncestor.master) {
                         lastAncestor = lastAncestor.detailNode;
                     } else if (lastAncestor.childrenAfterSort) {
@@ -71,8 +70,12 @@ export class StickyRowFeature extends BeanStub {
             }
             // if the rowModel is `serverSide` as only `clientSide` and `serverSide` create this feature.
             else {
-                const storeBounds = stickyRow.childStore?.getStoreBounds();
-                lastChildBottom = (storeBounds?.heightPx ?? 0) + (storeBounds?.topPx ?? 0);
+                if (stickyRow.master) {
+                    lastChildBottom = stickyRow.detailNode.rowTop! + stickyRow.detailNode.rowHeight!;
+                } else {
+                    const storeBounds = stickyRow.childStore?.getStoreBounds();
+                    lastChildBottom = (storeBounds?.heightPx ?? 0) + (storeBounds?.topPx ?? 0);
+                }
             }
 
             const stickRowBottom = firstPixel + height + stickyRow.rowHeight!;
@@ -124,7 +127,7 @@ export class StickyRowFeature extends BeanStub {
             break;
         }
 
-        this.refreshNodesAndContainerHeight(stickyRows, height);
+        return this.refreshNodesAndContainerHeight(stickyRows, height);
     }
 
     public refreshStickyNode(stickRowNode:  RowNode): void {
@@ -136,13 +139,20 @@ export class StickyRowFeature extends BeanStub {
             }
         }
 
-        this.refreshNodesAndContainerHeight(allStickyNodes, this.containerHeight);
-        this.checkStickyRows();
+        if (this.refreshNodesAndContainerHeight(allStickyNodes, this.containerHeight)) {
+            this.checkStickyRows();
+        }
     }
 
-    private refreshNodesAndContainerHeight(allStickyNodes: RowNode[], height: number): void {
+    private refreshNodesAndContainerHeight(allStickyNodes: RowNode[], height: number): boolean {
+        let stickyRowsChanged = false;
+
         const removedCtrls = this.stickyRowCtrls.filter(ctrl => allStickyNodes.indexOf(ctrl.getRowNode()) === -1);
         const addedNodes = allStickyNodes.filter(rowNode => this.stickyRowCtrls.findIndex(ctrl => ctrl.getRowNode() === rowNode) === -1);
+
+        if (removedCtrls.length || addedNodes.length) {
+            stickyRowsChanged = true;
+        }
 
         const ctrlsToDestroy: RowCtrlMap = {};
         removedCtrls.forEach(removedCtrl => {
@@ -168,6 +178,9 @@ export class StickyRowFeature extends BeanStub {
         if (this.containerHeight !== height) {
             this.containerHeight = height;
             this.gridBodyCtrl.setStickyTopHeight(height);
+            stickyRowsChanged = true;
         }
+
+        return stickyRowsChanged;
     }
 }

@@ -7,7 +7,9 @@ import {
     ProcessHeaderForExportParams,
     ProcessRowGroupForExportParams,
     RowNode,
-    ValueService
+    ValueFormatterService,
+    ValueService,
+    ValueParserService
 } from "@ag-grid-community/core";
 
 import { GridSerializingParams, GridSerializingSession, RowAccumulator, RowSpanningAccumulator } from "../interfaces";
@@ -16,6 +18,8 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
     public columnModel: ColumnModel;
     public valueService: ValueService;
     public gridOptionsService: GridOptionsService;
+    public valueFormatterService: ValueFormatterService;
+    public valueParserService: ValueParserService;
     public processCellCallback?: (params: ProcessCellForExportParams) => string;
     public processHeaderCallback?: (params: ProcessHeaderForExportParams) => string;
     public processGroupHeaderCallback?: (params: ProcessGroupHeaderForExportParams) => string;
@@ -25,14 +29,22 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
 
     constructor(config: GridSerializingParams) {
         const {
-            columnModel, valueService, gridOptionsService, processCellCallback,
-            processHeaderCallback, processGroupHeaderCallback,
-            processRowGroupCallback
+            columnModel,
+            valueService,
+            gridOptionsService,
+            valueFormatterService,
+            valueParserService,
+            processCellCallback,
+            processHeaderCallback,
+            processGroupHeaderCallback,
+            processRowGroupCallback,
         } = config;
 
         this.columnModel = columnModel;
         this.valueService = valueService;
         this.gridOptionsService = gridOptionsService;
+        this.valueFormatterService = valueFormatterService;
+        this.valueParserService = valueParserService;
         this.processCellCallback = processCellCallback;
         this.processHeaderCallback = processHeaderCallback;
         this.processGroupHeaderCallback = processGroupHeaderCallback;
@@ -42,7 +54,7 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
     abstract addCustomContent(customContent: T): void;
     abstract onNewHeaderGroupingRow(): RowSpanningAccumulator;
     abstract onNewHeaderRow(): RowAccumulator;
-    abstract onNewBodyRow(): RowAccumulator;
+    abstract onNewBodyRow(node?: RowNode): RowAccumulator;
     abstract parse(): string;
 
     public prepare(columnsToExport: Column[]): void {
@@ -54,9 +66,15 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
         return value != null ? value : '';
     }
 
-    public extractRowCellValue(column: Column, index: number, accumulatedRowIndex: number, type: string, node: RowNode) {
+    public extractRowCellValue(
+        column: Column,
+        index: number,
+        accumulatedRowIndex: number,
+        type: string,
+        node: RowNode
+    ): { value: any, valueFormatted?: string | null } {
         // we render the group summary text e.g. "-> Parent -> Child"...
-        const hideOpenParents = this.gridOptionsService.is('groupHideOpenParents');
+        const hideOpenParents = this.gridOptionsService.get('groupHideOpenParents');
         const value = ((!hideOpenParents || node.footer) && this.shouldRenderGroupSummaryCell(node, column, index))
             ? this.createValueForGroupNode(node)
             : this.valueService.getValue(column, node);
@@ -70,7 +88,7 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
             type
         });
 
-        return processedValue != null ? processedValue : '';
+        return processedValue;
     }
 
     private shouldRenderGroupSummaryCell(node: RowNode, column: Column, currentColumnIndex: number): boolean {
@@ -81,7 +99,11 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
         const currentColumnGroupIndex = this.groupColumns.indexOf(column);
 
         if (currentColumnGroupIndex !== -1) {
-            if (node.groupData?.[column.getId()]) { return true; }
+            if (node.groupData?.[column.getId()] != null) { return true; }
+
+            if (this.gridOptionsService.isRowModelType('serverSide') && node.group) {
+                return true;
+            }
 
             // if this is a top level footer, always render`Total` in the left-most cell
             if (node.footer && node.level === -1) {
@@ -134,22 +156,35 @@ export abstract class BaseGridSerializingSession<T> implements GridSerializingSe
         return isFooter ? `Total ${groupValue}` : groupValue;
     }
 
-    private processCell(params: { accumulatedRowIndex: number, rowNode: RowNode, column: Column, value: any, processCellCallback: ((params: ProcessCellForExportParams) => string) | undefined, type: string }): any {
+    private processCell(params: {
+        accumulatedRowIndex: number, rowNode: RowNode, column: Column, value: any, processCellCallback: ((params: ProcessCellForExportParams) => string) | undefined, type: string
+    }): { value: any, valueFormatted?: string | null } {
         const { accumulatedRowIndex, rowNode, column, value, processCellCallback, type } = params;
 
         if (processCellCallback) {
-            return processCellCallback({
-                accumulatedRowIndex,
-                column: column,
-                node: rowNode,
-                value: value,
-                api: this.gridOptionsService.api,
-                columnApi: this.gridOptionsService.columnApi,
-                context: this.gridOptionsService.context,
-                type: type
-            });
+            return {
+                value: processCellCallback({
+                    accumulatedRowIndex,
+                    column: column,
+                    node: rowNode,
+                    value: value,
+                    api: this.gridOptionsService.api,
+                    columnApi: this.gridOptionsService.columnApi,
+                    context: this.gridOptionsService.context,
+                    type: type,
+                    parseValue: (valueToParse: string) => this.valueParserService.parseValue(column, rowNode, valueToParse, this.valueService.getValue(column, rowNode)),
+                    formatValue: (valueToFormat: any) => this.valueFormatterService.formatValue(column, rowNode, valueToFormat) ?? valueToFormat
+                }) ?? ''
+            };
         }
 
-        return value != null ? value : '';
+        if (column.getColDef().useValueFormatterForExport !== false) {
+            return {
+                value: value ?? '', 
+                valueFormatted: this.valueFormatterService.formatValue(column, rowNode, value),
+            };
+        }
+
+        return { value: value ?? '' };
     }
 }

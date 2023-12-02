@@ -63,6 +63,7 @@ export class SeriesPanel extends Component {
         'line': ['tooltips', 'lineWidth', 'lineDash', 'lineOpacity', 'markers', 'labels'],
         'histogram': ['tooltips', 'bins', 'strokeWidth', 'lineDash', 'lineOpacity', 'fillOpacity', 'labels', 'shadow'],
         'scatter': ['tooltips', 'markers', 'labels'],
+        'bubble': ['tooltips', 'markers', 'labels'],
         'pie': ['tooltips', 'strokeWidth', 'lineOpacity', 'fillOpacity', 'labels', 'shadow'],
     }
 
@@ -110,7 +111,9 @@ export class SeriesPanel extends Component {
             }
 
             this.seriesWidgetMappings[this.seriesType].forEach((w) => this.widgetFuncs[w]());
-        });
+        })
+        .catch(e => console.error(`AG Grid - chart rendering failed`, e));
+
     }
 
     private initSeriesSelect() {
@@ -119,7 +122,7 @@ export class SeriesPanel extends Component {
             .setLabel(this.translate('seriesType'))
             .setLabelAlignment("left")
             .setLabelWidth('flex')
-            .setInputWidth(100)
+            .setInputWidth('flex')
             .addOptions(this.getSeriesSelectOptions())
             .setValue(`${this.seriesType}`)
             .onValueChange((newValue: ChartSeriesType) => {
@@ -138,7 +141,7 @@ export class SeriesPanel extends Component {
             .setLabel(this.translate("tooltips"))
             .setLabelAlignment("left")
             .setLabelWidth("flex")
-            .setInputWidth(45)
+            .setInputWidth('flex')
             .setValue(this.getSeriesOption("tooltip.enabled") || false)
             .onValueChange(newValue => this.setSeriesOption("tooltip.enabled", newValue));
 
@@ -279,7 +282,7 @@ export class SeriesPanel extends Component {
     }
 
     private initBins() {
-        const currentValue = this.getSeriesOption<any>("bins").length;
+        const currentValue = (this.getSeriesOption<any>("bins") ?? this.getSeriesOption<any>("calculatedBins")).length;
 
         const seriesBinCountSlider = this.createBean(new AgSlider());
         seriesBinCountSlider
@@ -307,9 +310,19 @@ export class SeriesPanel extends Component {
     }
 
     private getChartSeriesType(): ChartSeriesType {
-        if(this.chartController.getSeriesChartTypes().length === 0) { return 'column'; }
+        if (this.chartController.getSeriesChartTypes().length === 0) {
+            return 'column';
+        }
         const ct = this.chartController.getSeriesChartTypes()[0].chartType;
-        return (ct === 'columnLineCombo') ? 'column' : (ct === 'areaColumnCombo') ? 'area' : getSeriesType(ct);
+
+        if (ct === 'columnLineCombo') { 
+            return 'column';
+        }
+
+        if (ct === 'areaColumnCombo') {
+            return 'area';
+        }
+        return getSeriesType(ct);
     }
 
     private getSeriesSelectOptions(): ListOption[] {

@@ -35,10 +35,8 @@ can be applied.
 The example below demonstrates updating column definitions to change how columns are configured. Note the following:
 
 - All Columns are provided with just the `field` attribute set on the Column Definition.
-- 'Set Header Names' and 'Remove Header Names' sets and then subsequently removes the `headerName` attribute on all
-Columns.
-- 'Set Value Formatter' and 'Remove Value Formatter' sets and then subsequently removes the `valueFormatter` attribute
-on all Columns.
+- 'Set Header Names' and 'Remove Header Names' sets and then subsequently removes the `headerName` attribute on all Columns.
+- 'Set Value Formatter' and 'Remove Value Formatter' sets and then subsequently removes the `valueFormatter` attribute on all Columns.
 - Note that any resizing, sorting etc of the Columns is kept intact between updates to the Column Definitions.
 
 <grid-example title='Updating Column Definition' name='update-column-definition' type='mixed' options='{ "modules": true }'></grid-example>
@@ -64,13 +62,14 @@ All stateful attributes of Column Definitions are as follows:
 | pivotIndex | initialPivotIndex | Whether this column should be a pivot and in what order. |
 | aggFunc | initialAggFunc | The function to aggregate this column by if row grouping or pivoting. |
 
-[[note]]
+<note>
 | If you are interested in changing Column State only and not the other parts of the column definitions, then consider
-| working with the [Column State](/column-state/) API instead.
+| working with the [Column State](../column-state/) API instead.
 |
 | Column State is provided as part of Column Definitions to enable these properties to be reactive. Some developers wish
 | to update Column Definitions and expect the grid to respond. Other developers may find this non-intuitive and will
-| prefer interacting with [Column State](/column-state/) directly.
+| prefer interacting with [Column State](../column-state/) directly.
+</note>
 
 The **Initial Attribute** will be used only when the **Column is Created**. The **Stateful Attribute** will be used when the **Column is Created or Updated**.
 
@@ -88,8 +87,7 @@ const gridOptions = {
 The example below shows Column Definitions using **initial attributes**. Note the following:
 
 - The `initialWidth`, `initialSort` and `initialPinned` are applied only when the columns are created.
-- If you update the width, sort or pinned of a column by interacting with the grid's UI and then hit 'Set Columns with
-Initials', the columns state will not change.
+- If you update the width, sort or pinned of a column by interacting with the grid's UI and then hit 'Set Columns with Initials', the columns state will not change.
 - Removing the columns first and then setting them again will use the initial values again.
 
 <grid-example title='Updating Column Initial Attributes' name='changing-default' type='mixed' options='{ "modules": true }'></grid-example>
@@ -97,11 +95,8 @@ Initials', the columns state will not change.
 The following example shows Column Definitions using **stateful attributes**. Note the following:
 
 - The `width`, `sort` and `pinned` stateful attributes are applied whenever Column Definitions are set.
-- If you update the width, sort or pinned of a column by interacting with the grid's UI and then hit 'Set Columns with
-State', the columns state will change and the changes made via the UI will be lost.
-- Note the `defaultColDef` is used to remove state. For example `sort=null` is set so that any sorting the user might of
-done on another column is cleared down. Otherwise the grid would see the `sort` attribute as `undefined` which means the
-state should not be changed.
+- If you update the width, sort or pinned of a column by interacting with the grid's UI and then hit 'Set Columns with  State', the columns state will change and the changes made via the UI will be lost.
+- Note the `defaultColDef` is used to remove state. For example `sort=null` is set so that any sorting the user might have done on another column is cleared down. Otherwise, the grid would see the `sort` attribute as `undefined` which means the state should not be changed.
 
 <grid-example title='Updating Column State' name='changing-state' type='mixed' options='{ "modules": true }'></grid-example>
 
@@ -201,8 +196,7 @@ The example below demonstrates refreshing of the headers. Note the following:
 - The Header Component logs to the console when its lifecycle methods/functions are called.
 - Toggling between 'Upper Header Names' and 'Lower Header Names' causes the Header Component to refresh.
 - Toggling between 'Filter On' and 'Filter Off' causes the Header Component to refresh. For frameworks where possible, the Header Component returns `false` which results in the component getting destroyed and recreated.
-- Toggling between 'Resize On' and 'Resize Off' causes the Header Component to refresh. However there is no change to
-the Header Component as it doesn't depend on resize - the resize UI is provided by the grid.
+- Toggling between 'Resize On' and 'Resize Off' causes the Header Component to refresh. However there is no change to the Header Component as it doesn't depend on resize - the resize UI is provided by the grid.
 
 <grid-example title='Refresh Headers' name='refresh-headers' type='mixed'></grid-example>
 
@@ -213,20 +207,23 @@ perhaps retrieve, alter and then re-apply the modified columns.
 
 The current column definitions can be retrieved with `getColumnDefs`:
 
-[[only-javascript]]
-| ```js
-| gridOptions.api.getColumnDefs();
-| ```
+<framework-specific-section frameworks="javascript">
+<snippet transform={false}>
+| api.getColumnDefs();
+</snippet>
+</framework-specific-section>
 
-[[only-angular-or-vue]]
-| ```js
+<framework-specific-section frameworks="angular,vue">
+<snippet transform={false}>
 | this.gridApi.getColumnDefs();
-| ```
+</snippet>
+</framework-specific-section>
 
-[[only-react]]
-| ```js
+<framework-specific-section frameworks="react">
+<snippet transform={false}>
 | gridApi.getColumnDefs();
-| ```
+</snippet>
+</framework-specific-section>
 
 ## Column Groups
 

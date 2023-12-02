@@ -14,7 +14,7 @@ import { CtrlsService } from "../ctrlsService";
 import { GridBodyCtrl } from "./gridBodyCtrl";
 import { CellCtrl } from "../rendering/cell/cellCtrl";
 import { RowCtrl } from "../rendering/row/rowCtrl";
-import { doOnce, throttle } from "../utils/function";
+import { warnOnce, throttle } from "../utils/function";
 import { RowPosition, RowPositionUtils } from "../entities/rowPositionUtils";
 import { RowRenderer } from "../rendering/rowRenderer";
 import { HeaderNavigationService } from "../headerRendering/common/headerNavigationService";
@@ -70,7 +70,7 @@ export class NavigationService extends BeanStub {
         });
     }
 
-    public handlePageScrollingKey(event: KeyboardEvent): boolean {
+    public handlePageScrollingKey(event: KeyboardEvent, fromFullWidth = false): boolean {
         const key = event.key;
         const alt = event.altKey;
         const ctrl = event.ctrlKey || event.metaKey;
@@ -103,19 +103,10 @@ export class NavigationService extends BeanStub {
                 }
                 break;
             case KeyCode.PAGE_DOWN:
-                if (!currentCell) { return false; }
-                // handle page up and page down when ctrl & alt are NOT pressed
-                if (!ctrl && !alt) {
-                    this.onPageDown(currentCell);
-                    processed = true;
-                }
-                break;
             case KeyCode.PAGE_UP:
-                if (!currentCell) { return false; }
                 // handle page up and page down when ctrl & alt are NOT pressed
                 if (!ctrl && !alt) {
-                    this.onPageUp(currentCell);
-                    processed = true;
+                    processed = this.handlePageUpDown(key, currentCell, fromFullWidth);
                 }
                 break;
         }
@@ -125,6 +116,26 @@ export class NavigationService extends BeanStub {
         }
 
         return processed;
+    }
+
+    private handlePageUpDown(
+        key: string,
+        currentCell: CellPosition | null,
+        fromFullWidth: boolean
+    ): boolean {
+        if (fromFullWidth) {
+            currentCell = this.focusService.getFocusedCell();
+        }
+
+        if (!currentCell) { return false; }
+
+        if (key === KeyCode.PAGE_UP) {
+            this.onPageUp(currentCell);
+        } else {
+            this.onPageDown(currentCell);
+        }
+
+        return true;
     }
 
     private navigateTo(navigateParams: NavigateParams): void {
@@ -156,6 +167,7 @@ export class NavigationService extends BeanStub {
         }
     }
 
+    // this method is throttled, see the `constructor`
     private onPageDown(gridCell: CellPosition): void {
         const gridBodyCon = this.ctrlsService.getGridBodyCtrl();
         const scrollPosition = gridBodyCon.getScrollFeature().getVScrollPosition();
@@ -173,6 +185,7 @@ export class NavigationService extends BeanStub {
         }
     }
 
+    // this method is throttled, see the `constructor`
     private onPageUp(gridCell: CellPosition): void {
         const gridBodyCon = this.ctrlsService.getGridBodyCtrl();
         const scrollPosition = gridBodyCon.getScrollFeature().getVScrollPosition();
@@ -360,11 +373,11 @@ export class NavigationService extends BeanStub {
             const { rowIndex, rowPinned } = previous.getRowPosition();
             const firstRow = rowPinned ? rowIndex === 0 : rowIndex === this.paginationProxy.getPageFirstRow();
             if (firstRow) {
-                if (this.gridOptionsService.getNum('headerHeight') === 0) {
+                if (this.gridOptionsService.get('headerHeight') === 0) {
                     this.focusService.focusNextGridCoreContainer(true, true);
                 } else {
                     keyboardEvent.preventDefault();
-                    this.focusService.focusLastHeader(keyboardEvent);
+                    this.focusService.focusPreviousFromFirstCell(keyboardEvent);
                 }
                 
             }
@@ -451,7 +464,7 @@ export class NavigationService extends BeanStub {
 
         // only prevent default if we found a cell. so if user is on last cell and hits tab, then we default
         // to the normal tabbing so user can exit the grid.
-        nextCell.startEditing(null, null, true, event);
+        nextCell.startEditing(null, true, event);
         nextCell.focusCell(false);
         return true;
     }
@@ -479,7 +492,7 @@ export class NavigationService extends BeanStub {
             pRow!.stopEditing();
 
             const nRow = nextCell.getRowCtrl();
-            nRow!.startRowEditing(undefined, undefined, undefined, event);
+            nRow!.startRowEditing(undefined, undefined, event);
         }
 
         if (nextEditable) {
@@ -544,7 +557,7 @@ export class NavigationService extends BeanStub {
                 const userCell = userFunc(params);
                 if (exists(userCell)) {
                     if ((userCell as any).floating) {
-                        doOnce(() => { console.warn(`AG Grid: tabToNextCellFunc return type should have attributes: rowIndex, rowPinned, column. However you had 'floating', maybe you meant 'rowPinned'?`); }, 'no floating in userCell');
+                        warnOnce(`tabToNextCellFunc return type should have attributes: rowIndex, rowPinned, column. However you had 'floating', maybe you meant 'rowPinned'?`);
                         userCell.rowPinned = (userCell as any).floating;
                     }
                     nextPosition = {
@@ -568,7 +581,8 @@ export class NavigationService extends BeanStub {
                     headerPosition: {
                         headerRowIndex: headerLen + (nextPosition.rowIndex),
                         column: nextPosition.column
-                    }
+                    },
+                    fromCell: true
                 });
 
                 return null;
@@ -654,7 +668,7 @@ export class NavigationService extends BeanStub {
             // if the current cell is spanning across multiple columns, we need to move
             // our current position to be the last cell on the right before finding the
             // the next target.
-            if (this.gridOptionsService.is('enableRtl')) {
+            if (this.gridOptionsService.get('enableRtl')) {
                 if (key === KeyCode.LEFT) {
                     nextCell = this.getLastCellOfColSpan(nextCell);
                 }
@@ -690,7 +704,7 @@ export class NavigationService extends BeanStub {
                 const userCell = userFunc(params);
                 if (exists(userCell)) {
                     if ((userCell as any).floating) {
-                        doOnce(() => { console.warn(`AG Grid: tabToNextCellFunc return type should have attributes: rowIndex, rowPinned, column. However you had 'floating', maybe you meant 'rowPinned'?`); }, 'no floating in userCell');
+                        warnOnce(`tabToNextCellFunc return type should have attributes: rowIndex, rowPinned, column. However you had 'floating', maybe you meant 'rowPinned'?`);
                         userCell.rowPinned = (userCell as any).floating;
                     }
                     nextCell = {
@@ -712,7 +726,8 @@ export class NavigationService extends BeanStub {
 
             this.focusService.focusHeaderPosition({
                 headerPosition: { headerRowIndex: headerLen + (nextCell.rowIndex), column: currentCell.column },
-                event: event || undefined
+                event: event || undefined,
+                fromCell: true
             });
 
             return;
@@ -817,7 +832,8 @@ export class NavigationService extends BeanStub {
     }
 
     public ensureCellVisible(gridCell: CellPosition): void {
-        const isGroupStickyEnabled = this.gridOptionsService.is('groupRowsSticky');
+        const isGroupStickyEnabled = this.gridOptionsService.isGroupRowsSticky();
+
         const rowNode = this.rowModel.getRow(gridCell.rowIndex);
         // sticky rows are always visible, so the grid shouldn't scroll to focus them.
         const skipScrollToRow = isGroupStickyEnabled && rowNode?.sticky;

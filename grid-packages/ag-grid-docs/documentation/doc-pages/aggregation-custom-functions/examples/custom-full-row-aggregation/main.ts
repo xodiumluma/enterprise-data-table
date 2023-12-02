@@ -1,6 +1,8 @@
-import { GetGroupRowAggParams, Grid, GridOptions } from '@ag-grid-community/core'
+import { GetGroupRowAggParams, GridApi, createGrid, GridOptions } from '@ag-grid-community/core';
 
-const gridOptions: GridOptions<IOlympicData> = {
+let gridApi: GridApi;
+
+const gridOptions: GridOptions = {
   columnDefs: [
     { field: 'country', rowGroup: true, hide: true },
     { field: 'year', rowGroup: true, hide: true },
@@ -15,7 +17,6 @@ const gridOptions: GridOptions<IOlympicData> = {
     flex: 1,
     minWidth: 150,
     filter: true,
-    sortable: true,
   },
   autoGroupColumnDef: {
     headerName: 'Athlete',
@@ -26,7 +27,7 @@ const gridOptions: GridOptions<IOlympicData> = {
   getGroupRowAgg: getGroupRowAgg,
 }
 
-function getGroupRowAgg(params: GetGroupRowAggParams<IOlympicData>) {
+function getGroupRowAgg(params: GetGroupRowAggParams) {
   const result = {
     gold: 0,
     silver: 0,
@@ -59,19 +60,19 @@ function getGroupRowAgg(params: GetGroupRowAggParams<IOlympicData>) {
 }
 
 function expandAll() {
-  gridOptions.api!.expandAll()
+  gridApi!.expandAll()
 }
 
 function collapseAll() {
-  gridOptions.api!.collapseAll()
+  gridApi!.collapseAll()
 }
 
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
   const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-  new Grid(gridDiv, gridOptions)
+  gridApi = createGrid(gridDiv, gridOptions);
 
   fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
     .then(response => response.json())
-    .then((data: IOlympicData[]) => gridOptions.api!.setRowData(data))
+    .then((data: any[]) => gridApi!.setGridOption('rowData', data))
 })

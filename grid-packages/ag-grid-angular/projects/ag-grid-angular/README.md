@@ -1,6 +1,6 @@
 ![AG Grid HTML5 Grid trusted by the community, built for enterprise](./github-banner.png "AG Grid")
 
-[![CDNJS](https://img.shields.io/cdnjs/v/ag-grid)](https://cdnjs.com/libraries/ag-grid) [![npm](https://img.shields.io/npm/dm/ag-grid-angular)](https://www.npmjs.com/package/ag-grid-angular) [![Bundle Phobia](https://badgen.net/bundlephobia/minzip/ag-grid-angular)](https://bundlephobia.com/result?p=ag-grid-angular) [![Github Stars](https://img.shields.io/github/stars/ag-grid/ag-grid?style=social)](https://github.com/ag-grid/ag-grid) [![Twitter](https://img.shields.io/twitter/follow/ag_grid?style=social)](https://twitter.com/ag_grid)
+[![CDNJS](https://img.shields.io/cdnjs/v/ag-grid)](https://cdnjs.com/libraries/ag-grid) [![npm](https://img.shields.io/npm/dm/ag-grid-angular)](https://www.npmjs.com/package/ag-grid-angular) [![Github Stars](https://img.shields.io/github/stars/ag-grid/ag-grid?style=social)](https://github.com/ag-grid/ag-grid) [![Twitter](https://img.shields.io/twitter/follow/ag_grid?style=social)](https://twitter.com/ag_grid)
 
 AG Grid Angular Component
 ------
@@ -77,7 +77,7 @@ Use the setup instructions below or go through [a 5-minute-quickstart guide](htt
 ### Import styles in `styles.css`
 
     @import "~ag-grid-community/styles//ag-grid.css";
-    @import "~ag-grid-community/styles//ag-theme-alpine.css";
+    @import "~ag-grid-community/styles//ag-theme-quartz.css";
 
 ### Set the grid's configuration in a parent component
 
@@ -101,7 +101,7 @@ Use the setup instructions below or go through [a 5-minute-quickstart guide](htt
 
 	<ag-grid-angular 
 		style="width: 500px; height: 500px;" 
-		class="ag-theme-alpine"
+		class="ag-theme-quartz"
 		[rowData]="rowData" 
 		[columnDefs]="columnDefs">
 	</ag-grid-angular>
@@ -118,7 +118,7 @@ Look for similar problems on [StackOverflow](https://stackoverflow.com/questions
 
 Contributing
 ------------
-AG Grid is developed by a team of co-located developers in London. If you want to join the team check out our [jobs listing](https://www.ag-grid.com/ag-grid-jobs-board?utm_source=ag-grid-angular-readme&utm_medium=repository&utm_campaign=github) or send your application to info@ag-grid.com.
+AG Grid is developed by a team of co-located developers in London. If you want to join the team send your application to info@ag-grid.com.
 
 License
 ------------------

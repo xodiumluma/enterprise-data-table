@@ -1,32 +1,54 @@
-import { withPrefix } from 'gatsby';
-import { encodeQueryParams } from 'use-query-params';
-import { stringify } from 'query-string';
-import { agGridVersion, localPrefix } from 'utils/consts';
-import { getIndexHtml } from './index-html-helper';
-import { ParameterConfig } from '../../pages/example-runner';
+import {withPrefix} from 'gatsby';
+import {stringify} from 'query-string';
+import {getParameters} from "codesandbox/lib/api/define";
+import {agGridVersion, localPrefix} from 'utils/consts';
 import isDevelopment from 'utils/is-development';
+import {getIndexHtml} from './index-html-helper';
+
+export const DARK_MODE_START = '/** DARK MODE START **/';
+export const DARK_MODE_END = '/** DARK MODE END **/';
+
+export function stripOutDarkModeCode(files) {
+    const mainFiles = ['main.js', 'main.ts', 'index.tsx', 'index.jsx', 'app.component.ts', 'app/app.component.ts'];
+    const defaultTheme = document.documentElement.dataset.darkMode?.toUpperCase()  === 'TRUE' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
+    mainFiles.forEach((mainFile) => {
+        if (files[mainFile]) {
+
+            // Integrated charts examples can only be viewed in light mode so that chart and grid match
+            const useDefaultTheme = !files[mainFile].source?.includes('DARK INTEGRATED START');
+
+            // Hide theme switcher
+            files[mainFile].source = files[mainFile].source?.replace(/\/\*\* DARK MODE START \*\*\/([\s\S]*?)\/\*\* DARK MODE END \*\*\//g, `"${ useDefaultTheme ? defaultTheme : 'ag-theme-quartz'}"`);
+
+            // hide integrated theme switcher
+            files[mainFile].source = files[mainFile].source?.replace(/\/\*\* DARK INTEGRATED START \*\*\/([\s\S]*?)\/\*\* DARK INTEGRATED END \*\*\//g, '');
+        }
+    });
+   /* RTI-1751 Would break JS master detail example that provides a grid too,
+   if (files['index.html']) {        
+        files['index.html'].source = files['index.html'].source?.replace(/(['"\s])ag-theme-quartz(['"\s])/g, "$1" + defaultTheme + "$2");
+    } */
+}
 
 /**
  * The "internalFramework" is the framework name we use inside the example runner depending on which options the
  * user has selected. It can be one of the following:
  *
  * - 'vanilla' (JavaScript)
- * - 'react' (React Classes)
  * - 'reactFunctional' (React Hooks)
+ * - 'reactFunctionalTs' (React Hooks with Typescript)
  * - 'angular' (Angular)
  * - 'vue' (Vue)
  * - 'vue3' (Vue 3)
  */
-const getInternalFramework = (framework, useFunctionalReact, useVue3, useTypescript) => {
+const getInternalFramework = (framework, useVue3, useTypescript) => {
     switch (framework) {
         case 'vue':
             return useVue3 ? 'vue3' : 'vue';
         case 'javascript':
             return useTypescript ? 'typescript' : 'vanilla';
         case 'react':
-            return useFunctionalReact
-                ? useTypescript ? 'reactFunctionalTs' : 'reactFunctional'
-                : 'react';
+            return useTypescript ? 'reactFunctionalTs' : 'reactFunctional';
         default:
             return framework;
     }
@@ -41,16 +63,17 @@ export const getExampleInfo = (
     type,
     options = {},
     framework = 'javascript',
-    useFunctionalReact = false,
     useVue3 = false,
     useTypescript = false,
-    importType = 'modules') => {
+    importType = 'modules',
+    set
+) => {
     if (library === 'charts') {
         // no support for modules
         importType = 'packages';
     }
 
-    const internalFramework = getInternalFramework(framework, useFunctionalReact, useVue3, useTypescript);
+    const internalFramework = getInternalFramework(framework, useVue3, useTypescript);
 
     let boilerPlateFramework;
     switch (framework) {
@@ -61,7 +84,7 @@ export const getExampleInfo = (
             boilerPlateFramework = useTypescript ? 'typescript' : 'javascript';
             break;
         case 'react':
-            boilerPlateFramework = (useTypescript && internalFramework === 'reactFunctionalTs') ? 'react-ts' : 'react';
+            boilerPlateFramework = useTypescript && internalFramework === 'reactFunctionalTs' ? 'react-ts' : 'react';
             break;
         default:
             boilerPlateFramework = framework;
@@ -86,7 +109,8 @@ export const getExampleInfo = (
 
         case 'typescript':
             // We always want to see the vanilla or typescript version of the code despite sometimes being on a different framework page
-            const location = internalFramework === 'vanilla' || internalFramework === 'typescript' ? internalFramework : 'vanilla'
+            const location =
+                internalFramework === 'vanilla' || internalFramework === 'typescript' ? internalFramework : 'vanilla';
 
             sourcePath += `_gen/${importType}/${location}/`;
             appLocation += `${importType}/${location}/`;
@@ -113,17 +137,22 @@ export const getExampleInfo = (
         sourcePath,
         boilerplatePath,
         appLocation,
-        getFile: name => nodes.filter(file => file.relativePath === sourcePath + name)[0],
+        getFile: (name) => nodes.filter((file) => file.relativePath === sourcePath + name)[0],
         getFiles: (extension, exclude = () => false) =>
-            nodes.filter(file => file.relativePath.startsWith(sourcePath) &&
-                (!extension || file.base.endsWith(`.${extension}`)) &&
-                !exclude(file)
-            )
+            nodes.filter(
+                (file) =>
+                    file.relativePath.startsWith(sourcePath) &&
+                    (!extension || file.base.endsWith(`.${extension}`)) &&
+                    !exclude(file)
+            ),
+        set,
     };
 };
 
 const getFrameworkFiles = (framework, internalFramework) => {
-    if (framework === 'javascript' && internalFramework !== 'typescript') { return []; }
+    if (framework === 'javascript' && internalFramework !== 'typescript') {
+        return [];
+    }
 
     // spl temporary css loader
     let files = ['systemjs.config.js', 'css.js'];
@@ -140,75 +169,93 @@ const getFrameworkFiles = (framework, internalFramework) => {
 };
 
 export const getExampleFiles = (exampleInfo, forPlunker = false) => {
-    const { sourcePath, framework, internalFramework, boilerplatePath, library } = exampleInfo;
+    const {sourcePath, framework, internalFramework, boilerplatePath, library} = exampleInfo;
 
-    const filesForExample = exampleInfo
-        .getFiles()
-        .map(node => ({
-            path: node.relativePath.replace(sourcePath, ''),
-            publicURL: node.publicURL,
-            isFramework: false,
-            content: node.content,
-        }));
-
-    getFrameworkFiles(framework, internalFramework).forEach(file => filesForExample.push({
-        path: file,
-        publicURL: withPrefix(boilerplatePath + file),
-        isFramework: true,
+    const filesForExample = exampleInfo.getFiles().map((node) => ({
+        path: node.relativePath.replace(sourcePath, ''),
+        publicURL: node.publicURL,
+        isFramework: false,
+        content: node.content,
     }));
 
-    const files = {};
+    getFrameworkFiles(framework, internalFramework).forEach((file) =>
+        filesForExample.push({
+            path: file,
+            publicURL: withPrefix(boilerplatePath + file),
+            isFramework: true,
+        })
+    );
+
+    const files = {
+        plunker: {},
+        csb: {}
+    };
     const promises = [];
 
-    filesForExample.filter(f => {
+    filesForExample
+        .filter((f) => {
+            const isIndexFile = f.path === 'index.html';
+            if (forPlunker) {
+                return !isIndexFile;
+            } else {
+                const isPackageFile = f.path === 'package.json';
+                return !isIndexFile && !isPackageFile;
+            }
+        })
+        .forEach((f) => {
+            files.plunker[f.path] = null;   // preserve ordering
+            files.csb[f.path] = null;       // preserve ordering
 
-        const isIndexFile = f.path === 'index.html';
-        if (forPlunker) {
-            return !isIndexFile;
-        } else {
-            const isPackageFile = f.path === 'package.json';
-            return !isIndexFile && !isPackageFile;
-        }
-
-    }).forEach(f => {
-        files[f.path] = null; // preserve ordering
-
-        const sourcePromise = (f.content ?? fetch(f.publicURL).then(response => response.text()));
-        const promise = sourcePromise
-            .then(source => {
-
+            const sourcePromise = f.content ?? fetch(f.publicURL).then((response) => response.text());
+            const promise = sourcePromise.then((source) => {
                 if (forPlunker && f.path === 'main.js') {
-
                     if (library === 'grid') {
-                        source = source.replace(`const columnDefs = [`, `/** @type {(import('ag-grid-community').ColDef | import('ag-grid-community').ColGroupDef )[]} */\nconst columnDefs = [`);
-                        source = source.replace(`const gridOptions = {`, `/** @type {import('ag-grid-community').GridOptions} */\nconst gridOptions = {`);
+                        source = source.replace(
+                            `const columnDefs = [`,
+                            `/** @type {(import('ag-grid-community').ColDef | import('ag-grid-community').ColGroupDef )[]} */\nconst columnDefs = [`
+                        );
+                        source = source.replace(
+                            `const gridOptions = {`,
+                            `/** @type {import('ag-grid-community').GridOptions} */\nconst gridOptions = {`
+                        );
                     }
                     if (library === 'charts') {
-                        source = source.replace(`const options = {`, `/** @type {import('ag-charts-community').AgChartOptions} */\nconst options = {`);
+                        source = source.replace(
+                            `const options = {`,
+                            `/** @type {import('ag-charts-community').AgChartOptions} */\nconst options = {`
+                        );
                     }
                 }
 
-                files[f.path] = { source, isFramework: f.isFramework }
+                files.plunker[f.path] = {source, isFramework: f.isFramework};
+                files.csb[f.path] = {source, isFramework: f.isFramework};
             });
 
-        promises.push(promise);
-    });
+            promises.push(promise);
+        });
 
-    files['index.html'] = {
-        source: getIndexHtml(exampleInfo),
-        isFramework: false,
+    const { plunkerIndexHtml, codeSandBoxIndexHtml } = getIndexHtml(exampleInfo);
+
+    files.plunker['index.html'] = {
+        source: plunkerIndexHtml,
+        isFramework: false
+    };
+    files.csb['index.html'] = {
+        source: codeSandBoxIndexHtml,
+        isFramework: false
     };
 
     return Promise.all(promises).then(() => files);
 };
 
-export const openPlunker = exampleInfo => {
-    const { title, framework, internalFramework } = exampleInfo;
+export const openPlunker = (exampleInfo) => {
+    const {title, framework, internalFramework} = exampleInfo;
 
-    getExampleFiles(exampleInfo, true).then(files => {
-
+    getExampleFiles(exampleInfo, true).then((exampleFiles) => {
+        const files = exampleFiles.plunker;
+        stripOutDarkModeCode(files);
         // Let's open the grid configuration file by default
-        const fileToOpen = getEntryFile(framework, internalFramework)
+        const fileToOpen = getEntryFile(framework, internalFramework);
 
         const form = document.createElement('form');
         form.method = 'post';
@@ -230,7 +277,18 @@ export const openPlunker = exampleInfo => {
         addHiddenInput('private', true);
         addHiddenInput('description', title);
 
-        Object.keys(files).forEach(key => {
+        const supportedFrameworks = new Set(['angular', 'typescript', 'reactFunctionalTs', 'vanilla'])
+        const include = key => {
+            if (key === 'package.json' && !supportedFrameworks.has(framework)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        Object.keys(files)
+            .filter(include)
+            .forEach((key) => {
             addHiddenInput(`files[${key}]`, files[key].source);
         });
 
@@ -240,45 +298,131 @@ export const openPlunker = exampleInfo => {
     });
 };
 
+export const openCodeSandbox = (exampleInfo) => {
+    const {title, framework, internalFramework} = exampleInfo;
+
+    getExampleFiles(exampleInfo, true).then((exampleFiles) => {
+        const files = exampleFiles.csb;
+        stripOutDarkModeCode(files);
+
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.style.display = 'none';
+        form.action = `//codesandbox.io/api/v1/sandboxes/define`;
+        form.target = '_blank';
+
+        function isFrameworkReact() {
+            return new Set(['react', 'reactFunctional', 'reactFunctionalTs']).has(internalFramework);
+        }
+
+        const getTemplateForInternalFramework = () => {
+            switch (internalFramework) {
+                case 'react':
+                case 'reactFunctional':
+                    return 'create-react-app';
+                case 'reactFunctionalTs':
+                    return 'create-react-app-typescript';
+                default:
+                    return 'static';
+            }
+        }
+
+        const getPathForFile = file => {
+            if (!isFrameworkReact()) {
+                return file;
+            }
+
+            if (file === 'index.html') {
+                return `public/index.html`
+            }
+
+            if (/([a-zA-Z0-9\\s_.])+(.js|.jsx|.tsx|.ts|.css)$/.test(file)) {
+                if (file.endsWith(".js")) {
+                    return `public/${file}`;
+                }
+
+                if (file.startsWith('index.')) {
+                    return `src/${file === 'index.jsx' ? 'index.js' : file}`;
+                }
+
+                if (file === 'styles.css') {
+                    return `src/styles.css`
+                }
+                return `src/${file}`;
+            }
+
+            return file;
+        }
+
+        const exclude = key => isFrameworkReact() && ['systemjs.config.js', 'systemjs.config.dev.js', 'css.js'].includes(key)
+
+        const filesToSubmit = {};
+        Object.keys(files)
+            .filter((key) => !exclude(key))
+            .forEach((key) => {
+                filesToSubmit[getPathForFile(key)] = {content: files[key].source};
+            });
+
+        const parameters = getParameters({
+            files: filesToSubmit,
+            template: getTemplateForInternalFramework()
+        });
+
+
+        const addHiddenInput = (name, value) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+
+            form.appendChild(input);
+        };
+
+        addHiddenInput('tags[0]', 'ag-grid');
+        addHiddenInput('tags[1]', 'example');
+        addHiddenInput('private', true);
+        addHiddenInput('description', title);
+        addHiddenInput('parameters', parameters);
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    });
+};
 
 export const isUsingPublishedPackages = () => process.env.GATSBY_USE_PUBLISHED_PACKAGES === 'true';
 
 export const getCssFilePaths = (importType, theme) => {
-    const themeFiles = theme ?
-        [theme] :
-        ['alpine', 'balham', 'material'];
+    const themeFiles = theme ? [theme] : ['quartz', 'alpine', 'balham', 'material'];
 
-    const cssFiles = [
-        'ag-grid.css',
-        ...themeFiles.map(theme => `ag-theme-${theme}.css`)
-    ];
+    const cssFiles = ['ag-grid.css', ...themeFiles.map((theme) => `ag-theme-${theme}.css`)];
 
     const agCommunityPackage = importType === 'packages' ? 'ag-grid-community' : '@ag-grid-community';
 
-    const getCssFilePath = file => isUsingPublishedPackages() ?
-        `https://cdn.jsdelivr.net/npm/@ag-grid-community/styles@${agGridVersion}/styles/${file}` :
-        `${localPrefix}/${agCommunityPackage}/styles/${file}`;
+    const getCssFilePath = (file) =>
+        isUsingPublishedPackages()
+            ? `https://cdn.jsdelivr.net/npm/@ag-grid-community/styles@${agGridVersion}/styles/${file}`
+            : `${localPrefix}/${agCommunityPackage}/styles/${file}`;
 
     return cssFiles.map(getCssFilePath);
 };
 
 export const getEntryFile = (framework, internalFramework) => {
     const entryFile = {
-        'react': internalFramework === 'reactFunctionalTs' ? 'index.tsx' : 'index.jsx',
-        'angular': 'app/app.component.ts',
-        'javascript': internalFramework === 'typescript' ? 'main.ts' : 'main.js'
+        react: internalFramework === 'reactFunctionalTs' ? 'index.tsx' : 'index.jsx',
+        angular: 'app/app.component.ts',
+        javascript: internalFramework === 'typescript' ? 'main.ts' : 'main.js',
     };
 
     return entryFile[framework] || 'main.js';
 };
 
-export const getIndexHtmlUrl = exampleInfo => {
+export const getIndexHtmlUrl = (exampleInfo) => {
     if (isDevelopment()) {
         const {
             pageName,
             library,
             framework,
-            useFunctionalReact,
             useVue3,
             importType,
             name,
@@ -287,20 +431,17 @@ export const getIndexHtmlUrl = exampleInfo => {
             options,
         } = exampleInfo;
 
-        const queryParams = encodeQueryParams(
-            ParameterConfig,
-            {
-                pageName,
-                library,
-                framework,
-                useFunctionalReact,
-                useVue3,
-                importType,
-                name,
-                title,
-                type,
-                options,
-            });
+        const queryParams = {
+            pageName: encodeURIComponent(pageName),
+            library: encodeURIComponent(library),
+            framework: encodeURIComponent(framework),
+            useVue3: encodeURIComponent(useVue3),
+            importType: encodeURIComponent(importType),
+            name: encodeURIComponent(name),
+            title: encodeURIComponent(title),
+            type: encodeURIComponent(type),
+            options: encodeURIComponent(options),
+        };
 
         return withPrefix(`/example-runner/?${stringify(queryParams)}`);
     } else {

@@ -52,7 +52,6 @@ The following variables are available to the expression with the following param
 - `columnGroup` => params.columnGroup
 - `getValue` => params.getValue
 - `api` => params.api
-- `columnApi` => params.columnApi
 - `ctx` => params.context
 
 For example, for `valueFormatter`'s, you can access to the value via the 'x' and 'value' attributes. However in `valueGetter`'s, the 'x' and 'value' will be undefined as these are not part of the `valueGetter` params.
@@ -73,12 +72,13 @@ Above we saw how you can have `expressions` instead of `valueGetters`. A shortco
 
 Cell Expressions bring the expression power to the cell level, so your grid can act similar to how spreadsheets work.
 
-[[note]]
-| Although you can put expressions into cells like Excel, the intention is that your application
-| will decide what the expressions are. It is not intended that you give this power to your user
-| and have the cells editable. This is because AG Grid is not trying to give Excel expressions
-| to the user, rather AG Grid is giving you, the developer, the power to design reports and
-| include JavaScript logic inside the cells.
+<note>
+Although you can put expressions into cells like Excel, the intention is that your application
+will decide what the expressions are. It is not intended that you give this power to your user
+and have the cells editable. This is because AG Grid is not trying to give Excel expressions
+to the user, rather AG Grid is giving you, the developer, the power to design reports and
+include JavaScript logic inside the cells.
+</note>
 
 To enable cell expressions, set `enableCellExpressions=true` in the gridOptions. Then, whenever the grid comes across a value starting with '=', it will treat it as an expression.
 
@@ -89,13 +89,13 @@ Because you have access to the context (ctx) in your expression, you can add fun
 
 ## Example Cell Expressions
 
-This example demonstrates cell expressions. The second column values in the LHS (Left Hand Side) grid all have expressions. The following can be noted:
+This example demonstrates cell expressions. The second column values in the LHS (Left-Hand Side) grid all have expressions. The following can be noted:
 
-- 'Number Squared' and 'Number x 2' both take the number from the header as an input.
-- 'Today's Date' prints the date.
-- 'Sum A' and 'Sum B' both call a user provided function that is attached to the context (Note that 'Sum A' and 'Sum B' are using values from the RHS grid).
+- "Number Squared" and "Number x 2" both take the number from the header as an input.
+- "Today's Date" prints the date.
+- "Sum A" and "Sum B" both call a user provided function that is attached to the context (Note that "Sum A" and "Sum B" are using values from the RHS grid).
 
-<grid-example title='Cell Expressions' name='cell-expressions' type='typescript' options='{ "exampleHeight": 455, "theme": "ag-theme-alpine-dark" }'></grid-example>
+<grid-example title='Cell Expressions' name='cell-expressions' type='typescript' options='{ "exampleHeight": 455 }'></grid-example>
 
 ## How Expressions Work
 
@@ -106,7 +106,7 @@ When you provide an expression to the grid, the grid converts the expression int
 colDef.valueGetter = 'data.firstName';
 
 // the grid will then compile the above to this:
-___compiledValueGetter = (node, data, colDef, column, api, columnApi, context, getValue) => {
+___compiledValueGetter = (node, data, colDef, column, api, context, getValue) => {
     return data.firstName;
 }
 ```

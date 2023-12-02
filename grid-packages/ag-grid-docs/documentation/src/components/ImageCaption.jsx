@@ -1,8 +1,9 @@
-import React from 'react';
 import classnames from 'classnames';
+import React from 'react';
 import Gif from './Gif';
-import { useImageFileNodes, getImage } from './use-image-file-nodes';
+import GlobalContextConsumer from './GlobalContext';
 import styles from './ImageCaption.module.scss';
+import { getImage, useImageFileNodes } from './use-image-file-nodes';
 
 /**
  * This can be used to show an image in a box, along with text if provided, and provides various options for configuring
@@ -19,54 +20,87 @@ const ImageCaption = ({
     height,
     maxwidth: maxWidth,
     minwidth: minWidth,
-    width }) => {
+    width,
+    toggledarkmode: toggleDarkMode,
+    filterdarkmode: filterDarkMode
+}) => {
     const { fluidImages, images } = useImageFileNodes();
-
-    let imgSrc;
-    const fluidImage = getImage(fluidImages, pageName, src);
-
-    if (fluidImage) {
-        imgSrc = fluidImage.childImageSharp.gatsbyImageData.images.fallback.src;
-    } else {
-        const image = getImage(images, pageName, src);
-
-        if (image) {
-            imgSrc = image.publicURL;
-        }
-    }
-
-    if (!imgSrc) {
-        throw new Error(`Could not find requested image: ${src}`);
-    }
 
     const style = {};
 
-    if (width != null) { style.width = width; }
-    if (minWidth != null) { style.minWidth = minWidth; }
-    if (maxWidth != null) { style.maxWidth = maxWidth; }
-    if (height != null) { style.height = height; }
+    if (width != null) {
+        style.width = width;
+    }
+    if (minWidth != null) {
+        style.minWidth = minWidth;
+    }
+    if (maxWidth != null) {
+        style.maxWidth = maxWidth;
+    }
+    if (height != null) {
+        style.height = height;
+    }
 
-    const description = children &&
-        <div className={classnames(styles['image-caption__body'], { [styles['image-caption__body--description-top']]: descriptionTop })}>
-            <div className={styles['image-caption__body-text']}>{children}</div>
-        </div>;
-
-    const imageClasses = classnames(
-        styles['image-caption__image'],
-        {
-            [styles['image-caption__image--centered']]: centered,
-            [styles['image-caption__image--constrained']]: constrained,
-        });
-
-    return (
-        <div className={classnames(styles['image-caption'], { [styles['image-caption--centered']]: centered, [styles['image-caption--constrained']]: constrained })} style={style}>
-            {descriptionTop && description}
-            {src.endsWith('.gif') ?
-                <Gif src={src} alt={alt} className={imageClasses} wrapped={true} /> :
-                <img src={imgSrc} className={imageClasses} alt={alt} />}
-            {!descriptionTop && description}
+    const description = children && (
+        <div
+            className={classnames(styles.body, {
+                [styles.top]: descriptionTop,
+            })}
+        >
+            <div className={styles.bodyText}>{children}</div>
         </div>
     );
+
+    return (
+        <GlobalContextConsumer>
+        {({ darkMode }) => {
+            if (toggleDarkMode) {
+                const splitName = src.split('.');
+                const extension = splitName[splitName.length - 1];
+                src = src.replace(`-dark.${extension}`, `.${extension}`);
+                if (darkMode) {
+                    src = src.replace(`.${extension}`, `-dark.${extension}`);
+                }
+            }
+
+            let imgSrc;
+            const fluidImage = getImage(fluidImages, pageName, src);
+        
+            if (fluidImage) {
+                imgSrc = fluidImage.childImageSharp.gatsbyImageData.images.fallback.src;
+            } else {
+                const image = getImage(images, pageName, src);
+        
+                if (image) {
+                    imgSrc = image.publicURL;
+                }
+            }
+        
+            if (!imgSrc) {
+                throw new Error(`Could not find requested image: ${src}`);
+            }
+
+            return (
+                <div
+                    className={classnames(styles.imageCaption, {
+                        [styles.centered]: centered,
+                        [styles.constrained]: constrained,
+                        [styles.filterDarkMode]: filterDarkMode
+                    })}
+                    style={style}
+                >
+                    {descriptionTop && description}
+                    {src.endsWith('.gif') ? (
+                        <Gif src={src} alt={alt} className={styles.image} wrapped={true} toggledarkmode={toggleDarkMode} />
+                    ) : (
+                        <img src={imgSrc} className={styles.image} alt={alt} />
+                    )}
+                    {!descriptionTop && description}
+                </div>
+            );
+        }}
+        </GlobalContextConsumer>
+    )
 };
 
 export default ImageCaption;

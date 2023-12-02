@@ -2,7 +2,7 @@
 import { AgGridAngular } from '@ag-grid-community/angular';
 import { ColDef } from '@ag-grid-community/core';
 import '@ag-grid-community/styles/ag-grid.css';
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, ViewChild } from '@angular/core';
 // Required feature modules are registered in app.module.ts
@@ -20,7 +20,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
         <ag-grid-angular
                 style="width: 100%; height:100%;"
                 #agGrid
-                class="ag-theme-alpine"
+                [class]="themeClass"
                 [rowData]="rowData"
                 [columnDefs]="columnDefs"
         >
@@ -31,6 +31,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 })
 
 export class AppComponent implements OnInit {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
 
     @ViewChild('agGrid') agGrid!: AgGridAngular<IOlympicData>;
 

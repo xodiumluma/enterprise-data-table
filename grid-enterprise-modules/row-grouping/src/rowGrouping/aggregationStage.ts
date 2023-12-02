@@ -9,20 +9,23 @@ import {
     Column,
     StageExecuteParams,
     IAggFunc,
-    GridApi,
-    ColumnApi,
     ChangedPath,
     IAggFuncParams,
     _,
     GetGroupRowAggParams,
-    WithoutGridCommon
+    WithoutGridCommon,
+    GridOptions,
 } from "@ag-grid-community/core";
 import { AggFuncService } from "./aggFuncService";
 
 interface AggregationDetails {
+    alwaysAggregateAtRootLevel: boolean;
+    groupIncludeTotalFooter: boolean;
     changedPath: ChangedPath;
     valueColumns: Column[];
     pivotColumns: Column[];
+    filteredOnly: boolean;
+    userAggFunc: ((params: WithoutGridCommon<GetGroupRowAggParams<any, any>>) => any) | undefined;
 }
 
 @Bean('aggregationStage')
@@ -31,10 +34,6 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
     @Autowired('columnModel') private columnModel: ColumnModel;
     @Autowired('valueService') private valueService: ValueService;
     @Autowired('aggFuncService') private aggFuncService: AggFuncService;
-    @Autowired('gridApi') private gridApi: GridApi;
-    @Autowired('columnApi') private columnApi: ColumnApi;
-
-    private filteredOnly: boolean;
 
     // it's possible to recompute the aggregate without doing the other parts
     // + api.refreshClientSideRowModel('aggregate')
@@ -45,25 +44,13 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
         // detections). if no value columns and no changed path, means we have to go through all nodes in
         // case we need to clean up agg data from before.
         const noValueColumns = _.missingOrEmpty(this.columnModel.getValueColumns());
-        const noUserAgg = !this.getGroupRowAggFunc();
+        const noUserAgg = !this.gridOptionsService.getCallback('getGroupRowAgg');
         const changedPathActive = params.changedPath && params.changedPath.isActive();
         if (noValueColumns && noUserAgg && changedPathActive) { return; }
 
         const aggDetails = this.createAggDetails(params);
 
         this.recursivelyCreateAggData(aggDetails);
-    }
-
-    public getGroupRowAggFunc() {
-        const getGroupRowAgg = this.gridOptionsService.getCallback('getGroupRowAgg');
-        if (getGroupRowAgg) {
-            return getGroupRowAgg;
-        }
-        // this is the deprecated way, so provide a proxy to make it compatible
-        const groupRowAggNodes = this.gridOptionsService.get('groupRowAggNodes');
-        if (groupRowAggNodes) {
-            return (params: WithoutGridCommon<GetGroupRowAggParams>) => groupRowAggNodes(params.nodes);
-        }
     }
 
     private createAggDetails(params: StageExecuteParams): AggregationDetails {
@@ -73,24 +60,25 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
         const measureColumns = this.columnModel.getValueColumns();
         const pivotColumns = pivotActive ? this.columnModel.getPivotColumns() : [];
 
-        const aggDetails = {
-            changedPath: params.changedPath,
+        const aggDetails: AggregationDetails = {
+            alwaysAggregateAtRootLevel: this.gridOptionsService.get('alwaysAggregateAtRootLevel'),
+            groupIncludeTotalFooter: this.gridOptionsService.get('groupIncludeTotalFooter'),
+            changedPath: params.changedPath!,
             valueColumns: measureColumns,
-            pivotColumns: pivotColumns
-        } as AggregationDetails;
+            pivotColumns: pivotColumns,
+            filteredOnly:  !this.isSuppressAggFilteredOnly(),
+            userAggFunc: this.gridOptionsService.getCallback('getGroupRowAgg') as any,
+        };
 
         return aggDetails;
     }
 
     private isSuppressAggFilteredOnly() {
         const isGroupAggFiltering = this.gridOptionsService.getGroupAggFiltering() !== undefined;
-        return isGroupAggFiltering || this.gridOptionsService.is('suppressAggFilteredOnly');
+        return isGroupAggFiltering || this.gridOptionsService.get('suppressAggFilteredOnly');
     }
 
     private recursivelyCreateAggData(aggDetails: AggregationDetails) {
-
-        // update prop, in case changed since last time
-        this.filteredOnly = !this.isSuppressAggFilteredOnly();
 
         const callback = (rowNode: RowNode) => {
 
@@ -105,13 +93,15 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
                 return;
             }
 
-            //Optionally prevent the aggregation at the root Node
-            //https://ag-grid.atlassian.net/browse/AG-388
+            //Optionally enable the aggregation at the root Node
             const isRootNode = rowNode.level === -1;
-            if (isRootNode) {
+            // if total footer is displayed, the value is in use
+            if (isRootNode && !aggDetails.groupIncludeTotalFooter) {
                 const notPivoting = !this.columnModel.isPivotMode();
-                const suppressAggAtRootLevel = this.gridOptionsService.is('suppressAggAtRootLevel');
-                if (suppressAggAtRootLevel && notPivoting) { return; }
+                if (!aggDetails.alwaysAggregateAtRootLevel && notPivoting) {
+                    rowNode.setAggData(null);
+                    return;
+                }
             }
 
             this.aggregateRowNode(rowNode, aggDetails);
@@ -124,12 +114,10 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
 
         const measureColumnsMissing = aggDetails.valueColumns.length === 0;
         const pivotColumnsMissing = aggDetails.pivotColumns.length === 0;
-        const userFunc = this.getGroupRowAggFunc();
 
         let aggResult: any;
-        if (userFunc) {
-            const params: WithoutGridCommon<GetGroupRowAggParams> = { nodes: rowNode.childrenAfterFilter! }
-            aggResult = userFunc(params);
+        if (aggDetails.userAggFunc) {
+            aggResult = aggDetails.userAggFunc({ nodes: rowNode.childrenAfterFilter! });
         } else if (measureColumnsMissing) {
             aggResult = null;
         } else if (pivotColumnsMissing) {
@@ -205,7 +193,7 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
             aggDetails.changedPath.getNotValueColumnsForNode(rowNode, aggDetails.valueColumns)
             : null;
 
-        const values2d = this.getValuesNormal(rowNode, changedValueColumns);
+        const values2d = this.getValuesNormal(rowNode, changedValueColumns, aggDetails.filteredOnly);
         const oldValues = rowNode.aggData;
 
         changedValueColumns.forEach((valueColumn: Column, index: number) => {
@@ -247,14 +235,14 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
         return values;
     }
 
-    private getValuesNormal(rowNode: RowNode, valueColumns: Column[]): any[][] {
+    private getValuesNormal(rowNode: RowNode, valueColumns: Column[], filteredOnly: boolean): any[][] {
         // create 2d array, of all values for all valueColumns
         const values: any[][] = [];
         valueColumns.forEach(() => values.push([]));
 
         const valueColumnCount = valueColumns.length;
 
-        const nodeList = this.filteredOnly ? rowNode.childrenAfterFilter : rowNode.childrenAfterGroup;
+        const nodeList = filteredOnly ? rowNode.childrenAfterFilter : rowNode.childrenAfterGroup;
         const rowCount = nodeList!.length;
 
         for (let i = 0; i < rowCount; i++) {
@@ -289,8 +277,8 @@ export class AggregationStage extends BeanStub implements IRowNodeStage {
             pivotResultColumn: pivotResultColumn,
             rowNode: rowNode,
             data: rowNode ? rowNode.data : undefined,
-            api: this.gridApi,
-            columnApi: this.columnApi,
+            api: this.gridOptionsService.api,
+            columnApi: this.gridOptionsService.columnApi,
             context: this.gridOptionsService.context,
         } as any; // the "as any" is needed to allow the deprecation warning messages
 

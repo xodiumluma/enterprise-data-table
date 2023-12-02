@@ -1,106 +1,118 @@
-.learning-videos {
-    composes: d-flex from global;
+@use '../design-system' as *;
 
+.learningVideos {
     display: flex;
     flex-direction: column;
+    gap: $size-2;
 
-    a {
-        color: inherit;
-        &:hover {
-            color: inherit;
+    @media screen and (max-width: 600px) {
+        gap: $size-1; 
+    }
+
+
+}
+
+.titleDurationWrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.title {
+    font-size: var(--font-size-extra-large);
+
+
+}
+
+.video {
+    display: flex;
+    gap: $size-2;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: $size-2;
+    margin: $size-2;
+    transition: color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    width: calc(100% - 2*$size-2);
+    box-sizing: border-box;
+    color: var(--text-color);
+
+    @media screen and (max-width: 1200px) {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #{$darkmode-selector} & {
+        color: var(--default-text-color);
+        text-decoration: none !important;
+        background: rgb(18, 31, 41);
+        border: 1px solid var(--border-color);
+    }
+
+    .duration {
+        font-size: var(--font-size-medium);
+        background: transparent;
+        padding: 0 $size-1;
+        border-radius: var(--border-radius);
+        margin-left: auto;
+    }
+
+    &:hover {
+        border-color: var(--link-hover-color);
+        #{$darkmode-selector} & {
+            border: 1px solid #6c6d70;
         }
     }
 
-    &--header {
-        font-size: 1.25rem;
+    h2 {
+        font-size: var(--font-size-large);
+
+        @media screen and (min-width: $breakpoint-videos-medium) {
+            font-size: var(--font-size-extra-large);
+        }
     }
 
-    &__frame {
-        composes: ml-3 from global;
+    img {
+        width: auto;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        transition: border-color $default-transition-timing;
 
-        border: 2px solid $dark;
-        border-radius: 5px;
+        @media screen and (max-width: 600px) {
+            height: 100px;
+        }
+
+        @media screen and (min-width: $breakpoint-videos-extra-small) {
+            height: 195px;
+        }
     }
 
-    &__video {
-        padding: 1.5rem 0.5rem 0 0.5rem;
+    .body {
+        flex-grow: 1;
+        min-width: 50%;
+    }
+
+    ul {
+        display: flex;
+        flex-direction: column;
         width: 100%;
+        list-style-type: none;
+        gap: $size-1;
+        margin: $size-2 0 0 0;
+    }
 
-        &:hover {
-            color: inherit;
-            background-color: rgba(0, 0, 0, 0.05);
-        }
+    li {
+        color: var(--text-color);
+        font-size: var(--font-size-medium);
+        margin-left: $size-3;
+        position: relative;
 
-        &__anchor-body {
-            composes: d-flex from global;
-
-            &__index {
-                padding-right: 1rem;
-                margin-top: 20px;
-                align-items: center;
-                font-weight: bold;
-                color: #666;
-            }
-            &__body {
-                composes: w-100 d-flex flex-column flex-lg-row from global;
-
-                padding-bottom: 0.75rem;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.10);
-
-                ul {
-                    width: 100%;
-                    display: flex;
-                    flex-direction: column;
-
-                    @include media-breakpoint-up(lg) {
-                        flex-direction: row;
-                        flex-wrap: wrap;
-                    }
-                    
-
-                    li {
-                        flex-grow: 1;
-                        min-width: 50%;
-                    }
-                }
-
-                &__video-content {
-                    composes: d-flex from global;
-
-                    position: relative;
-                    max-width: 30rem;
-
-                    &__running-time {
-                        position: absolute;
-                        padding: 0.25rem;
-                        font-size: smaller;
-                        margin: 0;
-                        color: white;
-                        background-color: rgba(0,0,0,.5);
-                    }
-                    > img {
-                        width: 100%;
-                        @include media-breakpoint-up(lg) {
-                            width: auto;
-                            height: 100px;
-                        }
-                    }
-                }
-
-                &__video-notes {
-                    composes: pl-lg-3 from global;
-                    max-width: 35rem;
-                    h4 {
-                        margin-top: 0.25rem;
-                        font-size: 1rem;
-                        @include media-breakpoint-up(lg) {
-                            margin-top: 0;
-                            font-size: 1.5rem;
-                        }
-
-                    }
-                }
-            }
+        &::before {
+            content: "•";
+            position: absolute;
+            left: -($size-2);
+            top: 50%;
+            transform: translateY(-50%);
         }
     }
 }

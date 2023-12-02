@@ -3,7 +3,7 @@ function isCharNumeric(charStr) {
     return !!/\d/.test(charStr)
 }
 
-function isKeyPressedNumeric(event) {
+function isNumericKey(event) {
     var charStr = event.key;
     return isCharNumeric(charStr)
 }
@@ -22,16 +22,15 @@ class NumericCellEditor {
         this.eInput = document.createElement('input')
         this.eInput.classList.add('ag-input-field-input');
         this.eInput.style.width = '100%'
-        this.eInput.style.height = '100%'
-        this.eInput.value = (params.charPress && isCharNumeric(params.charPress))
-            ? params.charPress
+        this.eInput.value = (isCharNumeric(params.eventKey))
+            ? params.eventKey
             : params.value
 
-        this.eInput.addEventListener('keypress', (event) => {
-            if (!isKeyPressedNumeric(event)) {
-                this.eInput.focus()
-                if (event.preventDefault) event.preventDefault()
-            }
+        this.eInput.addEventListener('keydown', (event) => {
+            if (!event.key || event.key.length !== 1 || isNumericKey(event)) { return; }
+            this.eInput.focus()
+
+            if (event.preventDefault) event.preventDefault()
         })
     }
 

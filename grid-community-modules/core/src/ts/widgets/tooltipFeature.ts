@@ -4,14 +4,14 @@ import { ColumnGroup } from "../entities/columnGroup";
 import { RowNode } from "../entities/rowNode";
 import { Beans } from "../rendering/beans";
 import { CustomTooltipFeature, TooltipParentComp } from "./customTooltipFeature";
-import { ITooltipParams } from "../rendering/tooltipComponent";
+import { ITooltipParams, TooltipLocation } from "../rendering/tooltipComponent";
 import { ColDef, ColGroupDef } from "../entities/colDef";
 import { WithoutGridCommon } from "../interfaces/iCommon";
 
 export interface ITooltipFeatureCtrl {
     getTooltipValue(): any;
     getGui(): HTMLElement;
-    getLocation(): string;
+    getLocation(): TooltipLocation;
 
     getColumn?(): Column | ColumnGroup;
     getColDef?(): ColDef | ColGroupDef;
@@ -20,10 +20,8 @@ export interface ITooltipFeatureCtrl {
 
     // this makes no sense, why is the cell formatted value passed to the tooltip???
     getValueFormatted?(): string;
-}
-
-export interface ITooltipFeatureComp {
-    setTitle(title: string | undefined): void;
+    getTooltipShowDelayOverride?(): number;
+    getTooltipHideDelayOverride?(): number;
 }
 
 export class TooltipFeature extends BeanStub {
@@ -31,7 +29,7 @@ export class TooltipFeature extends BeanStub {
     private readonly ctrl: ITooltipFeatureCtrl;
     private readonly beans: Beans;
 
-    private comp: ITooltipFeatureComp;
+    private eGui: HTMLElement;
 
     private tooltip: any;
 
@@ -45,17 +43,26 @@ export class TooltipFeature extends BeanStub {
         this.beans = beans;
     }
 
-    public setComp(comp: ITooltipFeatureComp): void {
-        this.comp = comp;
+    public setComp(eGui: HTMLElement): void {
+        this.eGui = eGui;
         this.setupTooltip();
     }
 
+    private setBrowserTooltip(tooltip: string | null) {
+        const name = 'title';
+        if (tooltip != null && tooltip != '') {
+            this.eGui.setAttribute(name, tooltip);
+        } else {
+            this.eGui.removeAttribute(name);
+        }
+    }
+
     private setupTooltip(): void {
-        this.browserTooltips = this.beans.gridOptionsService.is('enableBrowserTooltips');
+        this.browserTooltips = this.beans.gridOptionsService.get('enableBrowserTooltips');
         this.updateTooltipText();
 
         if (this.browserTooltips) {
-            this.comp.setTitle(this.tooltip != null ? this.tooltip : undefined);
+            this.setBrowserTooltip(this.tooltip);
         } else {
             this.createTooltipFeatureIfNeeded();
         }
@@ -73,14 +80,18 @@ export class TooltipFeature extends BeanStub {
             getGui: () => this.ctrl.getGui()
         };
 
-        this.genericTooltipFeature = this.createManagedBean(new CustomTooltipFeature(parent), this.beans.context);
+        this.genericTooltipFeature = this.createManagedBean(new CustomTooltipFeature(
+            parent,
+            this.ctrl.getTooltipShowDelayOverride?.(),
+            this.ctrl.getTooltipHideDelayOverride?.()
+        ), this.beans.context);
     }
 
     public refreshToolTip() {
         this.updateTooltipText();
 
         if (this.browserTooltips) {
-            this.comp.setTitle(this.tooltip != null ? this.tooltip : undefined);
+            this.setBrowserTooltip(this.tooltip);
         }
     }
 
@@ -99,6 +110,7 @@ export class TooltipFeature extends BeanStub {
             data: rowNode ? rowNode.data : undefined,
             value: this.getTooltipText(),
             valueFormatted: ctrl.getValueFormatted ? ctrl.getValueFormatted() : undefined,
+            hideTooltipCallback: () => this.genericTooltipFeature.hideTooltip(true)
         };
 
     }

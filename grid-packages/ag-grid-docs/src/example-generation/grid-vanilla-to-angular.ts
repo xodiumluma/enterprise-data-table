@@ -1,12 +1,16 @@
-import { convertTemplate, getImport, toMemberWithValue, toConst, toInput, toOutput } from './angular-utils';
+import { convertTemplate,getImport,toConst,toInput,toMemberWithValue,toOutput } from './angular-utils';
 import { templatePlaceholder } from "./grid-vanilla-src-parser";
-import { addBindingImports, addGenericInterfaceImport, getPropertyInterfaces, handleRowGenericInterface, ImportType, isInstanceMethod, removeFunctionKeyword } from './parser-utils';
+import { addBindingImports,addGenericInterfaceImport,getActiveTheme,getIntegratedDarkModeCode,getPropertyInterfaces,handleRowGenericInterface,ImportType,isInstanceMethod,preferParamsApi,removeFunctionKeyword, replaceGridReadyRowData } from './parser-utils';
 const path = require('path');
 
-function getOnGridReadyCode(readyCode: string, resizeToFit: boolean,
-    data: { url: string, callback: string; },
+function getOnGridReadyCode(
+    readyCode: string,
+    resizeToFit: boolean,
+    data: { url: string; callback: string },
     rowDataType: string | undefined,
-    hasApi: boolean, hasColApi: boolean): string {
+    hasApi: boolean,
+    exampleName: string
+): string {
     const additionalLines = [];
 
     if (readyCode) {
@@ -19,19 +23,20 @@ function getOnGridReadyCode(readyCode: string, resizeToFit: boolean,
 
     if (data) {
         const { url, callback } = data;
-
-        if (callback.indexOf('api!.setRowData') !== -1) {
-            const setRowDataBlock = callback.replace('params.api!.setRowData(data)', 'this.rowData = data');
-            additionalLines.push(`this.http.get<${rowDataType}[]>(${url}).subscribe(data => ${setRowDataBlock});`);
-        } else {
-            additionalLines.push(`this.http.get<${rowDataType}[]>(${url}).subscribe(data => ${callback});`);
-        }
+        const setRowDataBlock = replaceGridReadyRowData(callback, 'this.rowData');        
+        additionalLines.push(`this.http.get<${rowDataType}[]>(${url}).subscribe(data => ${setRowDataBlock});`);
     }
-    const gridReadyEventParam = rowDataType !== 'any' ? `<${rowDataType}>` : ''
-    if (hasApi || hasColApi || additionalLines.length > 0) {
+    const gridReadyEventParam = rowDataType !== 'any' ? `<${rowDataType}>` : '';
+    if (hasApi || additionalLines.length > 0) {
+        // use params in gridReady event
+        const additional = preferParamsApi(additionalLines.length > 0
+            ? `\n\n        ${additionalLines.join('\n        ')}`
+            : ''
+        );
         return `
         onGridReady(params: GridReadyEvent${gridReadyEventParam}) {
-            ${hasApi ? 'this.gridApi = params.api;' : ''}${hasColApi ? 'this.gridColumnApi = params.columnApi;' : ''}${additionalLines.length > 0 ? `\n\n        ${additionalLines.join('\n        ')}` : ''}
+            ${getIntegratedDarkModeCode(exampleName, true)} 
+            ${hasApi ? 'this.gridApi = params.api;' : ''}${additional}
         }`;
     } else {
         return '';
@@ -41,17 +46,17 @@ function getOnGridReadyCode(readyCode: string, resizeToFit: boolean,
 function addModuleImports(imports: string[], bindings: any, allStylesheets: string[]): string[] {
     const { gridSettings, imports: bindingImports, properties } = bindings;
 
-    imports.push("// NOTE: Angular CLI does not support component CSS imports: angular-cli/issues/23273");
+    imports.push('// NOTE: Angular CLI does not support component CSS imports: angular-cli/issues/23273');
     imports.push("import '@ag-grid-community/styles/ag-grid.css';");
 
-    // to account for the (rare) example that has more than one class...just default to alpine if it does
+    // to account for the (rare) example that has more than one class...just default to quartz if it does
     // we strip off any '-dark' from the theme when loading the CSS as dark versions are now embedded in the
     // "source" non dark version
-    const theme = gridSettings.theme ? gridSettings.theme.replace('-dark', '') : 'ag-theme-alpine';
+    const theme = gridSettings.theme ? gridSettings.theme.replace('-dark', '') : 'ag-theme-quartz';
     imports.push(`import "@ag-grid-community/styles/${theme}.css";`);
 
-    if(allStylesheets && allStylesheets.length > 0) {
-        allStylesheets.forEach(styleSheet => imports.push(`import '../${path.basename(styleSheet)}';`));
+    if (allStylesheets && allStylesheets.length > 0) {
+        allStylesheets.forEach((styleSheet) => imports.push(`import '../${path.basename(styleSheet)}';`));
     }
 
     let propertyInterfaces = getPropertyInterfaces(properties);
@@ -59,14 +64,14 @@ function addModuleImports(imports: string[], bindings: any, allStylesheets: stri
     bImports.push({
         module: `'@ag-grid-community/core'`,
         isNamespaced: false,
-        imports: [...propertyInterfaces, 'GridReadyEvent', 'ColumnApi', 'GridApi']
-    })
+        imports: [...propertyInterfaces, 'GridReadyEvent', 'GridApi'],
+    });
 
     if (bImports.length > 0) {
         addBindingImports(bImports, imports, false, true);
     }
 
-    imports.push('// Required feature modules are registered in app.module.ts')
+    imports.push('// Required feature modules are registered in app.module.ts');
 
     return imports;
 }
@@ -80,13 +85,13 @@ function addPackageImports(imports: string[], bindings: any, allStylesheets: str
 
     imports.push("import 'ag-grid-community/styles/ag-grid.css';");
 
-    // to account for the (rare) example that has more than one class...just default to alpine if it does
+    // to account for the (rare) example that has more than one class...just default to quartz if it does
     // we strip off any '-dark' from the theme when loading the CSS as dark versions are now embedded in the
     // "source" non dark version
-    const theme = gridSettings.theme ? gridSettings.theme.replace('-dark', '') : 'ag-theme-alpine';
+    const theme = gridSettings.theme ? gridSettings.theme.replace('-dark', '') : 'ag-theme-quartz';
     imports.push(`import "ag-grid-community/styles/${theme}.css";`);
 
-    if(allStylesheets && allStylesheets.length > 0) {
+    if (allStylesheets && allStylesheets.length > 0) {
         allStylesheets.forEach(styleSheet => imports.push(`import '../${path.basename(styleSheet)}';`));
     }
 
@@ -95,7 +100,7 @@ function addPackageImports(imports: string[], bindings: any, allStylesheets: str
     bImports.push({
         module: `'ag-grid-community'`,
         isNamespaced: false,
-        imports: [...propertyInterfaces, 'GridReadyEvent', 'ColumnApi', 'GridApi']
+        imports: [...propertyInterfaces, 'GridReadyEvent', 'GridApi']
     })
 
     if (bImports.length > 0) {
@@ -135,7 +140,6 @@ function getTemplate(bindings: any, attributes: string[]): string {
     const agGridTag = `<ag-grid-angular
     ${style}
     ${gridSettings.myGridReference ? 'id="myGrid"' : ''}
-    class="${gridSettings.theme}"
     ${attributes.join('\n    ')}
     ></ag-grid-angular>`;
 
@@ -188,9 +192,11 @@ export function vanillaToAngular(bindings: any, componentFileNames: string[], al
         }
 
         if (!propertyAssignments.find(item => item.indexOf('rowData') >= 0)) {
-
             propertyAssignments.push(`public rowData!: ${rowDataType}[];`);
         }
+        
+        propertyAttributes.push('[class]="themeClass"');
+        propertyAssignments.push(`public themeClass: string = ${getActiveTheme(bindings.gridSettings.theme, true)};`);
 
         const componentForCheckBody = eventHandlers
             .concat(externalEventHandlers)
@@ -199,8 +205,7 @@ export function vanillaToAngular(bindings: any, componentFileNames: string[], al
             .join('\n\n');
 
         const hasGridApi = componentForCheckBody.includes('gridApi');
-        const hasGridColumnApi = componentForCheckBody.includes('gridColumnApi');
-        const gridReadyCode = getOnGridReadyCode(bindings.onGridReady, bindings.resizeToFit, data, rowDataType, hasGridApi, hasGridColumnApi);
+        const gridReadyCode = getOnGridReadyCode(bindings.onGridReady, bindings.resizeToFit, data, rowDataType, hasGridApi, bindings.exampleName);
         const additional = [];
 
         if (gridReadyCode) {
@@ -220,9 +225,8 @@ export function vanillaToAngular(bindings: any, componentFileNames: string[], al
             .concat(instanceMethods)
             .map(snippet => snippet.trim())
             .join('\n\n')
-            // We do not need the non-null assertion in component code as already applied to the declaration for the apis.
-            .replace(/gridApi!\./g, 'gridApi.')
-            .replace(/gridColumnApi!\./g, 'gridColumnApi.');
+            // We do not need the non-null assertion in component code as already applied to the declaration for the apis.            
+            .replace(/(?<!this.)gridApi(\??)(!?)/g, 'this.gridApi');
 
         let generatedOutput = `
 ${imports.join('\n')}
@@ -235,12 +239,12 @@ ${typeDeclares?.length > 0 ? '\n' + typeDeclares.join('\n') : ''}${interfaces?.l
 })
 
 export class AppComponent {
-${hasGridApi ? `    private gridApi!: GridApi${genericParams};\n` : ''}${hasGridColumnApi ? '    private gridColumnApi!: ColumnApi;\n' : ''}
+${hasGridApi ? `    private gridApi!: GridApi${genericParams};\n` : ''}
     ${propertyVars.join('\n')}
     ${propertyAssignments.join(';\n')}
 
 ${diParams.length > 0 ?
-                `    constructor(${diParams.join(', ')}) {
+            `    constructor(${diParams.join(', ')}) {
 }
 
 `: ''}

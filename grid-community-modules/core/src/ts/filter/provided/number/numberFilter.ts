@@ -2,7 +2,6 @@ import { ISimpleFilterModel, SimpleFilter, SimpleFilterModelFormatter, Tuple } f
 import { ScalarFilter, Comparator, IScalarFilterParams } from '../scalarFilter';
 import { makeNull } from '../../../utils/generic';
 import { AgInputTextField } from '../../../widgets/agInputTextField';
-import { isBrowserChrome } from '../../../utils/browser';
 import { IFilterOptionDef, IFilterParams } from '../../../interfaces/iFilter';
 import { setAriaRole } from '../../../utils/aria';
 import { AgInputNumberField } from '../../../widgets/agInputNumberField';
@@ -41,20 +40,25 @@ export interface INumberFilterParams extends IScalarFilterParams {
      * Typically used alongside `allowedCharPattern`, this provides a custom parser to convert the value entered in the filter inputs into a number that can be used for comparisons.
      */
     numberParser?: (text: string | null) => number | null;
+    /**
+     * Typically used alongside `allowedCharPattern`, this provides a custom formatter to convert the number value in the filter model
+     * into a string to be used in the filter input. This is the inverse of the `numberParser`.
+     */
+    numberFormatter?: (value: number | null) => string | null;
 }
 
-export class NumberFilterModelFormatter extends SimpleFilterModelFormatter {
+export class NumberFilterModelFormatter extends SimpleFilterModelFormatter<number> {
     protected conditionToString(condition: NumberFilterModel, options?: IFilterOptionDef): string {
         const { numberOfInputs } = options || {};
         const isRange = condition.type == SimpleFilter.IN_RANGE || numberOfInputs === 2;
 
         if (isRange) {
-            return `${condition.filter}-${condition.filterTo}`;
+            return `${this.formatValue(condition.filter)}-${this.formatValue(condition.filterTo)}`;
         }
 
         // cater for when the type doesn't need a value
         if (condition.filter != null) {
-            return `${condition.filter}`;
+            return this.formatValue(condition.filter);
         }
 
         return `${condition.type}`;
@@ -64,27 +68,17 @@ export class NumberFilterModelFormatter extends SimpleFilterModelFormatter {
 export function getAllowedCharPattern(filterParams?: NumberFilterParams): string | null {
     const { allowedCharPattern } = filterParams ?? {};
 
-    if (allowedCharPattern) {
-        return allowedCharPattern;
-    }
-
-    if (!isBrowserChrome()) {
-        // only Chrome and Edge (Chromium) have nice HTML5 number field handling, so for other browsers we provide an equivalent
-        // constraint instead
-        return '\\d\\-\\.';
-    }
-
-    return null;
+    return allowedCharPattern ?? null;
 }
 
 export class NumberFilter extends ScalarFilter<NumberFilterModel, number> {
     public static DEFAULT_FILTER_OPTIONS = [
         ScalarFilter.EQUALS,
         ScalarFilter.NOT_EQUAL,
-        ScalarFilter.LESS_THAN,
-        ScalarFilter.LESS_THAN_OR_EQUAL,
         ScalarFilter.GREATER_THAN,
         ScalarFilter.GREATER_THAN_OR_EQUAL,
+        ScalarFilter.LESS_THAN,
+        ScalarFilter.LESS_THAN_OR_EQUAL,
         ScalarFilter.IN_RANGE,
         ScalarFilter.BLANK,
         ScalarFilter.NOT_BLANK,
@@ -98,6 +92,14 @@ export class NumberFilter extends ScalarFilter<NumberFilterModel, number> {
 
     constructor() {
         super('numberFilter');
+    }
+
+    refresh(params: NumberFilterParams): boolean {
+        if (this.numberFilterParams.allowedCharPattern !== params.allowedCharPattern) {
+            return false;
+        }
+
+        return super.refresh(params);
     }
 
     protected mapValuesFromModel(filterModel: NumberFilterModel | null): Tuple<number> {
@@ -124,11 +126,19 @@ export class NumberFilter extends ScalarFilter<NumberFilterModel, number> {
         this.numberFilterParams = params;
 
         super.setParams(params);
-        this.filterModelFormatter = new NumberFilterModelFormatter(this.localeService, this.optionsFactory);
+        this.filterModelFormatter = new NumberFilterModelFormatter(this.localeService, this.optionsFactory, this.numberFilterParams.numberFormatter);
     }
 
     protected getDefaultFilterOptions(): string[] {
         return NumberFilter.DEFAULT_FILTER_OPTIONS;
+    }
+
+    protected setElementValue(element: AgInputTextField | AgInputNumberField, value: number | null, fromFloatingFilter?: boolean): void {
+        // values from floating filter are directly from the input, not from the model
+        const valueToSet = !fromFloatingFilter && this.numberFilterParams.numberFormatter
+            ? this.numberFilterParams.numberFormatter(value ?? null)
+            : value;
+        super.setElementValue(element, valueToSet as any);
     }
 
     protected createValueElement(): HTMLElement {
@@ -230,5 +240,16 @@ export class NumberFilter extends ScalarFilter<NumberFilterModel, number> {
 
     public getModelAsString(model: ISimpleFilterModel): string {
         return this.filterModelFormatter.getModelAsString(model) ?? '';
+    }
+
+    protected hasInvalidInputs(): boolean {
+        let invalidInputs = false;
+        this.forEachInput(element => {
+            if (!element.getInputElement().validity.valid) {
+                invalidInputs = true;
+                return;
+            }
+        });
+        return invalidInputs;
     }
 }

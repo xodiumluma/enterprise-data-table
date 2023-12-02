@@ -1,4 +1,12 @@
-import { Grid, ColDef, GridOptions, IDoesFilterPassParams, IFilterComp, IFilterParams, } from '@ag-grid-community/core'
+import {
+    GridApi,
+    createGrid,
+    ColDef,
+    GridOptions,
+    IDoesFilterPassParams,
+    IFilterComp,
+    IFilterParams,
+} from '@ag-grid-community/core';
 
 const isNumeric = (n: string) =>
     !isNaN(parseFloat(n)) && isFinite(parseFloat(n))
@@ -24,7 +32,7 @@ class NumberFilter implements IFilterComp {
         this.gui.innerHTML =
             '<div style="padding: 4px;">' +
             '<div style="font-weight: bold;">Greater than: </div>' +
-            '<div><input style="margin: 4px 0px 4px 0px;" type="number" id="filterText" placeholder="Number of medals..."/></div>' +
+        '<div><input style="margin: 4px 0px 4px 0px;" type="number" id="filterText" min="0" placeholder="Number of medals..."/></div>' +
             '</div>'
 
         this.onFilterChanged = () => {
@@ -49,22 +57,12 @@ class NumberFilter implements IFilterComp {
             return false;
         }
 
-        const { api, colDef, column, columnApi, context } = this.filterParams;
         const { node } = params;
-        const value = this.filterParams.valueGetter({
-            api,
-            colDef,
-            column,
-            columnApi,
-            context,
-            data: node.data,
-            getValue: (field) => node.data[field],
-            node,
-        });
+        const value = this.filterParams.getValue(node);
 
         const filterValue = this.filterText;
 
-        if (!value) return false;
+        if (value == null) return false;
         return Number(value) > Number(filterValue);
     }
 
@@ -123,15 +121,15 @@ const columnDefs: ColDef[] = [
     },
 ]
 
+let gridApi: GridApi<IOlympicData>;
+
 const gridOptions: GridOptions<IOlympicData> = {
     defaultColDef: {
         editable: true,
-        sortable: true,
         flex: 1,
         minWidth: 100,
         filter: true,
         floatingFilter: true,
-        resizable: true,
     },
     columnDefs: columnDefs,
     rowData: null,
@@ -140,11 +138,11 @@ const gridOptions: GridOptions<IOlympicData> = {
 // setup the grid after the page has finished loading
 document.addEventListener('DOMContentLoaded', () => {
     const gridDiv = document.querySelector<HTMLElement>('#myGrid')!
-    new Grid(gridDiv, gridOptions)
+    gridApi = createGrid(gridDiv, gridOptions);
 
     fetch('https://www.ag-grid.com/example-assets/olympic-winners.json')
         .then(response => response.json())
         .then(data => {
-            gridOptions.api!.setRowData(data)
+            gridApi!.setGridOption('rowData', data)
         })
 })

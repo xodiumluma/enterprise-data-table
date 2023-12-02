@@ -13,7 +13,6 @@ const fs = require('fs-extra');
 const publicIp = require('public-ip');
 const gifFrames = require('gif-frames');
 const supportedFrameworks = require('./src/utils/supported-frameworks.js');
-const chartGallery = require('./doc-pages/charts-overview/gallery.json');
 const toKebabCase = require('./src/utils/to-kebab-case');
 const isDevelopment = require('./src/utils/is-development');
 const convertToFrameworkUrl = require('./src/utils/convert-to-framework-url');
@@ -177,41 +176,59 @@ exports.onCreateNode = async ({node, loadNodeContent, getNode, actions: {createN
         });
     } else if (node.internal.type === 'File' && node.internal.mediaType === 'application/json') {
         // load contents of JSON files to be used e.g. by ApiDocumentation
-        node.internal.content = await loadNodeContent(node);
+        await createNodeField({
+            node,
+            name: 'content',
+            value: await loadNodeContent(node)
+        });
     }
 };
 
-const FULL_SCREEN_PAGES = ['example'];
+const FULL_SCREEN_PAGES = ['example', 'theme-builder'];
 
 const FULL_SCREEN_WITH_FOOTER_PAGES = [
     'license-pricing',
     'about',
     'cookies',
-    'changelog',
-    'pipeline',
     'privacy',
     'style-guide',
 ];
 
-const isFullScreenPage = path => path === '/' || FULL_SCREEN_PAGES.some(page => { const regex = new RegExp(page, 'g' ); return path.match(regex) });
+const BARE_PAGES = [
+    'license-pricing-bare'
+]
 
-const isFullScreenPageWithFooter = path => FULL_SCREEN_WITH_FOOTER_PAGES.some(page => { const regex = new RegExp(page, 'g' ); return path.match(regex) });
+const SUPPRESS_FRAMEWORK_SELECTOR_PAGES = [
+    'pipeline',
+    'changelog'
+];
 
+function matchesPath(page, path) {
+    const regex = new RegExp(page, 'g');
+    return path.match(regex)
+}
+
+const isFullScreenPage = path => path === '/' || FULL_SCREEN_PAGES.some(page => matchesPath(page, path));
+const isFullScreenPageWithFooter = path => FULL_SCREEN_WITH_FOOTER_PAGES.some(page => matchesPath(page, path));
+const isBarePage = path => BARE_PAGES.some(page => matchesPath(page, path));
+const isSuppressFrameworkSelector = path => SUPPRESS_FRAMEWORK_SELECTOR_PAGES.some(page => matchesPath(page, path));
 
 /**
  * This is called when pages are created. We override the default layout for certain pages e.g. the example-runner page.
  */
 exports.onCreatePage = ({page, actions: {createPage}}) => {
-    // spl todo: refactor next week!
     // used in layouts/index.js
-    if (page.path.match(/example-runner/)) {
+    if (page.path.match(/example-runner/) || isBarePage(page.path)) {
         page.context.layout = 'bare';
         createPage(page);
     } else if (isFullScreenPage(page.path)) {
         page.context.layout = 'fullScreenPage';
         createPage(page);
-    } else if(isFullScreenPageWithFooter(page.path)) {
+    } else if (isFullScreenPageWithFooter(page.path)) {
         page.context.layout = 'fullScreenPageWithFooter';
+        createPage(page);
+    } else if (isSuppressFrameworkSelector(page.path)) {
+        page.context.layout = 'suppressFrameworkSelector';
         createPage(page);
     }
 };
@@ -235,16 +252,6 @@ const getInternalIPAddress = () => {
 };
 
 const createHomePages = createPage => {
-    const homePage = path.resolve('src/templates/home.jsx');
-
-    supportedFrameworks.forEach(framework => {
-        createPage({
-            path: `/${framework}-data-grid/`,
-            component: homePage,
-            context: {frameworks: supportedFrameworks, framework, pageName: `${framework}-data-grid`}
-        });
-    });
-
     createPage({
         path: `/documentation/`,
         component: path.resolve('src/pages/loading.jsx'),
@@ -296,40 +303,6 @@ const createDocPages = async (createPage, graphql, reporter) => {
 };
 
 /**
- * This creates pages for each of the charts in the chart gallery.
- */
-const createChartGalleryPages = createPage => {
-    const chartGalleryPageTemplate = path.resolve(`src/templates/chart-gallery-page.jsx`);
-    const filter = (c) => !c.startsWith('_');
-    const categories = Object.keys(chartGallery).filter(filter);
-
-    const namesByCategory = categories.reduce(
-        (names, c) => {
-            return names.concat(
-                Object.keys(chartGallery[c])
-                    .filter(filter)
-                    .map(k => ({category: c, name: k}))
-            );
-        },
-        []);
-
-    namesByCategory.forEach(({category, name}, i) => {
-        const {description} = chartGallery[category][name];
-
-        let previous = i > 0 ? namesByCategory[i - 1].name : null;
-        let next = i < namesByCategory.length - 1 ? namesByCategory[i + 1].name : null;
-
-        supportedFrameworks.forEach(framework => {
-            createPage({
-                path: `/${framework}-charts/gallery/${toKebabCase(name)}/`,
-                component: chartGalleryPageTemplate,
-                context: {frameworks: supportedFrameworks, framework, name, description, previous, next, pageName: 'charts-overview'}
-            });
-        });
-    });
-};
-
-/**
  * This allows us to generate pages for the website.
  */
 exports.createPages = async ({actions: {createPage}, graphql, reporter}) => {
@@ -340,7 +313,6 @@ exports.createPages = async ({actions: {createPage}, graphql, reporter}) => {
 
     createHomePages(createPage);
     await createDocPages(createPage, graphql, reporter);
-    createChartGalleryPages(createPage);
 };
 
 /**
@@ -351,6 +323,7 @@ exports.onCreateWebpackConfig = ({actions, getConfig}) => {
     const frameworkRequest = request => {
         return frameworks.some(framework => request.includes(framework))
     }
+
     class AgEs5CjsResolver {
         constructor(source, target) {
             this.source = source || 'resolve';
@@ -392,7 +365,7 @@ exports.onCreateWebpackConfig = ({actions, getConfig}) => {
             modules: [path.resolve(__dirname, 'src'), 'node_modules'],
         }
     };
-    if(isDevelopment()) {
+    if (isDevelopment()) {
         // favour cjs over es6 (docs only rebuilds cjs...) in dev mode
         newConfig.resolve['plugins'] = [new AgEs5CjsResolver()];
     }
@@ -400,6 +373,14 @@ exports.onCreateWebpackConfig = ({actions, getConfig}) => {
 
     const config = getConfig();
     const {rules} = config.module;
+
+    const miniCssExtractPlugin = config.plugins.find(
+        plugin => plugin.constructor.name === 'MiniCssExtractPlugin'
+    )
+
+    if (miniCssExtractPlugin) {
+        miniCssExtractPlugin.options.ignoreOrder = true
+    }
 
     rules.forEach(rule => {
         const urlLoaders = Array.isArray(rule.use) ? rule.use.filter(use => use.loader.indexOf('/url-loader/') >= 0) : [];

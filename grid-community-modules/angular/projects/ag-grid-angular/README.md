@@ -1,4 +1,4 @@
-![AG Grid HTML5 Grid trusted by the community, built for enterprise](./github-banner.png "AG Grid")
+![AG Grid HTML5 Grid trusted by the community, built for enterprise](https://github.com/ag-grid/ag-grid/blob/HEAD/github-banner.png)
 
 [![CDNJS](https://img.shields.io/cdnjs/v/ag-grid.svg)](https://cdnjs.com/libraries/ag-grid)
 [![npm](https://img.shields.io/npm/dm/@ag-grid-community/angular.svg)](https://www.npmjs.com/package/@ag-grid-community/angular)
@@ -82,7 +82,7 @@ export class AppModule {}
 
 ```scss
 @import "~@ag-grid-community/styles/ag-grid.css";
-@import "~@ag-grid-community/styles/ag-theme-alpine.css";
+@import "~@ag-grid-community/styles/ag-theme-quartz.css";
 ```
 
 ### Set the grid's configuration in a parent component
@@ -110,7 +110,7 @@ export class AppComponent {
 ```html
 <ag-grid-angular
 	style="width: 500px; height: 500px;"
-	class="ag-theme-alpine"
+	class="ag-theme-quartz"
 	[rowData]="rowData"
 	[columnDefs]="columnDefs">
 </ag-grid-angular>
@@ -126,7 +126,7 @@ Look for similar problems on [StackOverflow](https://stackoverflow.com/questions
 
 ## Contributing
 
-AG Grid is developed by a team of co-located developers in London. If you want to join the team check out our [jobs board](https://www.ag-grid.com/ag-grid-jobs-board/?utm_source=@ag-grid-community/angular-readme&utm_medium=repository&utm_campaign=github) or send your application to info@ag-grid.com.
+AG Grid is developed by a team of co-located developers in London. If you want to join the team send your application to info@ag-grid.com.
 
 ## License
 

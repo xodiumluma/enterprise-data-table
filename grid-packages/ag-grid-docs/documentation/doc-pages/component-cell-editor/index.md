@@ -1,38 +1,30 @@
----
+--- 
 title: "Cell Editors"
 ---
-
+ 
 Create your own cell editor by providing a cell editor component.
 
-## Simple Cell Editor
-
-md-include:simple-editor-javascript.md
-md-include:simple-editor-angular.md
-md-include:simple-editor-react.md
-md-include:simple-editor-vue.md
-
-## Simple Cell Editor Example
-
-The example below shows a few simple cell editors in action.
+The example below shows a few cell editors in action.
 
 - The `Doubling` Cell Editor will double a given input and reject values over a 1000
 - The `Mood` Cell Editor illustrates a slightly more complicated editor with values changed depending on the smiley chosen
-- The `Numeric` Cell Editor illustrates a slightly more complicated numeric editor to the `Doubling` editor above, with
-increased input validation
+- The `Numeric` Cell Editor illustrates a slightly more complicated numeric editor to the `Doubling` editor, with increased input validation
 
 <grid-example title='Simple Editor Components' name='component-editor' type='mixed' options='{ "exampleHeight": 370, "includeNgFormsModule" : true }'></grid-example>
 
-md-include:component-interface-javascript.md
+## Cell Editor Component
+
+md-include:component-interface-javascript.md 
 md-include:component-interface-angular.md
-md-include:component-interface-react.md
+md-include:component-interface-react.md 
 md-include:component-interface-vue.md
 
 <interface-documentation interfaceName='ICellEditorParams' config='{"hideHeader":false, "headerLevel": 3}'></interface-documentation>
 
-md-include:params_vue.md
+md-include:params_vue.md       
 
 ## Registering Cell Editors with Columns
-
+  
 See the section [registering custom components](/components/#registering-custom-components) for details on registering and using custom cell editors.
 
 ## Complementing Cell Editor Params
@@ -44,43 +36,45 @@ md-include:complementing-component-angular.md
 md-include:complementing-component-react.md
 md-include:complementing-component-vue.md
 
-
 ## Configure Popup
 
-[[only-react]]
+<framework-specific-section frameworks="react">
 |Configure that an Editor is in a popup by setting `cellEditorPopup=true` on the [Column Definition](/column-definitions/).
+</framework-specific-section>
 
-[[only-javascript-or-angular-or-vue]]
+<framework-specific-section frameworks="javascript,angular,vue">
 |Configure that a Custom Cell Editor is in a popup in one of the following ways:
 |1. Implement the `isPopup()` method on the Custom Cell Editor and return `true`.
 |1. Specify `cellEditorPopup=true` on the [Column Definition](/column-definitions/).
+</framework-specific-section>
 
-```js
+<snippet>
  colDef = {
     cellEditorPopup: true,
     // ...other props
 }
-```
+</snippet>
 
 ## Configure Popup Position
 
 By default Popup Editors appear over the editing Cell. It is also possible to have the Cell Editor appear below the Cell, so the user can see the Cell contents while editing.
 
-[[only-react]]
+<framework-specific-section frameworks="react">
 |Configure the Popup Editor to appear below the Cell by setting `cellEditorPopupPosition='under'` on the [Column Definition](/column-definitions/).
+</framework-specific-section>
 
-[[only-javascript-or-angular-or-vue]]
+<framework-specific-section frameworks="javascript,angular,vue">
 |Configure the Popup Editor to appear below the Cell in one of the following ways:
 |1. Implement the `getPopupPosition()` method on the Custom Cell Editor and return `under`.
 |1. Specify `cellEditorPopupPosition='under'` on the [Column Definition](/column-definitions/).
+</framework-specific-section>
 
-```js
+<snippet>
  colDef = {
     cellEditorPopupPosition: 'under',
     // ...other props
 }
-```
-
+</snippet>
 
 ## Keyboard Navigation While Editing
 
@@ -96,12 +90,12 @@ You have two options to stop the grid from doing it's default action on certain 
 ### Option 1 - Stop Propagation
 
 If you don't want the grid to act on an event, call `event.stopPropagation()`. The advantage of this method is that your cell editor takes care of everything, good for creating reusable cell editors.
-
+ 
 The follow code snippet is one you could include for a simple text editor, which would stop the grid from doing navigation.
 
 md-include:keyboard-option-1-javascript.md
 md-include:keyboard-option-1-angular.md
-md-include:keyboard-option-1-react.md
+md-include:keyboard-option-1-react.md 
 md-include:keyboard-option-1-vue.md
 
 ### Option 2 - Suppress Keyboard Event
@@ -115,7 +109,6 @@ md-include:keyboard-option-2-angular.md
 md-include:keyboard-option-2-react.md
 md-include:keyboard-option-2-vue.md
 
-
 ## Cell Editing Example
 
 The example below illustrates:
@@ -123,10 +116,10 @@ The example below illustrates:
 - 'Gender' column uses a Component cell editor that allows choices via a 'richSelect' (AG Grid Enterprise only), with values supplied by complementing the editor parameters.
 - 'Age' column uses a Component cell editor that allows simple integer input only.
 - 'Mood' column uses a custom Component cell editor and renderer that allows choice of mood based on image selection.
-- 'Address' column uses a Component cell editor that allows input of multiline text via a 'largeText'. <kbd>Tab</kbd> and <kbd>Esc</kbd> (amongst others) will exit editing in this field, <kbd>Shift</kbd>+<kbd>Enter</kbd> will allow newlines.
+- 'Address' column uses a Component cell editor that allows input of multiline text via a 'largeText'. <kbd>⇥ Tab</kbd> and <kbd>⎋ Esc</kbd> (amongst others) will exit editing in this field, <kbd>⇧ Shift</kbd>+<kbd>↵ Enter</kbd> will allow newlines.
 - 'Country' columns shows using 'richSelect' for a complex object - the cell renderer takes care of only rendering the country name.
 
-<grid-example title='Simple Editor Components' name='component-editor-2' type='mixed' options='{ "enterprise": true, "modules": ["clientside", "richselect"], "exampleHeight": 370, "includeNgFormsModule" : true }'></grid-example>
+<grid-example title='Simple Editor Components' name='component-editor-2' type='mixed' options='{ "enterprise": true, "modules": ["clientside", "richselect"], "exampleHeight": 370, "includeNgFormsModule" : true, "extras": ["fontawesome"] }'></grid-example>
 
 ## Accessing Cell Editor Instances
 
@@ -138,12 +131,12 @@ If you are doing normal editing, then only one cell is editable at any given tim
 
 An example of calling `getCellEditorInstances()` is as follows:
 
-```js
-const instances = gridOptions.api.getCellEditorInstances(params);
+<snippet transform={false}>
+const instances = api.getCellEditorInstances(params);
 if (instances.length > 0) {
     const instance = instances[0];
 }
-```
+</snippet>
 
 The example below shows using `getCellEditorInstances`. The following can be noted:
 

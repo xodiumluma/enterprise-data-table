@@ -146,26 +146,39 @@ export abstract class Sparkline {
         const element = document.createElement('div');
         element.setAttribute('class', 'ag-sparkline-wrapper');
 
-        const scene = new _Scene.Scene({ document });
+        // initialise scene
+        const scene = new _Scene.Scene({ window, document });
         this.scene = scene;
         this.canvasElement = scene.canvas.element;
+
+        // set scene properties
         scene.root = root;
         scene.container = element;
-        scene.resize(this.width, this.height);
 
-        this.seriesRect.width = this.width;
-        this.seriesRect.height = this.height;
+        this.resizeAndSetDimensions(this.width, this.height);
 
         // one style element for tooltip styles per document
-        if (Sparkline.tooltipDocuments.indexOf(document) === -1) {
-            const styleElement = document.createElement('style');
-            styleElement.innerHTML = defaultTooltipCss;
-
-            document.head.insertBefore(styleElement, document.head.querySelector('style'));
-            Sparkline.tooltipDocuments.push(document);
+        if (!Sparkline.tooltipDocuments.includes(document)) {
+            this.initialiseTooltipStyles();
         }
-        this.setupDomEventListeners(this.scene.canvas.element);
+
+        this.setupDomEventListeners(this.canvasElement);
     }
+
+    private resizeAndSetDimensions(width: number, height: number): void {
+        this.scene.resize(width, height);
+        this.seriesRect.width = width;
+        this.seriesRect.height = height;
+    }
+
+    private initialiseTooltipStyles(): void {
+        const styleElement = document.createElement('style');
+        styleElement.innerHTML = defaultTooltipCss;
+        document.head.insertBefore(styleElement, document.head.querySelector('style'));
+        Sparkline.tooltipDocuments.push(document);
+    }
+
+
 
     private _width: number = 100;
     set width(value: number) {
@@ -336,7 +349,7 @@ export abstract class Sparkline {
         ) {
             this.highlightDatum(closestDatum);
             this.updateCrosshairs();
-            this.scene.render();
+            this.scene.render().catch((e) => console.error(`AG Grid - chart rendering failed`, e));
         }
 
         const tooltipEnabled = this.processedOptions?.tooltip?.enabled ?? true;
@@ -352,7 +365,7 @@ export abstract class Sparkline {
     private onMouseOut(event: MouseEvent) {
         this.dehighlightDatum();
         this.tooltip.toggle(false);
-        this.scene.render();
+        this.scene.render().catch((e) => console.error(`AG Grid - chart rendering failed`, e));
     }
 
     protected smallestInterval?: { x: number; y: number } = undefined;
@@ -461,13 +474,8 @@ export abstract class Sparkline {
             }
         }
 
-        // update axes
         this.updateAxes();
-
-        // produce data joins and update selection's nodes
-        this.update();
-
-        this.scene.render();
+        this.immediateLayout();
     }
 
     /**
@@ -526,26 +534,30 @@ export abstract class Sparkline {
             cancelAnimationFrame(this.layoutId);
         }
         this.layoutId = requestAnimationFrame(() => {
-            this.setSparklineDimensions();
-
-            if (this.invalidData(this.data)) {
-                return;
-            }
-
-            // update axes ranges
-            this.updateXScaleRange();
-            this.updateYScaleRange();
-
-            // update axis line
-            this.updateAxisLine();
-
-            // produce data joins and update selection's nodes
-            this.update();
-
-            this.scene.render();
+            this.immediateLayout();
 
             this.layoutId = 0;
         });
+    }
+
+    private immediateLayout() {
+        this.setSparklineDimensions();
+
+        if (this.invalidData(this.data)) {
+            return;
+        }
+
+        // update axes ranges
+        this.updateXScaleRange();
+        this.updateYScaleRange();
+
+        // update axis line
+        this.updateAxisLine();
+
+        // produce data joins and update selection's nodes
+        this.update();
+
+        this.scene.render().catch((e) => console.error(`AG Grid - chart rendering failed`, e));
     }
 
     private setSparklineDimensions() {

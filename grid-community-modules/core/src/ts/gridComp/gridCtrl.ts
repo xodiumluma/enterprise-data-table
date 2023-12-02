@@ -18,7 +18,6 @@ export interface IGridComp extends LayoutView {
     setRtlClass(cssClass: string): void;
     destroyGridUi(): void;
     forceFocusOutOfContainer(up: boolean): void;
-    addOrRemoveKeyboardFocusClass(value: boolean): void;
     getFocusableContainers(): HTMLElement[];
     setCursor(value: string | null): void;
     setUserSelect(value: string | null): void;
@@ -42,6 +41,8 @@ export class GridCtrl extends BeanStub {
         this.eGridHostDiv = eGridDiv;
         this.eGui = eGui;
 
+        this.eGui.setAttribute('grid-id', this.context.getGridId());
+
         // this drop target is just used to see if the drop event is inside the grid
         this.dragAndDropService.addDropTarget({
             getContainer: () => this.eGui,
@@ -54,14 +55,6 @@ export class GridCtrl extends BeanStub {
         this.createManagedBean(new LayoutFeature(this.view));
 
         this.addRtlSupport();
-
-        this.addManagedListener(this, Events.EVENT_KEYBOARD_FOCUS, () => {
-            this.view.addOrRemoveKeyboardFocusClass(true);
-        });
-
-        this.addManagedListener(this, Events.EVENT_MOUSE_FOCUS, () => {
-            this.view.addOrRemoveKeyboardFocusClass(false);
-        });
 
         const unsubscribeFromResize = this.resizeObserverService.observeResize(
             this.eGridHostDiv, this.onGridSizeChanged.bind(this));
@@ -77,19 +70,19 @@ export class GridCtrl extends BeanStub {
     }
 
     public showDropZones(): boolean {
-        return ModuleRegistry.isRegistered(ModuleNames.RowGroupingModule);
+        return ModuleRegistry.__isRegistered(ModuleNames.RowGroupingModule, this.context.getGridId());
     }
 
     public showSideBar(): boolean {
-        return ModuleRegistry.isRegistered(ModuleNames.SideBarModule);
+        return ModuleRegistry.__isRegistered(ModuleNames.SideBarModule, this.context.getGridId());
     }
 
     public showStatusBar(): boolean {
-        return ModuleRegistry.isRegistered(ModuleNames.StatusBarModule);
+        return ModuleRegistry.__isRegistered(ModuleNames.StatusBarModule, this.context.getGridId());
     }
 
     public showWatermark(): boolean {
-        return ModuleRegistry.isRegistered(ModuleNames.EnterpriseCoreModule);
+        return ModuleRegistry.__isRegistered(ModuleNames.EnterpriseCoreModule, this.context.getGridId());
     }
 
     private onGridSizeChanged(): void {
@@ -102,7 +95,7 @@ export class GridCtrl extends BeanStub {
     }
 
     private addRtlSupport(): void {
-        const cssClass = this.gridOptionsService.is('enableRtl') ? 'ag-rtl' : 'ag-ltr';
+        const cssClass = this.gridOptionsService.get('enableRtl') ? 'ag-rtl' : 'ag-ltr';
         this.view.setRtlClass(cssClass);
     }
 
@@ -149,7 +142,7 @@ export class GridCtrl extends BeanStub {
             if (this.focusService.focusGridView(lastColumn, true)) { return true; }
         }
         
-        if (this.gridOptionsService.getNum('headerHeight') === 0) {
+        if (this.gridOptionsService.get('headerHeight') === 0) {
             return this.focusService.focusGridView(allColumns[0]);
         }
 
@@ -159,5 +152,4 @@ export class GridCtrl extends BeanStub {
     public forceFocusOutOfContainer(up = false): void {
         this.view.forceFocusOutOfContainer(up);
     }
-
 }

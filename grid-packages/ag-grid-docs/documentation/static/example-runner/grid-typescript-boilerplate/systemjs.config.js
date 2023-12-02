@@ -4,7 +4,7 @@
         transpiler: "ts",
         typescriptOptions: {
             // Copy of compiler options in standard tsconfig.json
-            target: "es5",
+            target: "es2015",
             module: "system", //gets rid of console warning
             moduleResolution: "node",
             sourceMap: false,
@@ -44,6 +44,10 @@
                 main: "./main.ts",
                 defaultExtension: "ts"
             },
+            'ag-charts-community': {
+                main: './dist/package/main.cjs.js',
+                defaultExtension: 'js'
+            },
             'ag-grid-community': {
                 main: './dist/ag-grid-community.cjs.min.js',
                 defaultExtension: 'js'
@@ -56,3 +60,6 @@
     });
 })(this);
 
+window.addEventListener('error', e => {
+    console.error('ERROR', e.message, e.filename)
+});

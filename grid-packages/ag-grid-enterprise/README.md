@@ -4,7 +4,7 @@
 
 | Module              | Info |
 | --------------------|------------------:|
-| ag-grid-enterprise  | [![npm](https://img.shields.io/npm/dm/ag-grid-enterprise)](https://www.npmjs.com/package/ag-grid-enterprise) <br> [![Bundle Phobia](https://badgen.net/bundlephobia/minzip/ag-grid-enterprise)](https://bundlephobia.com/result?p=ag-grid-enterprise) <br> [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ag-grid-enterprise&metric=alert_status)](https://sonarcloud.io/dashboard?id=ag-grid-enterprise) |
+| ag-grid-enterprise  | [![npm](https://img.shields.io/npm/dm/ag-grid-enterprise)](https://www.npmjs.com/package/ag-grid-enterprise) <br> [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ag-grid-enterprise&metric=alert_status)](https://sonarcloud.io/dashboard?id=ag-grid-enterprise) |
 
 # AG Grid Enterprise
 ------
@@ -76,7 +76,7 @@ Look for similar problems on [StackOverflow](https://stackoverflow.com/questions
 
 Contributing
 ------------
-AG Grid is developed by a team of co-located developers in London. If you want to join the team check out our [jobs listing](https://www.ag-grid.com/ag-grid-jobs-board?utm_source=ag-grid-readme&utm_medium=repository&utm_campaign=github) or send your application to info@ag-grid.com.
+AG Charts is developed by a team of co-located developers in London. If you want to join the team send your application to info@ag-grid.com.
 
 License
 ------------------

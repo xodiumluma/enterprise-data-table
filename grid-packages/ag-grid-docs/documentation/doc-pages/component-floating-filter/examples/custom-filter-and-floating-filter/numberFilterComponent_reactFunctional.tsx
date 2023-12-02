@@ -29,21 +29,11 @@ export default forwardRef((props: IFilterParams, ref) => {
             doesFilterPass(params: IDoesFilterPassParams) {
                 if (!this.isFilterActive()) { return; }
 
-                const { api, colDef, column, columnApi, context, valueGetter } = props;
                 const { node } = params;
 
-                const value = valueGetter({
-                    api,
-                    colDef,
-                    column,
-                    columnApi,
-                    context,
-                    data: node.data,
-                    getValue: (field) => node.data[field],
-                    node,
-                });
+                const value = props.getValue(node);
 
-                if (!value) return false;
+                if (value == null) return false;
                 return Number(value) > Number(filterText);
             },
 

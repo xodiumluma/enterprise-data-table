@@ -63,7 +63,7 @@ export class MenuItemMapper extends BeanStub {
 
     private getStockMenuItem(key: string, column: Column | null): MenuItemDef | string | null {
         const localeTextFunc = this.localeService.getLocaleTextFunc();
-        const skipHeaderOnAutoSize = this.gridOptionsService.is('skipHeaderOnAutoSize');
+        const skipHeaderOnAutoSize = this.gridOptionsService.get('skipHeaderOnAutoSize');
 
         switch (key) {
             case 'pinSubMenu':
@@ -91,7 +91,7 @@ export class MenuItemMapper extends BeanStub {
                     checked: !!column && !column.isPinned()
                 };
             case 'valueAggSubMenu':
-                if (ModuleRegistry.assertRegistered(ModuleNames.RowGroupingModule, 'Aggregation from Menu')) {
+                if (ModuleRegistry.__assertRegistered(ModuleNames.RowGroupingModule, 'Aggregation from Menu', this.context.getGridId())) {
                     if (!column?.isPrimary() && !column?.getColDef().pivotValueColumn) {
                         return null;
                     }
@@ -117,14 +117,40 @@ export class MenuItemMapper extends BeanStub {
             case 'rowGroup':
                 return {
                     name: localeTextFunc('groupBy', 'Group by') + ' ' + _.escapeString(this.columnModel.getDisplayNameForColumn(column, 'header')),
+                    disabled: column?.isRowGroupActive() || !column?.getColDef().enableRowGroup,
                     action: () => this.columnModel.addRowGroupColumn(column, "contextMenu"),
                     icon: _.createIconNoSpan('menuAddRowGroup', this.gridOptionsService, null)
                 };
             case 'rowUnGroup':
+                const icon = _.createIconNoSpan('menuRemoveRowGroup', this.gridOptionsService, null);
+                const showRowGroup = column?.getColDef().showRowGroup;
+                const lockedGroups = this.gridOptionsService.get('groupLockGroupColumns');
+                // Handle single auto group column
+                if (showRowGroup === true) {
+                    return {
+                        name: localeTextFunc('ungroupAll', 'Un-Group All'),
+                        disabled: lockedGroups === -1 || lockedGroups >= this.columnModel.getRowGroupColumns().length,
+                        action: () => this.columnModel.setRowGroupColumns(this.columnModel.getRowGroupColumns().slice(0, lockedGroups), "contextMenu"),
+                        icon: icon
+                    };
+                }
+                // Handle multiple auto group columns
+                if (typeof showRowGroup === 'string') {
+                    const underlyingColumn = this.columnModel.getPrimaryColumn(showRowGroup);
+                    const ungroupByName = (underlyingColumn != null) ? _.escapeString(this.columnModel.getDisplayNameForColumn(underlyingColumn, 'header')) : showRowGroup;
+                    return {
+                        name: localeTextFunc('ungroupBy', 'Un-Group by') + ' ' + ungroupByName,
+                        disabled: underlyingColumn != null && this.columnModel.isColumnGroupingLocked(underlyingColumn),
+                        action: () => this.columnModel.removeRowGroupColumn(showRowGroup, "contextMenu"),
+                        icon: icon
+                    };
+                }
+                // Handle primary column
                 return {
                     name: localeTextFunc('ungroupBy', 'Un-Group by') + ' ' + _.escapeString(this.columnModel.getDisplayNameForColumn(column, 'header')),
+                    disabled: !column?.isRowGroupActive() || !column?.getColDef().enableRowGroup || this.columnModel.isColumnGroupingLocked(column),
                     action: () => this.columnModel.removeRowGroupColumn(column, "contextMenu"),
-                    icon: _.createIconNoSpan('menuRemoveRowGroup', this.gridOptionsService, null)
+                    icon: icon
                 };
             case 'resetColumns':
                 return {
@@ -133,16 +159,16 @@ export class MenuItemMapper extends BeanStub {
                 };
             case 'expandAll':
                 return {
-                    name: localeTextFunc('expandAll', 'Expand All'),
+                    name: localeTextFunc('expandAll', 'Expand All Row Groups'),
                     action: () => this.gridApi.expandAll()
                 };
             case 'contractAll':
                 return {
-                    name: localeTextFunc('collapseAll', 'Collapse All'),
+                    name: localeTextFunc('collapseAll', 'Collapse All Row Groups'),
                     action: () => this.gridApi.collapseAll()
                 };
             case 'copy':
-                if (ModuleRegistry.assertRegistered(ModuleNames.ClipboardModule, 'Copy from Menu')) {
+                if (ModuleRegistry.__assertRegistered(ModuleNames.ClipboardModule, 'Copy from Menu', this.context.getGridId())) {
                     return {
                         name: localeTextFunc('copy', 'Copy'),
                         shortcut: localeTextFunc('ctrlC', 'Ctrl+C'),
@@ -153,7 +179,7 @@ export class MenuItemMapper extends BeanStub {
                     return null;
                 }
             case 'copyWithHeaders':
-                if (ModuleRegistry.assertRegistered(ModuleNames.ClipboardModule, 'Copy with Headers from Menu')) {
+                if (ModuleRegistry.__assertRegistered(ModuleNames.ClipboardModule, 'Copy with Headers from Menu', this.context.getGridId())) {
                     return {
                         name: localeTextFunc('copyWithHeaders', 'Copy with Headers'),
                         // shortcut: localeTextFunc('ctrlC','Ctrl+C'),
@@ -163,8 +189,8 @@ export class MenuItemMapper extends BeanStub {
                 } else {
                     return null;
                 }
-                case 'copyWithGroupHeaders':
-                if (ModuleRegistry.assertRegistered(ModuleNames.ClipboardModule, 'Copy with Group Headers from Menu')) {
+            case 'copyWithGroupHeaders':
+                if (ModuleRegistry.__assertRegistered(ModuleNames.ClipboardModule, 'Copy with Group Headers from Menu', this.context.getGridId())) {
                     return {
                         name: localeTextFunc('copyWithGroupHeaders', 'Copy with Group Headers'),
                         // shortcut: localeTextFunc('ctrlC','Ctrl+C'),
@@ -175,7 +201,7 @@ export class MenuItemMapper extends BeanStub {
                     return null;
                 }
             case 'cut':
-                if (ModuleRegistry.assertRegistered(ModuleNames.ClipboardModule, 'Cut from Menu')) {
+                if (ModuleRegistry.__assertRegistered(ModuleNames.ClipboardModule, 'Cut from Menu', this.context.getGridId())) {
                     const focusedCell = this.focusService.getFocusedCell();
                     const rowNode = focusedCell ? this.rowPositionUtils.getRowNode(focusedCell) : null;
                     const isEditable = rowNode ? focusedCell?.column.isCellEditable(rowNode) : false;
@@ -183,14 +209,14 @@ export class MenuItemMapper extends BeanStub {
                         name: localeTextFunc('cut', 'Cut'),
                         shortcut: localeTextFunc('ctrlX', 'Ctrl+X'),
                         icon: _.createIconNoSpan('clipboardCut', this.gridOptionsService, null),
-                        disabled: !isEditable || this.gridOptionsService.is('suppressCutToClipboard'),
-                        action: () => this.clipboardService.cutToClipboard()
+                        disabled: !isEditable || this.gridOptionsService.get('suppressCutToClipboard'),
+                        action: () => this.clipboardService.cutToClipboard(undefined, 'contextMenu')
                     };
                 } else {
                     return null;
                 }
             case 'paste':
-                if (ModuleRegistry.assertRegistered(ModuleNames.ClipboardModule, 'Paste from Clipboard')) {
+                if (ModuleRegistry.__assertRegistered(ModuleNames.ClipboardModule, 'Paste from Clipboard', this.context.getGridId())) {
                     return {
                         name: localeTextFunc('paste', 'Paste'),
                         shortcut: localeTextFunc('ctrlV', 'Ctrl+V'),
@@ -204,13 +230,13 @@ export class MenuItemMapper extends BeanStub {
             case 'export':
                 const exportSubMenuItems: string[] = [];
 
-                const csvModuleLoaded = ModuleRegistry.isRegistered(ModuleNames.CsvExportModule);
-                const excelModuleLoaded = ModuleRegistry.isRegistered(ModuleNames.ExcelExportModule);
+                const csvModuleLoaded = ModuleRegistry.__isRegistered(ModuleNames.CsvExportModule, this.context.getGridId());
+                const excelModuleLoaded = ModuleRegistry.__isRegistered(ModuleNames.ExcelExportModule, this.context.getGridId());
 
-                if (!this.gridOptionsService.is('suppressCsvExport') && csvModuleLoaded) {
+                if (!this.gridOptionsService.get('suppressCsvExport') && csvModuleLoaded) {
                     exportSubMenuItems.push('csvExport');
                 }
-                if (!this.gridOptionsService.is('suppressExcelExport') && excelModuleLoaded) {
+                if (!this.gridOptionsService.get('suppressExcelExport') && excelModuleLoaded) {
                     exportSubMenuItems.push('excelExport');
                 }
                 return {
@@ -269,7 +295,7 @@ export class MenuItemMapper extends BeanStub {
 
             funcNames.forEach(funcName => {
                 result.push({
-                    name: localeTextFunc(funcName, _.capitalise(funcName)),
+                    name: localeTextFunc(funcName, this.aggFuncService.getDefaultFuncLabel(funcName)),
                     action: () => {
                         this.columnModel.setColumnAggFunc(columnToUse, funcName, "contextMenu");
                         this.columnModel.addValueColumn(columnToUse, "contextMenu");

@@ -48,6 +48,7 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
     @Autowired('headerNavigationService') private readonly headerNavigationService: HeaderNavigationService;
     @Autowired('ctrlsService') private readonly ctrlsService: CtrlsService;
     @Autowired('columnModel') private readonly columnModel: ColumnModel;
+    @Autowired('filterManager') private readonly filterManager: FilterManager;
 
     private lastSelectedTab: string;
     private activeMenu: EnterpriseMenu | null;
@@ -77,7 +78,7 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
         let multiplier = -1;
         let alignSide: 'left' | 'right' = 'left';
 
-        if (this.gridOptionsService.is('enableRtl')) {
+        if (this.gridOptionsService.get('enableRtl')) {
             multiplier = 1;
             alignSide = 'right';
         }
@@ -133,20 +134,23 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
             // if defaultTab is not present, positionCallback will be called
             // after `showTabBasedOnPreviousSelection` is called.
             positionCallback: !!defaultTab ? () => positionCallback(menu) : undefined,
-            anchorToElement,
             ariaLabel: translate('ariaLabelColumnMenu', 'Column Menu')
         });
-
-        // if user starts showing / hiding columns, or otherwise move the underlying column
-        // for this menu, we want to stop tracking the menu with the column position. otherwise
-        // the menu would move as the user is using the columns tab inside the menu.
-        this.addStopAnchoring(addPopupRes?.stopAnchoringPromise, column, closedFuncs);
 
         if (!defaultTab) {
             menu.showTabBasedOnPreviousSelection();
             // reposition the menu because the method above could load
             // an element that is bigger than enterpriseMenu header.
             positionCallback(menu);
+        }
+
+        // if user starts showing / hiding columns, or otherwise move the underlying column
+        // for this menu, we want to stop tracking the menu with the column position. otherwise
+        // the menu would move as the user is using the columns tab inside the menu.
+        const stopAnchoringPromise = this.popupService.setPopupPositionRelatedToElement(eMenuGui, anchorToElement);
+
+        if (stopAnchoringPromise) {
+            this.addStopAnchoring(stopAnchoringPromise, column, closedFuncs);
         }
 
         menu.addEventListener(EnterpriseMenu.EVENT_TAB_SELECTED, (event: any) => {
@@ -164,6 +168,22 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
         });
     }
 
+    private addStopAnchoring(
+        stopAnchoringPromise: AgPromise<() => void>,
+        column: Column,
+        closedFuncsArr: (() => void)[]
+    ) {
+        stopAnchoringPromise.then((stopAnchoringFunc: () => void) => {
+            column.addEventListener('leftChanged', stopAnchoringFunc);
+            column.addEventListener('visibleChanged', stopAnchoringFunc);
+
+            closedFuncsArr.push(() => {
+                column.removeEventListener('leftChanged', stopAnchoringFunc);
+                column.removeEventListener('visibleChanged', stopAnchoringFunc);
+            });
+        });
+    }
+
     private getClosedCallback(
         column: Column,
         menu: EnterpriseMenu,
@@ -178,7 +198,9 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
             const isKeyboardEvent = e instanceof KeyboardEvent;
             if (!isKeyboardEvent || !eventSource) { return; }
 
-            if (_.isVisible(eventSource)) {
+            const isColumnStillVisible = this.columnModel.getAllDisplayedColumns().some(col => col === column);
+
+            if (isColumnStillVisible && _.isVisible(eventSource)) {
                 const focusableEl = this.focusService.findTabbableParent(eventSource);
                 if (focusableEl) {
                     if (column) {
@@ -195,7 +217,7 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
 
                 if (columnToFocus) {
                     this.focusService.focusHeaderPosition({
-                        headerPosition:{
+                        headerPosition: {
                             headerRowIndex: headerPosition.headerRowIndex,
                             column: columnToFocus
                         }
@@ -203,24 +225,6 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
                 }
             }
         }
-    }
-
-    private addStopAnchoring(
-        stopAnchoringPromise: AgPromise<Function>,
-        column: Column, 
-        closedFuncsArr: (() => void)[]
-    ) {
-        if (!stopAnchoringPromise) { return; }
-
-        stopAnchoringPromise.then((stopAnchoringFunc: Function) => {
-            column.addEventListener('leftChanged', stopAnchoringFunc);
-            column.addEventListener('visibleChanged', stopAnchoringFunc);
-
-            closedFuncsArr.push(() => {
-                column.removeEventListener('leftChanged', stopAnchoringFunc);
-                column.removeEventListener('visibleChanged', stopAnchoringFunc);
-            });
-        });
     }
 
     private getMenuParams(
@@ -239,7 +243,13 @@ export class EnterpriseMenuFactory extends BeanStub implements IMenuFactory {
     }
 
     public isMenuEnabled(column: Column): boolean {
-        return column.getMenuTabs(EnterpriseMenu.TABS_DEFAULT).length > 0;
+        // Determine whether there are any tabs to show in the menu, given that the filter tab may be hidden
+        const isFilterDisabled = !this.filterManager.isFilterAllowed(column);
+        const tabs = column.getMenuTabs(EnterpriseMenu.TABS_DEFAULT);
+        const numActiveTabs = isFilterDisabled && tabs.includes(EnterpriseMenu.TAB_FILTER)
+            ? tabs.length - 1
+            : tabs.length;
+        return numActiveTabs > 0;
     }
 }
 
@@ -254,8 +264,6 @@ export class EnterpriseMenu extends BeanStub {
 
     @Autowired('columnModel') private readonly columnModel: ColumnModel;
     @Autowired('filterManager') private readonly filterManager: FilterManager;
-    @Autowired('gridApi') private readonly gridApi: GridApi;
-    @Autowired('columnApi') private readonly columnApi: ColumnApi;
     @Autowired('menuItemMapper') private readonly menuItemMapper: MenuItemMapper;
     @Autowired('rowModel') private readonly rowModel: IRowModel;
     @Autowired('focusService') private readonly focusService: FocusService;
@@ -319,7 +327,7 @@ export class EnterpriseMenu extends BeanStub {
 
     private isModuleLoaded(menuTabName: string): boolean {
         if (menuTabName === EnterpriseMenu.TAB_COLUMNS) {
-            return ModuleRegistry.isRegistered(ModuleNames.ColumnsToolPanelModule);
+            return ModuleRegistry.__isRegistered(ModuleNames.ColumnsToolPanelModule, this.context.getGridId());
         }
 
         return true;
@@ -416,7 +424,6 @@ export class EnterpriseMenu extends BeanStub {
         const rowGroupCount = this.columnModel.getRowGroupColumns().length;
         const doingGrouping = rowGroupCount > 0;
 
-        const groupedByThisColumn = this.columnModel.getRowGroupColumns().indexOf(this.column) >= 0;
         const allowValue = this.column.isAllowValue();
         const allowRowGroup = this.column.isAllowRowGroup();
         const isPrimary = this.column.isPrimary();
@@ -424,7 +431,7 @@ export class EnterpriseMenu extends BeanStub {
 
         const isInMemoryRowModel = this.rowModel.getType() === 'clientSide';
 
-        const usingTreeData = this.gridOptionsService.isTreeData();
+        const usingTreeData = this.gridOptionsService.get('treeData');
 
         const allowValueAgg =
             // if primary, then only allow aggValue if grouping and it's a value columns
@@ -448,9 +455,15 @@ export class EnterpriseMenu extends BeanStub {
         result.push('autoSizeAll');
         result.push(EnterpriseMenu.MENU_ITEM_SEPARATOR);
 
-        if (allowRowGroup && this.column.isPrimary()) {
-            if (groupedByThisColumn) {
-                result.push('rowUnGroup');
+        const showRowGroup = this.column.getColDef().showRowGroup;
+        if (showRowGroup) {
+            result.push('rowUnGroup');
+        } else if (allowRowGroup && this.column.isPrimary()) {
+            if (this.column.isRowGroupActive()) {
+                const groupLocked = this.columnModel.isColumnGroupingLocked(this.column);
+                if (!groupLocked) {
+                    result.push('rowUnGroup');
+                }
             } else {
                 result.push('rowGroup');
             }
@@ -571,9 +584,10 @@ export class EnterpriseMenu extends BeanStub {
             suppressColumnFilter: !!suppressColumnFilter,
             suppressColumnSelectAll: !!suppressColumnSelectAll,
             suppressSyncLayoutWithGrid: !!columnLayout || !!suppressSyncLayoutWithGrid,
-            api: this.gridApi,
-            columnApi: this.columnApi,
-            context: this.gridOptionsService.context
+            api: this.gridOptionsService.api,
+            columnApi: this.gridOptionsService.columnApi,
+            context: this.gridOptionsService.context,
+            onStateUpdated: () => {}
         }, 'columnMenu');
 
         if (columnLayout) {

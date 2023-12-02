@@ -1,10 +1,6 @@
-import { ChartProxy, ChartProxyParams, FieldDefinition, UpdateChartParams } from '../chartProxy';
-import {
-    AgChart,
-    AgPieSeriesOptions,
-    AgPolarChartOptions,
-    AgPolarSeriesOptions,
-} from 'ag-charts-community';
+import { ChartProxy, ChartProxyParams, FieldDefinition, UpdateParams } from '../chartProxy';
+import { AgCharts, AgPieSeriesOptions, AgPolarChartOptions, AgPolarSeriesOptions, } from 'ag-charts-community';
+
 import { changeOpacity } from '../../utils/color';
 import { deepMerge } from '../../utils/object';
 
@@ -19,19 +15,19 @@ export class PieChartProxy extends ChartProxy {
         super(params);
     }
 
-    public update(params: UpdateChartParams): void {
+    public update(params: UpdateParams): void {
         const { data, category } = params;
 
         const options: AgPolarChartOptions = {
-            ...this.getCommonChartOptions(),
+            ...this.getCommonChartOptions(params.updatedOverrides),
             data: this.crossFiltering ? this.getCrossFilterData(params) : this.transformData(data, category.id),
             series: this.getSeries(params),
         }
 
-        AgChart.update(this.getChartRef(), options);
+        AgCharts.update(this.getChartRef(), options);
     }
 
-    private getSeries(params: UpdateChartParams): AgPolarSeriesOptions[] {
+    private getSeries(params: UpdateParams): AgPolarSeriesOptions[] {
         const numFields = params.fields.length;
 
         const offset = {
@@ -46,8 +42,9 @@ export class PieChartProxy extends ChartProxy {
                 angleKey: f.colId,
                 angleName: f.displayName!,
                 sectorLabelKey: f.colId,
-                calloutLabelKey: params.category.id,
+                legendItemKey: params.category.id,
                 calloutLabelName: params.category.name,
+                calloutLabelKey: params.category.id,
             }
 
             if (this.chartType === 'doughnut') {
@@ -74,7 +71,7 @@ export class PieChartProxy extends ChartProxy {
         return this.crossFiltering ? this.extractCrossFilterSeries(series) : series;
     }
 
-    private getCrossFilterData(params: UpdateChartParams) {
+    private getCrossFilterData(params: UpdateParams) {
         const colId = params.fields[0].colId;
         const filteredOutColId = `${colId}-filtered-out`;
 
@@ -138,7 +135,7 @@ export class PieChartProxy extends ChartProxy {
         return { outerRadiusOffset, innerRadiusOffset };
     }
 
-    private getFields(params: UpdateChartParams): FieldDefinition[] {
+    private getFields(params: UpdateParams): FieldDefinition[] {
         return this.chartType === 'pie' ? params.fields.slice(0, 1) : params.fields;
     }
 

@@ -19,6 +19,12 @@
                 "url": "/column-definitions/#default-column-definitions"
             }
         },
+        "cellDataType": {
+            "more": {
+                "name": "Cell Data Types",
+                "url": "/cell-data-types/"
+            }
+        },
         "valueGetter": {
             "description": "Function or [expression](/cell-expressions/#column-definition-expressions). Gets the value from your data for display.",
             "more": {
@@ -160,6 +166,12 @@
             }
         }
     },
+    "accessibility": {
+        "meta": {
+            "displayName": "Columns: Accessibility"
+        },
+        "cellAriaRole": {}
+    },
     "display": {
         "meta": {
             "displayName": "Columns: Display"
@@ -168,7 +180,13 @@
         "initialHide": {},
         "lockVisible": {},
         "lockPosition": {},
-        "suppressMovable": {}
+        "suppressMovable": {},
+        "useValueFormatterForExport": {
+            "more": {
+                "name": "Using Value Formatters with Other Grid Features",
+                "url": "/value-formatters/#use-value-formatter-for-export"
+            }
+        }
     },
     "width": {
         "meta": {
@@ -321,7 +339,7 @@
         "floatingFilterComponentParams": {
             "more": {
                 "name": "Floating Filter Parameters",
-                "url": "/component-floating-filter/#custom-filter-parameters"
+                "url": "/component-floating-filter/#example-custom-floating-filter"
             }
         },
         "suppressFiltersToolPanel": {}
@@ -365,7 +383,13 @@
         },
         "cellEditorPopup": {},
         "cellEditorPopupPosition": {},
-        "singleClickEdit": {}
+        "singleClickEdit": {},
+        "useValueParserForImport": {
+            "more": {
+                "name": "Using Value Parsers with Other Grid Features",
+                "url": "/value-parsers/#use-value-parser-for-import"
+            }
+        }
     },
     "grouping": {
         "meta": {
@@ -438,13 +462,13 @@
         },
         "groupId": {},
         "marryChildren": {},
-        "stickyLabel": {},
+        "suppressStickyLabel": {},
         "openByDefault": {},
         "columnGroupShow": {},
         "toolPanelClass": {},
         "suppressColumnsToolPanel": {},
         "suppressFiltersToolPanel": {},
-        "spanHeaderHeight": {},
+        "suppressSpanHeaderHeight": {},
         "tooltipComponent": {
             "description": "Provide your own tooltip component for the column group.",
             "more": {
@@ -469,7 +493,7 @@
             "description": "The custom header group component to be used for rendering the component header. If none specified the default AG Grid is used.",
             "more": {
                 "name": "Header Group Component",
-                "url": "/component-header/#header-group-components/"
+                "url": "/component-header/#header-group-components"
             }
         },
         "headerGroupComponentParams": {}

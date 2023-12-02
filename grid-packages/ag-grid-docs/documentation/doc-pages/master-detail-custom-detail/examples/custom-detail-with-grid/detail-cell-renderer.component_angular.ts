@@ -14,7 +14,7 @@ import { ColDef, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-c
                  #agGrid 
                  style="height: 100%;"
                  id="detailGrid"
-                 class="full-width-grid ag-theme-alpine"
+                 [class]="themeClass"
                  [columnDefs]="colDefs"
                  [defaultColDef]="defaultColDef"
                  [rowData]="rowData"
@@ -24,6 +24,7 @@ import { ColDef, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-c
         </div>`
 })
 export class DetailCellRenderer implements ICellRendererAngularComp {
+    public themeClass: string = "full-width-grid " + /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     params!: ICellRendererParams;
     masterGridApi!: GridApi;
     rowId!: string;
@@ -63,7 +64,6 @@ export class DetailCellRenderer implements ICellRendererAngularComp {
         var gridInfo = {
             id: this.rowId,
             api: params.api,
-            columnApi: params.columnApi
         };
 
         console.log("adding detail grid info with id: ", this.rowId);

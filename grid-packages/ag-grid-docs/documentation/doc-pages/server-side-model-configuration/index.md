@@ -13,7 +13,7 @@ understand how the grid organises data obtained from the server into caches.
 The grid arranges rows into blocks which are in turn stored in a cache as illustrated below:
 
 <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
-    <img src="resources/serverSideCache.png" alt="serverSideCache" style="width: 30%;" />
+    <image-caption src="server-side-model-configuration/resources/serverSideCache.png" alt="serverSideCache" constrained="true" centered="true" filterdarkmode="true"></image-caption>
     <div>Fig 1. Server-side Cache</div>
 </div>
 
@@ -44,13 +44,27 @@ The example below shows how debouncing block loading can be achieved. Note the f
 
 <grid-example title='Block Loading Debounce' name='block-load-debounce' type='generated' options='{ "enterprise": true, "modules": ["serverside", "menu", "columnpanel"] }'></grid-example>
 
+## Providing Additional Data
+
+It is possible to supply extra data to the grid outside of the datasource lifecycle. This can be used to populate the grid with data before scrolling, provide hierarchical data, or provide additional blocks.
+
+<api-documentation source='grid-api/api.json' section='serverSideRowModel' names='["applyServerSideRowData"]' ></api-documentation>
+
+The example below demonstrates that the grid can be populated with data outside of the datasource flow. Note the following:
+- The first loading row never displays, as the first 100 rows are loaded by default
+- 100 rows are provided by default, ignoring the `cacheBlockSize` property
+- The loading of these additional rows  bypasses the `blockLoadDebounceMillis` and `maxConcurrentDatasourceRequests` properties.
+
+<grid-example title='Additional Row Data' name='additional-row-data' type='generated' options='{ "enterprise": true, "modules": ["serverside"] }'></grid-example>
+
 ## Initial Scroll Position
 
 When using the server-side row model the initial scroll position of the grid can be set. This is achieved by calling 
 `api.ensureIndexVisible()` after setting the data source to the grid. 
 
-[[note]]
-| It is important that the `serverSideInitialRowCount` property is set to a value that is greater than the sum of the row index provided to `api.ensureIndexVisible()` and the number of rows displayed in the grid's viewport.
+<note>
+It is important that the `serverSideInitialRowCount` property is set to a value that is greater than the sum of the row index provided to `api.ensureIndexVisible()` and the number of rows displayed in the grid's viewport.
+</note>
 
 This is demonstrated in the example below, note the following:
 
@@ -82,7 +96,7 @@ row doesn't always correspond to one Row in the store.
 
 To handle this scenario, the grid provides `parentKeys` and `level` properties in the `GetRowIdParams` supplied to `getRowId()`.
 
-These can be used to create unique group id's as shown below:
+These can be used to create unique group IDs as shown below:
 
 <snippet>
 | const gridOptions = {
@@ -91,7 +105,7 @@ These can be used to create unique group id's as shown below:
 |        if (params.data.id != null) {
 |            parentKeysJoined + params.data.id;
 |        }
-|        const rowGroupCols = params.columnApi.getRowGroupColumns();
+|        const rowGroupCols = params.api.getRowGroupColumns();
 |        const thisGroupCol = rowGroupCols[params.level];
 |        parentKeysJoined + params.data[thisGroupCol.getColDef().field];
 |     }

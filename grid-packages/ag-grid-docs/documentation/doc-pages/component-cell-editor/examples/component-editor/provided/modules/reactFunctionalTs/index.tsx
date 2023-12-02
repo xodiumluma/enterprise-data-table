@@ -7,7 +7,9 @@ import { AgGridReact } from '@ag-grid-community/react';
 
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import './styles.css';
+
 
 import { ColDef, ICellEditorParams, ICellRendererParams, ModuleRegistry } from '@ag-grid-community/core';
 // Register the required feature modules with the Grid
@@ -76,21 +78,23 @@ const MoodEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
     const isHappy = (value: string) => value === 'Happy';
 
     const [ready, setReady] = useState(false);
-    const [interimValue, setInterimValue] = useState(isHappy(props.value));
-    const [happy, setHappy] = useState<boolean | null>(null);
+    const [happy, setHappy] = useState<boolean>(isHappy(props.value));
+    const [done, setDone] = useState(false);
     const refContainer = useRef(null);
 
     const checkAndToggleMoodIfLeftRight = (event: any) => {
         if (ready) {
             if (['ArrowLeft', 'ArrowRight'].indexOf(event.key) > -1) { // left and right
-                setInterimValue(!interimValue);
-                event.stopPropagation();
-            } else if (event.key === KEY_ENTER) {
-                setHappy(interimValue)
+                const isLeft = event.key === 'ArrowLeft';
+                setHappy(isLeft);
                 event.stopPropagation();
             }
         }
     };
+
+    useEffect(() => {
+        if (done) props.stopEditing();
+    }, [done]);
 
     useEffect(() => {
         (ReactDOM.findDOMNode(refContainer.current) as any).focus();
@@ -105,11 +109,6 @@ const MoodEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
         };
     }, [checkAndToggleMoodIfLeftRight, ready]);
 
-    useEffect(() => {
-        if (happy !== null) {
-            props.stopEditing();
-        }
-    }, [happy])
 
     useImperativeHandle(ref, () => {
         return {
@@ -122,7 +121,7 @@ const MoodEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
     const mood = {
         borderRadius: 15,
         border: '1px solid grey',
-        background: '#e6e6e6',
+        backgroundColor: '#e6e6e6',
         padding: 15,
         textAlign: 'center' as const,
         display: 'inline-block'
@@ -142,8 +141,8 @@ const MoodEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
         padding: 4
     };
 
-    const happyStyle = interimValue ? selected : unselected;
-    const sadStyle = !interimValue ? selected : unselected;
+    const happyStyle = happy ? selected : unselected;
+    const sadStyle = !happy ? selected : unselected;
 
     return (
         <div ref={refContainer}
@@ -152,9 +151,11 @@ const MoodEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
         >
             <img src="https://www.ag-grid.com/example-assets/smileys/happy.png" onClick={() => {
                 setHappy(true);
+                setDone(true);
             }} style={happyStyle} />
             <img src="https://www.ag-grid.com/example-assets/smileys/sad.png" onClick={() => {
                 setHappy(false);
+                setDone(true);
             }} style={sadStyle} />
         </div>
     );
@@ -164,18 +165,19 @@ const NumericEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
     const createInitialState = () => {
         let startValue;
         let highlightAllOnFocus = true;
+        const eventKey = props.eventKey;
 
-        if (props.eventKey === KEY_BACKSPACE) {
+        if (eventKey === KEY_BACKSPACE) {
             // if backspace or delete pressed, we clear the cell
             startValue = '';
-        } else if (props.charPress) {
+        } else if (eventKey && eventKey.length === 1) {
             // if a letter was pressed, we start with the letter
-            startValue = props.charPress;
+            startValue = eventKey;
             highlightAllOnFocus = false;
         } else {
             // otherwise we start with the current value
             startValue = props.value;
-            if (props.eventKey === KEY_F2) {
+            if (eventKey === KEY_F2) {
                 highlightAllOnFocus = false;
             }
         }
@@ -213,7 +215,7 @@ const NumericEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
     }, []);
 
     /* Utility Methods */
-    const cancelBeforeStart = props.charPress && ('1234567890'.indexOf(props.charPress) < 0);
+    const cancelBeforeStart = props.eventKey && props.eventKey.length === 1 && ('1234567890'.indexOf(props.eventKey) < 0);
 
     const isLeftOrRight = (event: any) => {
         return ['ArrowLeft', 'ArrowLeft'].indexOf(event.key) > -1;
@@ -223,7 +225,7 @@ const NumericEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
         return !!/\d/.test(charStr);
     };
 
-    const isKeyPressedNumeric = (event: any) => {
+    const isNumericKey = (event: any) => {
         const charStr = event.key;
         return isCharNumeric(charStr);
     };
@@ -243,7 +245,7 @@ const NumericEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
             return;
         }
 
-        if (!finishedEditingPressed(event) && !isKeyPressedNumeric(event)) {
+        if (!finishedEditingPressed(event) && !isNumericKey(event)) {
             if (event.preventDefault) event.preventDefault();
         }
 
@@ -257,7 +259,7 @@ const NumericEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
         return {
             // the final value to send to the grid, on completion of editing
             getValue() {
-                return value;
+                return value === '' || value == null ? null : parseInt(value);
             },
 
             // Gets called once before editing starts, to give editor a chance to
@@ -271,7 +273,8 @@ const NumericEditor = memo(forwardRef((props: ICellEditorParams, ref) => {
             isCancelAfterEnd() {
                 // will reject the number if it greater than 1,000,000
                 // not very practical, but demonstrates the method.
-                return value > 1000000;
+                const finalValue = this.getValue();
+                return finalValue != null && finalValue > 1000000;
             }
         };
     });
@@ -328,6 +331,13 @@ const GridExample = () => {
         },
     ], [])
 
+    const defaultColDef = useMemo(() => ({
+        editable: true,
+        flex: 1,
+        minWidth: 100,
+        filter: true,
+    }), []);
+
     return (
         <div style={{ width: '100%', height: '100%' }}>
             <div
@@ -335,19 +345,11 @@ const GridExample = () => {
                     height: '100%',
                     width: '100%'
                 }}
-                className="ag-theme-alpine test-grid">
+                className={/** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                 <AgGridReact
                     columnDefs={columnDefs}
                     rowData={rowData}
-                    defaultColDef={{
-                        editable: true,
-                        sortable: true,
-                        flex: 1,
-                        minWidth: 100,
-                        filter: true,
-                        resizable: true
-                    }}>
-                </AgGridReact>
+                    defaultColDef={defaultColDef} />
             </div>
         </div>
     );

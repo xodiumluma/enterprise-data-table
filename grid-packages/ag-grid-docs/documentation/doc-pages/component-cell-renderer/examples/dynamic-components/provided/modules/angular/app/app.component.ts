@@ -6,8 +6,8 @@ import { ParamsRenderer } from './params-renderer.component';
 import { SquareRenderer } from './square-renderer.component';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
-import { ColDef, ColumnApi, GridApi, GridReadyEvent, IRowNode } from '@ag-grid-community/core';
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import { ColDef, GridApi, GridReadyEvent, IRowNode } from '@ag-grid-community/core';
 
 @Component({
     selector: 'my-app',
@@ -20,7 +20,7 @@ import { ColDef, ColumnApi, GridApi, GridReadyEvent, IRowNode } from '@ag-grid-c
                 #agGrid
                 style="width: 100%; height: 100%;"
                 id="myGrid"
-                class="ag-theme-alpine"
+                [class]="themeClass"
                 [columnDefs]="columnDefs"
                 [rowData]="rowData"
                 [context]="context"
@@ -30,8 +30,8 @@ import { ColDef, ColumnApi, GridApi, GridReadyEvent, IRowNode } from '@ag-grid-c
         </div>`
 })
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
     private gridApi!: GridApi;
-    private gridColumnApi!: ColumnApi;
 
     public columnDefs: ColDef[] = [
         {
@@ -80,11 +80,9 @@ export class AppComponent {
 
     public defaultColDef: ColDef = {
         editable: true,
-        sortable: true,
         flex: 1,
         minWidth: 100,
         filter: true,
-        resizable: true
     };
 
     public rowData: any[];
@@ -106,7 +104,6 @@ export class AppComponent {
 
     onGridReady(params: GridReadyEvent) {
         this.gridApi = params.api;
-        this.gridColumnApi = params.columnApi;
     }
 
     methodFromParent(cell: any) {

@@ -7,22 +7,12 @@ export default forwardRef((props, ref) => {
     useImperativeHandle(ref, () => {
         return {
             doesFilterPass(params) {
-                const { api, colDef, column, columnApi, context } = props;
                 const { node } = params;
 
                 // make sure each word passes separately, ie search for firstname, lastname
                 let passed = true;
                 filterText.toLowerCase().split(' ').forEach(filterWord => {
-                    const value = props.valueGetter({
-                        api,
-                        colDef,
-                        column,
-                        columnApi,
-                        context,
-                        data: node.data,
-                        getValue: (field) => node.data[field],
-                        node,
-                    });
+                    const value = props.getValue(node);
         
                     if (value.toString().toLowerCase().indexOf(filterWord) < 0) {
                         passed = false;
@@ -66,7 +56,7 @@ export default forwardRef((props, ref) => {
             <div style={{marginTop: 20}}>Just to emphasise that anything can go in here, here is an image!!</div>
             <div>
                 <img src="https://www.ag-grid.com/images/ag-Grid2-200.png"
-                    style={{width: 150, textAlign: "center", padding: 10, margin: 10, border: "1px solid lightgrey"}}/>
+                    style={{width: 150, textAlign: "center", padding: 10, margin: 10, border: "1px solid lightgrey", backgroundColor: "white"}}/>
             </div>
         </div>
     )

@@ -1,5 +1,4 @@
-[[only-javascript]]
-|## Registering Custom Components
+<framework-specific-section frameworks="javascript">
 |
 |There are two ways to tell the Grid to use a custom component:
 |
@@ -10,7 +9,10 @@
 |
 |The easiest approach is to refer to the Component class directly.
 |
-|```js
+</framework-specific-section>
+
+<framework-specific-section frameworks="javascript">
+<snippet transform={false}>
 |gridOptions = {
 |
 |    columnDefs: [
@@ -23,15 +25,20 @@
 |
 |    ...
 |}
-|```
-|
+</snippet>
+</framework-specific-section>
+
+<framework-specific-section frameworks="javascript">
 |The advantage of referencing Components directly is cleaner code, without the extra level of indirection added when referencing by name.
 |
 |### 2. By Name
 |
 |A Component is registered with the grid by providing it through the `components` grid property. The `components` grid property contains a map of Component Names to Component Classes. Components of all types (editors, renderers, filters etc) are all stored together and must have unique names.
 |
-|```js
+</framework-specific-section>
+
+<framework-specific-section frameworks="javascript">
+<snippet transform={false}>
 |gridOptions = {
 |
 |    // register the components using 'components' grid property
@@ -53,6 +60,9 @@
 |
 |    ...
 |}
-|```
-|
+</snippet>
+</framework-specific-section>
+
+<framework-specific-section frameworks="javascript">
 |The advantage of referencing components by name is definitions (eg Column Definitions) can be composed of simple types (ie JSON), which is useful should you wish to persist Column Definitions.
+</framework-specific-section>

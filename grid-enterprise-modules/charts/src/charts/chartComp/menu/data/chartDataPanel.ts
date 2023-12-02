@@ -1,6 +1,5 @@
 import {
     _,
-    AgAbstractField,
     AgCheckbox,
     AgGroupComponent,
     AgRadioButton,
@@ -8,8 +7,9 @@ import {
     AgToggleButton,
     AutoScrollService,
     Autowired,
-    ChartType,
     ChartDataPanel as ChartDataPanelType,
+    ChartDataPanelGroup,
+    ChartType,
     Column,
     Component,
     DragAndDropService,
@@ -17,12 +17,12 @@ import {
     DragSource,
     DragSourceType,
     DropTarget,
+    Events,
     PostConstruct,
-    SeriesChartType,
-    ChartDataPanelGroup
+    SeriesChartType
 } from "@ag-grid-community/core";
 import { ChartController } from "../../chartController";
-import { ColState } from "../../chartDataModel";
+import { ColState } from "../../model/chartDataModel";
 import { ChartTranslationService } from "../../services/chartTranslationService";
 import { ChartOptionsService } from "../../services/chartOptionsService";
 
@@ -59,6 +59,7 @@ export class ChartDataPanel extends Component {
     public init() {
         this.updatePanels();
         this.addManagedListener(this.chartController, ChartController.EVENT_CHART_MODEL_UPDATE, this.updatePanels.bind(this));
+        this.addManagedListener(this.chartController, ChartController.EVENT_CHART_API_UPDATE, this.updatePanels.bind(this));
         this.createAutoScrollService();
     }
 
@@ -97,7 +98,7 @@ export class ChartDataPanel extends Component {
             const seriesChartTypeIndex = this.getDataPanelDef().groups?.reduce((prevVal, { type }, index) => {
                 if (type === 'seriesChartType') {
                     return index;
-                };
+                }
 
                 return prevVal;
             }, -1);
@@ -184,7 +185,7 @@ export class ChartDataPanel extends Component {
     }
 
     private addChangeListener(component: AgRadioButton | AgCheckbox, columnState: ColState) {
-        this.addManagedListener(component, AgAbstractField.EVENT_CHANGED, () => {
+        this.addManagedListener(component, Events.EVENT_FIELD_VALUE_CHANGED, () => {
             columnState.selected = component.getValue();
             this.chartController.updateForPanelChange(columnState);
         });
@@ -231,7 +232,7 @@ export class ChartDataPanel extends Component {
                 .setLabel(this.chartTranslationService.translate('paired'))
                 .setLabelAlignment('left')
                 .setLabelWidth('flex')
-                .setInputWidth(45)
+                .setInputWidth('flex')
                 .setValue(this.chartOptionsService.getPairedMode())
                 .onValueChange(newValue => {
                     this.chartOptionsService.setPairedMode(!!newValue);

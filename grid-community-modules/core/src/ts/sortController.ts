@@ -34,23 +34,20 @@ export class SortController extends BeanStub {
 
         const isColumnsSortingCoupledToGroup = this.gridOptionsService.isColumnsSortingCoupledToGroup();
         let columnsToUpdate = [column];
-        if (isColumnsSortingCoupledToGroup && column.getColDef().showRowGroup) {
-            if (!column.getColDef().field) {
-                // if no field is present, this column shouldn't have it's own sort direction
-                columnsToUpdate = [];
-            }
-
-            const rowGroupColumns = this.columnModel.getSourceColumnsForGroupColumn(column);
-            const sortableRowGroupColumns = rowGroupColumns?.filter(col => col.getColDef().sortable);
-            
-            if (sortableRowGroupColumns) {
-                columnsToUpdate = [...columnsToUpdate, ...sortableRowGroupColumns];
+        if (isColumnsSortingCoupledToGroup) {
+            if (column.getColDef().showRowGroup) {
+                const rowGroupColumns = this.columnModel.getSourceColumnsForGroupColumn(column);
+                const sortableRowGroupColumns = rowGroupColumns?.filter(col => col.isSortable());
+                
+                if (sortableRowGroupColumns) {
+                    columnsToUpdate = [column, ...sortableRowGroupColumns];
+                } 
             }
         }
 
         columnsToUpdate.forEach(col => col.setSort(sort, source));
 
-        const doingMultiSort = (multiSort || this.gridOptionsService.is('alwaysMultiSort')) && !this.gridOptionsService.is('suppressMultiSort');
+        const doingMultiSort = (multiSort || this.gridOptionsService.get('alwaysMultiSort')) && !this.gridOptionsService.get('suppressMultiSort');
 
         // clear sort on all columns except those changed, and update the icons
         if (!doingMultiSort) {
@@ -68,7 +65,7 @@ export class SortController extends BeanStub {
         const groupParent = this.columnModel.getGroupDisplayColumnForGroup(lastColToChange.getId());
         const lastSortIndexCol = isCoupled ? groupParent || lastColToChange : lastColToChange;
 
-        const allSortedCols = this.getColumnsWithSortingOrdered(true);
+        const allSortedCols = this.getColumnsWithSortingOrdered();
 
         // reset sort index on everything
         this.columnModel.getPrimaryAndSecondaryAndAutoColumns().forEach(col => col.setSortIndex(null));
@@ -127,20 +124,15 @@ export class SortController extends BeanStub {
             return null;
         }
 
-        // if a field is present, this column could have it's own sort, otherwise it's calculated from other columns
-        const currentSort = !!column.getColDef().field ? column.getSort() : this.getDisplaySortForColumn(column);
-        let result: SortDirection = sortingOrder[0];
+        const currentIndex = sortingOrder.indexOf(column.getSort()!);
+        const notInArray = currentIndex < 0;
+        const lastItemInArray = currentIndex == sortingOrder.length - 1;
+        let result: SortDirection;
 
-        if (currentSort !== 'mixed') {
-            const currentIndex = sortingOrder.indexOf(currentSort!);
-            const notInArray = currentIndex < 0;
-            const lastItemInArray = currentIndex == sortingOrder.length - 1;
-    
-            if (notInArray || lastItemInArray) {
-                result = sortingOrder[0];
-            } else {
-                result = sortingOrder[currentIndex + 1];
-            }
+        if (notInArray || lastItemInArray) {
+            result = sortingOrder[0];
+        } else {
+            result = sortingOrder[currentIndex + 1];
         }
 
         // verify the sort type exists, as the user could provide the sortingOrder, need to make sure it's valid
@@ -153,18 +145,21 @@ export class SortController extends BeanStub {
     }
 
     /**
-     * @param includeRedundantColumns whether to include non-grouped, non-secondary, non-aggregated columns when pivot active
      * @returns a map of sort indexes for every sorted column, if groups sort primaries then they will have equivalent indices
      */
-    private getIndexedSortMap(includeRedundantColumns: boolean = false): Map<Column, number> {
+    private getIndexedSortMap(): Map<Column, number> {
         // pull out all the columns that have sorting set
         let allSortedCols = this.columnModel.getPrimaryAndSecondaryAndAutoColumns()
             .filter(col => !!col.getSort());
 
-        if (!includeRedundantColumns && this.columnModel.isPivotMode()) {
-            allSortedCols = allSortedCols.filter(col => (
-                !!col.getAggFunc() || !col.isPrimary() || this.columnModel.getGroupDisplayColumnForGroup(col.getId())
-            ));
+        if (this.columnModel.isPivotMode()) {
+            const isSortingLinked = this.gridOptionsService.isColumnsSortingCoupledToGroup();
+            allSortedCols = allSortedCols.filter(col => {
+                const isAggregated = !!col.getAggFunc();
+                const isSecondary = !col.isPrimary();
+                const isGroup = isSortingLinked ? this.columnModel.getGroupDisplayColumnForGroup(col.getId()) : col.getColDef().showRowGroup;
+                return isAggregated || isSecondary || isGroup;
+            });
         }
 
         const sortedRowGroupCols = this.columnModel.getRowGroupColumns()
@@ -205,6 +200,7 @@ export class SortController extends BeanStub {
         });
 
         const indexMap: Map<Column, number> = new Map();
+
         allSortedCols.forEach((col, idx) => indexMap.set(col, idx));
 
         // add the row group cols back
@@ -218,28 +214,30 @@ export class SortController extends BeanStub {
         return indexMap;
     }
 
-    public getColumnsWithSortingOrdered(includeRedundantColumns: boolean = false): Column[] {
+    public getColumnsWithSortingOrdered(): Column[] {
         // pull out all the columns that have sorting set
-        return [...this.getIndexedSortMap(includeRedundantColumns).entries()]
+        return [...this.getIndexedSortMap().entries()]
             .sort(([col1, idx1], [col2, idx2]) => idx1 - idx2)
             .map(([col]) => col);
     }
 
     // used by server side row models, to sent sort to server
     public getSortModel(): SortModelItem[] {
-        // because this is used by the SSRM, we include redundant options and let the server decide
-        return this.getColumnsWithSortingOrdered(true).map(column => ({
-            sort: column.getSort()!,
-            colId: column.getId()
-        }));
+        return this.getColumnsWithSortingOrdered()
+            .filter(column => column.getSort())
+            .map(column => ({
+                sort: column.getSort()!,
+                colId: column.getId()
+            }));
     }
 
     public getSortOptions(): SortOption[] {
-        // this is used for client side sorting, as such we can ignore redundant column sorts
-        return this.getColumnsWithSortingOrdered().map(column => ({
-            sort: column.getSort()!,
-            column
-        }));
+        return this.getColumnsWithSortingOrdered()
+            .filter(column => column.getSort())
+            .map(column => ({
+                sort: column.getSort()!,
+                column
+            }));
     }
 
     public canColumnDisplayMixedSort(column: Column): boolean {
@@ -255,7 +253,7 @@ export class SortController extends BeanStub {
         }
 
         // if column has unique data, its sorting is independent - but can still be mixed
-        const columnHasUniqueData = !!column.getColDef().field;
+        const columnHasUniqueData = column.getColDef().field != null || !!column.getColDef().valueGetter;
         const sortableColumns = columnHasUniqueData ? [column, ...linkedColumns] : linkedColumns;
 
         const firstSort = sortableColumns[0].getSort();

@@ -65,16 +65,16 @@ $ npm install --save @ag-grid-community/csv-export
 ### Add a placeholder to HTML
 
 ```html
-<div id="myGrid" style="height: 150px; width: 600px" class="ag-theme-alpine"></div>
+<div id="myGrid" style="height: 150px; width: 600px" class="ag-theme-quartz"></div>
 ```
 
 ### Import the grid and styles
 
 ```js
-import { Grid } from '@ag-grid-community/core';
+import { createGrid } from '@ag-grid-community/core';
 
 import '@ag-grid-community/styles/ag-grid.css';
-import '@ag-grid-community/styles/ag-theme-alpine.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
 ```
 
 ### Set configuration
@@ -97,8 +97,8 @@ var gridOptions = {
 ### Initialise the grid
 
 ```js
-var eGridDiv = document.querySelector('#myGrid');
-new Grid(eGridDiv, this.gridOptions);
+const eGridDiv = document.querySelector('#myGrid');
+const api = createGrid(eGridDiv, this.gridOptions);
 ```
 
 For more information on how to integrate the grid into your project see [TypeScript - Building with Webpack 2](https://www.ag-grid.com/javascript-grid/building-typescript/?utm_source=@ag-grid-community/csv-export-readme&utm_medium=repository&utm_campaign=github).
@@ -113,7 +113,7 @@ Look for similar problems on [StackOverflow](https://stackoverflow.com/questions
 
 ## Contributing
 
-AG Grid is developed by a team of co-located developers in London. If you want to join the team check out our [jobs board](https://www.ag-grid.com/ag-grid-jobs-board/?utm_source=@ag-grid-community/csv-export-readme&utm_medium=repository&utm_campaign=github) or send your application to info@ag-grid.com.
+AG Grid is developed by a team of co-located developers in London. If you want to join the team send your application to info@ag-grid.com.
 
 ## License
 

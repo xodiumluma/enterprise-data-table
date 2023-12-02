@@ -49,15 +49,15 @@ From a lifecycle and behaviour point of view, 'in cell' and 'popup' have no impa
 
 ### Configure Popup
 
-[[only-react]]
-|Configure that an Editor is in a popup by setting `cellEditorPopup=true` on the [Column Definition](/column-definitions/).
+<framework-specific-section frameworks="react">
+| Configure that an Editor is in a popup by setting `cellEditorPopup=true` on the [Column Definition](/column-definitions/).
+</framework-specific-section>
 
-[[only-javascript-or-angular-or-vue]]
-|Configure that an Editor is in a popup in one of the following ways:
-|1. For [Custom Cell Editors](/component-cell-editor/), implement the `isPopup()` method on the Custom Cell Editor OR specify `cellEditorPopup=true` on the [Column Definition](/column-definitions/).
-|1. For [Provided Cell Editors](/provided-cell-editors/), you do not need to to anything, as `isPopup` is already implemented on these.
-
-
+<framework-specific-section frameworks="javascript,angular,vue">
+| Configure that an Editor is in a pop   up in one of the following ways:
+| 1. For [Custom Cell Editors](/component-cell-editor/), implement the `isPopup()` method on the Custom Cell Editor OR specify `cellEditorPopup=true` on the [Column Definition](/column-definitions/).
+| 1. For [Provided Cell Editors](/provided-cell-editors/), you do not need to to anything, as `isPopup` is already implemented on these.
+</framework-specific-section>
 
 ## Many Editors One Column
 
@@ -75,8 +75,7 @@ This following shows the Selector always returning back an AG Rich Select Cell E
 cellEditorSelector: params => {
     return {
         component: 'agRichSelectCellEditor',
-        params: { values: ['Male', 'Female'] },
-        popup: true
+        params: { values: ['Male', 'Female'] }
     };
 }
 ```
@@ -97,8 +96,7 @@ cellEditorSelector: params => {
       component: 'agRichSelectCellEditor',
       params: {
         values: ['Male', 'Female']
-      },
-      popup: true
+      }
     }
   }
 
@@ -155,7 +153,7 @@ Below shows an example with dynamic editor parameters. The following can be note
 - Column **City** uses dynamic parameters to display values for the selected country, and uses `formatValue` to add the selected city's country as a suffix.
 - Column **Address** uses the large text area editor.
 
-<grid-example title='Dynamic Parameters' name='dynamic-parameters' type='generated' options='{ "enterprise": true, "modules": ["clientside", "richselect", "menu", "columnpanel"], "exampleHeight": 520 }'></grid-example>
+<grid-example title='Dynamic Parameters' name='dynamic-parameters' type='generated' options='{ "enterprise": true, "modules": ["clientside", "richselect", "menu", "columnpanel"], "exampleHeight": 520, "extras": ["fontawesome"] }'></grid-example>
 
 
 ## Datepicker Cell Editing Example

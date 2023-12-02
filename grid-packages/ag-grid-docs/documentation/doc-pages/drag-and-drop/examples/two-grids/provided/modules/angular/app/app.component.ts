@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 
 import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-alpine.css";
-import { ColDef, FirstDataRenderedEvent, GridOptions } from '@ag-grid-community/core';
+import "@ag-grid-community/styles/ag-theme-quartz.css";
+import { ColDef, FirstDataRenderedEvent, GridApi, GridOptions, GridReadyEvent } from '@ag-grid-community/core';
 
 import { ModuleRegistry } from '@ag-grid-community/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
@@ -18,10 +18,10 @@ ModuleRegistry.registerModules([ClientSideRowModelModule])
                  (drop)="gridDrop($event,'left')">
                 <ag-grid-angular
                         style="height: 100%"
-                        class="ag-theme-alpine"
+                        [class]="themeClass"
                         [gridOptions]="leftGridOptions"
                         [columnDefs]="columnDefs"
-                        (firstDataRendered)="onFirstDataRendered($event)">
+                        (gridReady)="onGridReady($event,'left')">
                 </ag-grid-angular>
             </div>
 
@@ -48,16 +48,21 @@ ModuleRegistry.registerModules([ClientSideRowModelModule])
                  (drop)="gridDrop($event,'right')">
                 <ag-grid-angular
                         style="height: 100%"
-                        class="ag-theme-alpine"
+                        [class]="themeClass"
                         [gridOptions]="rightGridOptions"
                         [columnDefs]="columnDefs"
-                        (firstDataRendered)="onFirstDataRendered($event)">
+                        (gridReady)="onGridReady($event,'right')">
                 </ag-grid-angular>
             </div>
         </div>
     `
 })
 export class AppComponent {
+    themeClass = /** DARK MODE START **/document.documentElement?.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/;
+    
+    private leftGridApi!: GridApi<IOlympicData>;
+    private rightGridApi!: GridApi<IOlympicData>;
+    
     rowIdSequence = 100;
 
     columnDefs: ColDef[] = [
@@ -69,10 +74,8 @@ export class AppComponent {
 
     leftGridOptions: GridOptions = {
         defaultColDef: {
-            width: 80,
-            sortable: true,
+            flex: 1,
             filter: true,
-            resizable: true
         },
         rowClassRules: {
             "red-row": 'data.color == "Red"',
@@ -84,15 +87,12 @@ export class AppComponent {
         },
         rowData: this.createLeftRowData(),
         rowDragManaged: true,
-        animateRows: true
     };
 
     rightGridOptions: GridOptions = {
         defaultColDef: {
-            width: 80,
-            sortable: true,
+            flex: 1,
             filter: true,
-            resizable: true
         },
         rowClassRules: {
             "red-row": 'data.color == "Red"',
@@ -104,7 +104,6 @@ export class AppComponent {
         },
         rowData: [],
         rowDragManaged: true,
-        animateRows: true
     };
 
     createLeftRowData() {
@@ -146,14 +145,14 @@ export class AppComponent {
             remove: [data]
         };
 
-        var rowIsInLeftGrid = !!this.leftGridOptions.api!.getRowNode(data.id);
+        var rowIsInLeftGrid = !!this.leftGridApi.getRowNode(data.id);
         if (rowIsInLeftGrid) {
-            this.leftGridOptions.api!.applyTransaction(transaction);
+            this.leftGridApi.applyTransaction(transaction);
         }
 
-        var rowIsInRightGrid = !!this.rightGridOptions.api!.getRowNode(data.id);
+        var rowIsInRightGrid = !!this.rightGridApi.getRowNode(data.id);
         if (rowIsInRightGrid) {
-            this.rightGridOptions.api!.applyTransaction(transaction);
+            this.rightGridApi.applyTransaction(transaction);
         }
     }
 
@@ -183,7 +182,7 @@ export class AppComponent {
             return;
         }
 
-        var gridApi = grid == 'left' ? this.leftGridOptions.api : this.rightGridOptions.api;
+        var gridApi = grid == 'left' ? this.leftGridApi : this.rightGridApi;
 
         // do nothing if row is already in the grid, otherwise we would have duplicates
         var rowAlreadyInGrid = !!gridApi!.getRowNode(data.id);
@@ -198,8 +197,12 @@ export class AppComponent {
         gridApi!.applyTransaction(transaction);
     }
 
-    onFirstDataRendered(params: FirstDataRenderedEvent) {
-        params.api.sizeColumnsToFit();
+    onGridReady(params: GridReadyEvent, grid: 'left' | 'right') {
+        if (grid === 'left') {
+            this.leftGridApi = params.api;
+        } else {
+            this.rightGridApi = params.api;
+        }
     }
 
 }

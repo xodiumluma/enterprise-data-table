@@ -30,6 +30,7 @@ import {
     RowModelType,
     SelectionChangedEvent,
     ISelectionService,
+    GridOptions,
 } from "@ag-grid-community/core";
 import { ClientSideNodeManager } from "./clientSideNodeManager";
 
@@ -73,11 +74,15 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     private rowDataTransactionBatch: BatchTransactionItem[] | null;
     private lastHighlightedRow: RowNode | null;
     private applyAsyncTransactionsTimeout: number | undefined;
+    /** Has the start method been called */
+    private hasStarted: boolean = false;
+    /** E.g. data has been set into the node manager already */
+    private shouldSkipSettingDataOnStart: boolean = false;
 
     @PostConstruct
     public init(): void {
         const refreshEverythingFunc = this.refreshModel.bind(this, { step: ClientSideRowModelSteps.EVERYTHING });
-        const animate = !this.gridOptionsService.is('suppressAnimationFrame');
+        const animate = !this.gridOptionsService.get('suppressAnimationFrame');
         const refreshEverythingAfterColsChangedFunc = this.refreshModel.bind(this, {
             step: ClientSideRowModelSteps.EVERYTHING, // after cols change, row grouping (the first stage) could of changed
             afterColumnsChanged: true,
@@ -93,15 +98,11 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         this.addManagedListener(this.eventService, Events.EVENT_SORT_CHANGED, this.onSortChanged.bind(this));
         this.addManagedListener(this.eventService, Events.EVENT_COLUMN_PIVOT_MODE_CHANGED, refreshEverythingFunc);
         this.addManagedListener(this.eventService, Events.EVENT_GRID_STYLES_CHANGED, this.onGridStylesChanges.bind(this));
+        this.addManagedListener(this.eventService, Events.EVENT_GRID_READY, () => this.onGridReady());
 
-        const refreshMapListener = this.refreshModel.bind(this, {
-            step: ClientSideRowModelSteps.MAP,
-            keepRenderedRows: true,
-            animate
-        });
-
-        this.addManagedPropertyListener('groupRemoveSingleChildren', refreshMapListener);
-        this.addManagedPropertyListener('groupRemoveLowestSingleChildren', refreshMapListener);
+        // doesn't need done if doing full reset
+        // Property listeners which call `refreshModel` at different stages
+        this.addPropertyListeners();
 
         this.rootNode = new RowNode(this.beans);
         this.nodeManager = new ClientSideNodeManager(this.rootNode,
@@ -110,9 +111,129 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
             this.selectionService, this.beans);
     }
 
+    private addPropertyListeners() {
+        // Omitted Properties
+        //
+        // We do not act reactively on all functional properties, as it's possible the application is React and
+        // has not memoised the property and it's getting set every render.
+        //
+        // ** LIST OF NON REACTIVE, NO ARGUMENT
+        //
+        // getDataPath, getRowId, isRowMaster -- these are called once for each Node when the Node is created.
+        //                                    -- these are immutable Node properties (ie a Node ID cannot be changed)
+        // 
+        // getRowHeight - this is called once when Node is created, if a new getRowHeight function is provided,
+        //              - we do not revisit the heights of each node.
+        //
+        // pivotDefaultExpanded - relevant for initial pivot column creation, no impact on existing pivot columns. 
+        //
+        // deltaSort - this changes the type of algorithm used only, it doesn't change the sort order. so no point
+        //           - in doing the sort again as the same result will be got. the new Prop will be used next time we sort.
+        // 
+        // ** LIST OF NON REACTIVE, SOME ARGUMENT
+        // ** For these, they could be reactive, but not convinced the business argument is strong enough,
+        // ** so leaving as non-reactive for now, and see if anyone complains.
+        //
+        // processPivotResultColDef, processPivotResultColGroupDef
+        //                       - there is an argument for having these reactive, that if the application changes
+        //                       - these props, we should re-create the Pivot Columns, however it's highly unlikely
+        //                       - the application would change these functions, far more likely the functions were
+        //                       - non memoised correctly.
+        
+        const resetProps: Set<keyof GridOptions> = new Set([
+            'treeData', 'masterDetail',
+        ]);
+        const groupStageRefreshProps: Set<keyof GridOptions> = new Set([
+            'suppressParentsInRowNodes', 'groupDefaultExpanded',
+            'groupAllowUnbalanced', 'initialGroupOrderComparator',
+            'groupHideOpenParents', 'groupDisplayType',
+        ]);
+        const filterStageRefreshProps: Set<keyof GridOptions> = new Set([
+            'excludeChildrenWhenTreeDataFiltering',
+        ]);
+        const pivotStageRefreshProps: Set<keyof GridOptions> = new Set([
+            'removePivotHeaderRowWhenSingleValueColumn', 'pivotRowTotals', 'pivotColumnGroupTotals', 'suppressExpandablePivotGroups',
+        ]);
+        const aggregateStageRefreshProps: Set<keyof GridOptions> = new Set([
+            'getGroupRowAgg', 'alwaysAggregateAtRootLevel', 'groupIncludeTotalFooter', 'suppressAggFilteredOnly',
+        ]);
+        const sortStageRefreshProps: Set<keyof GridOptions> = new Set([
+            'postSortRows', 'groupDisplayType', 'accentedSort',
+        ]);
+        const filterAggStageRefreshProps: Set<keyof GridOptions> = new Set([
+        ]);
+        const flattenStageRefreshProps: Set<keyof GridOptions> = new Set([
+            'groupRemoveSingleChildren', 'groupRemoveLowestSingleChildren', 'groupIncludeFooter',
+        ]);
+
+        const allProps = [
+            ...resetProps, ...groupStageRefreshProps, ...filterStageRefreshProps, ...pivotStageRefreshProps,
+            ...pivotStageRefreshProps, ...aggregateStageRefreshProps, ...sortStageRefreshProps, ...filterAggStageRefreshProps,
+            ...flattenStageRefreshProps,
+        ];
+        this.addManagedPropertyListeners(allProps, params => {
+            const properties = params.changeSet?.properties;
+            if (!properties) { return; };
+
+            const arePropertiesImpacted = (propSet: Set<keyof GridOptions>) => (
+                properties.some(prop => propSet.has(prop))
+            );
+
+            if (arePropertiesImpacted(resetProps)) {
+                this.setRowData(this.rootNode.allLeafChildren.map(child => child.data));
+                return;
+            }
+
+            if (arePropertiesImpacted(groupStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.EVERYTHING });
+                return;
+            }
+
+            if (arePropertiesImpacted(filterStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.FILTER });
+                return;
+            }
+
+            if (arePropertiesImpacted(pivotStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.PIVOT });
+                return;
+            }
+            if (arePropertiesImpacted(aggregateStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.AGGREGATE });
+                return;
+            }
+
+            if (arePropertiesImpacted(sortStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.SORT });
+                return;
+            }
+
+            if (arePropertiesImpacted(filterAggStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.FILTER_AGGREGATES });
+                return;
+            }
+
+            if (arePropertiesImpacted(flattenStageRefreshProps)) {
+                this.refreshModel({ step: ClientSideRowModelSteps.MAP });
+            }
+        });
+
+        this.addManagedPropertyListener('rowHeight', () => this.resetRowHeights());
+    }
+
     public start(): void {
+        this.hasStarted = true;
+        if (this.shouldSkipSettingDataOnStart) {
+            this.dispatchUpdateEventsAndRefresh();
+        } else {
+            this.setInitialData();
+        }
+    }
+
+    private setInitialData(): void {
         const rowData = this.gridOptionsService.get('rowData');
         if (rowData) {
+            this.shouldSkipSettingDataOnStart = true;
             this.setRowData(rowData);
         }
     }
@@ -229,7 +350,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     public ensureRowsAtPixel(rowNodes: RowNode[], pixel: number, increment: number = 0): boolean {
         const indexAtPixelNow = this.getRowIndexAtPixel(pixel);
         const rowNodeAtPixelNow = this.getRow(indexAtPixelNow);
-        const animate = !this.gridOptionsService.is('suppressAnimationFrame');
+        const animate = !this.gridOptionsService.get('suppressAnimationFrame');
 
         if (rowNodeAtPixelNow === rowNodes[0]) {
             return false;
@@ -325,7 +446,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
         let rowNode = this.rootNode.childrenAfterSort![topLevelIndex];
 
-        if (this.gridOptionsService.is('groupHideOpenParents')) {
+        if (this.gridOptionsService.get('groupHideOpenParents')) {
             // if hideOpenParents, and this row open, then this row is now displayed at this index, first child is
             while (rowNode.expanded && rowNode.childrenAfterSort && rowNode.childrenAfterSort.length > 0) {
                 rowNode = rowNode.childrenAfterSort[0];
@@ -397,7 +518,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
         const changedPath = new ChangedPath(false, this.rootNode);
 
-        if (noTransactions || this.gridOptionsService.isTreeData()) {
+        if (noTransactions || this.gridOptionsService.get('treeData')) {
             changedPath.setInactive();
         }
 
@@ -405,7 +526,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     }
 
     private isSuppressModelUpdateAfterUpdateTransaction(params: RefreshModelParams): boolean {
-        if (!this.gridOptionsService.is('suppressModelUpdateAfterUpdateTransaction')) { return false; }
+        if (!this.gridOptionsService.get('suppressModelUpdateAfterUpdateTransaction')) { return false; }
 
         // return true if we are only doing update transactions
         if (params.rowNodeTransactions == null) { return false; }
@@ -438,7 +559,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
             console.error(`AG Grid: invalid step ${step}, available steps are ${Object.keys(stepsMapped).join(', ')}`);
             return undefined;
         }
-        const animate = !this.gridOptionsService.is('suppressAnimationFrame');
+        const animate = !this.gridOptionsService.get('suppressAnimationFrame');
         const modelParams: RefreshModelParams = {
             step: paramsStep,
             keepRenderedRows: true,
@@ -449,6 +570,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     }
 
     refreshModel(paramsOrStep: RefreshModelParams | ClientSideRowModelStep | undefined): void {
+        if (!this.hasStarted) { return; }
 
         let params = typeof paramsOrStep === 'object' && "step" in paramsOrStep ? paramsOrStep : this.buildRefreshModelParams(paramsOrStep);
 
@@ -474,7 +596,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
         switch (params.step) {
             case ClientSideRowModelSteps.EVERYTHING:
-                this.doRowGrouping(params.groupState, params.rowNodeTransactions, params.rowNodeOrder,
+                this.doRowGrouping(params.rowNodeTransactions, params.rowNodeOrder,
                     changedPath, !!params.afterColumnsChanged);
             case ClientSideRowModelSteps.FILTER:
                 this.doFilter(changedPath);
@@ -518,42 +640,46 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
     public getNodesInRangeForSelection(firstInRange: RowNode, lastInRange: RowNode): RowNode[] {
         // if lastSelectedNode is missing, we start at the first row
-        let firstRowHit = !lastInRange;
-        let lastRowHit = false;
-        let lastRow: RowNode;
+        let started = !lastInRange;
+        let finished = false;
 
         const result: RowNode[] = [];
 
-        const groupsSelectChildren = this.gridOptionsService.is('groupSelectsChildren');
+        const groupsSelectChildren = this.gridOptionsService.get('groupSelectsChildren');
 
         this.forEachNodeAfterFilterAndSort(rowNode => {
-            const lookingForLastRow = firstRowHit && !lastRowHit;
-
-            // check if we need to flip the select switch
-            if (!firstRowHit) {
-                if (rowNode === lastInRange || rowNode === firstInRange) {
-                    firstRowHit = true;
-                }
+            // range has been closed, skip till end
+            if (finished) {
+                return;
             }
 
-            const skipThisGroupNode = rowNode.group && groupsSelectChildren;
-            if (!skipThisGroupNode) {
-                const inRange = firstRowHit && !lastRowHit;
-                const childOfLastRow = rowNode.isParentOfNode(lastRow);
-                if (inRange || childOfLastRow) {
-                    result.push(rowNode);
-                }
-            }
-
-            if (lookingForLastRow) {
+            if (started) {
                 if (rowNode === lastInRange || rowNode === firstInRange) {
-                    lastRowHit = true;
-                    if (rowNode === lastInRange) {
-                        lastRow = lastInRange;
-                    } else {
-                        lastRow = firstInRange;
+                    // check if this is the last node we're going to be adding
+                    finished = true;
+
+                    // if the final node was a group node, and we're doing groupSelectsChildren
+                    // make the exception to select all of it's descendants too
+                    if (rowNode.group && groupsSelectChildren) {
+                        result.push(...rowNode.allLeafChildren);
+                        return;
                     }
                 }
+            }
+
+            if (!started) {
+                if (rowNode !== lastInRange && rowNode !== firstInRange) {
+                    // still haven't hit a boundary node, keep searching
+                    return;
+                }
+                started = true;
+            }
+
+            // only select leaf nodes if groupsSelectChildren
+            const includeThisNode = !rowNode.group || !groupsSelectChildren;
+            if (includeThisNode) {
+                result.push(rowNode);
+                return;
             }
         });
 
@@ -620,8 +746,8 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
             // infinite loops happen when there is space between rows. this can happen
             // when Auto Height is active, cos we re-calculate row tops asyncronously
             // when row heights change, which can temporarly result in gaps between rows.
-            const caughtInInfiniteLoop = oldBottomPointer === bottomPointer 
-                                        && oldTopPointer === topPointer;
+            const caughtInInfiniteLoop = oldBottomPointer === bottomPointer
+                && oldTopPointer === topPointer;
             if (caughtInInfiniteLoop) { return midPointer; }
 
             oldBottomPointer = bottomPointer;
@@ -644,9 +770,9 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
     public forEachNode(callback: (node: RowNode, index: number) => void, includeFooterNodes: boolean = false): void {
         this.recursivelyWalkNodesAndCallback({
-            nodes: [...(this.rootNode.childrenAfterGroup || [])], 
+            nodes: [...(this.rootNode.childrenAfterGroup || [])],
             callback,
-            recursionType: RecursionType.Normal, 
+            recursionType: RecursionType.Normal,
             index: 0,
             includeFooterNodes
         });
@@ -656,7 +782,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         this.recursivelyWalkNodesAndCallback({
             nodes: [...(this.rootNode.childrenAfterAggFilter || [])],
             callback,
-            recursionType: RecursionType.AfterFilter, 
+            recursionType: RecursionType.AfterFilter,
             index: 0,
             includeFooterNodes
         });
@@ -693,15 +819,9 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         recursionType: RecursionType;
         index: number;
         includeFooterNodes: boolean
-    }) {
+    }): number {
         const { nodes, callback, recursionType, includeFooterNodes } = params;
         let { index } = params;
-
-        const firstNode = nodes[0];
-
-        if (includeFooterNodes && firstNode?.parent?.sibling) {
-            nodes.push(firstNode.parent.sibling);
-        } 
 
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -736,6 +856,21 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
                 }
             }
         }
+
+        const parentNode = nodes[0]?.parent;
+        if (!includeFooterNodes || !parentNode) return index;
+
+        const isRootNode = parentNode === this.rootNode;
+        if (isRootNode) {
+            const totalFooters = this.gridOptionsService.get('groupIncludeTotalFooter');
+            if (!totalFooters) return index;
+        } else {
+            const isGroupIncludeFooter = this.gridOptionsService.getGroupIncludeFooter();
+            if (!isGroupIncludeFooter({ node: parentNode })) return index;
+        }
+
+        parentNode.createFooter();
+        callback(parentNode.sibling, index++);
         return index;
     }
 
@@ -759,7 +894,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     // + gridApi.expandAll()
     // + gridApi.collapseAll()
     public expandOrCollapseAll(expand: boolean): void {
-        const usingTreeData = this.gridOptionsService.isTreeData();
+        const usingTreeData = this.gridOptionsService.get('treeData');
         const usingPivotMode = this.columnModel.isPivotActive();
 
         const recursiveExpandOrCollapse = (rowNodes: RowNode[] | null): void => {
@@ -800,7 +935,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         this.refreshModel({ step: ClientSideRowModelSteps.MAP });
 
         const eventSource = expand ? 'expandAll' : 'collapseAll';
-        const event: WithoutGridCommon<ExpandCollapseAllEvent> = {            
+        const event: WithoutGridCommon<ExpandCollapseAllEvent> = {
             type: Events.EVENT_EXPAND_COLLAPSE_ALL,
             source: eventSource
         };
@@ -816,7 +951,6 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     }
 
     private doRowGrouping(
-        groupState: any,
         rowNodeTransactions: RowNodeTransaction[] | undefined,
         rowNodeOrder: { [id: string]: number; } | undefined,
         changedPath: ChangedPath,
@@ -837,11 +971,9 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
                     changedPath: changedPath,
                     afterColumnsChanged: afterColumnsChanged
                 });
-                // set open/closed state on groups
-                this.restoreGroupState(groupState);
             }
 
-            if (this.gridOptionsService.is('groupSelectsChildren')) {
+            if (this.gridOptionsService.get('groupSelectsChildren')) {
                 const selectionChanged = this.selectionService.updateGroupsFromChildrenSelections('rowGroupChanged', changedPath);
 
                 if (selectionChanged) {
@@ -860,19 +992,11 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
             }
             this.rootNode.updateHasChildren();
         }
-    }
 
-    private restoreGroupState(groupState: any): void {
-        if (!groupState) { return; }
-
-        _.traverseNodesWithKey(this.rootNode.childrenAfterGroup, (node: RowNode, key: string) => {
-            // if the group was open last time, then open it this time. however
-            // if was not open last time, then don't touch the group, so the 'groupDefaultExpanded'
-            // setting will take effect.
-            if (typeof groupState[key] === 'boolean') {
-                node.expanded = groupState[key];
-            }
+        this.eventService.dispatchEventOnce({
+            type: Events.EVENT_ROW_COUNT_READY
         });
+
     }
 
     private doFilter(changedPath: ChangedPath) {
@@ -883,13 +1007,6 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         if (this.pivotStage) {
             this.pivotStage.execute({ rowNode: this.rootNode, changedPath: changedPath });
         }
-    }
-
-    private getGroupState(): any {
-        if (!this.rootNode.childrenAfterGroup || !this.gridOptionsService.is('rememberGroupStateWhenNewData')) { return null; }
-        const result: any = {};
-        _.traverseNodesWithKey(this.rootNode.childrenAfterGroup, (node: RowNode, key: string) => result[key] = node.expanded);
-        return result;
     }
 
     public getCopyOfNodesMap(): { [id: string]: RowNode; } {
@@ -919,19 +1036,20 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
     // rows: the rows to put into the model
     public setRowData(rowData: any[]): void {
-
         // no need to invalidate cache, as the cache is stored on the rowNode,
         // so new rowNodes means the cache is wiped anyway.
-
-        // remember group state, so we can expand groups that should be expanded
-        const groupState = this.getGroupState();
+        
+        // - clears selection, done before we set row data to ensure it isn't readded via `selectionService.syncInOldRowNode`
+        this.selectionService.reset('rowDataChanged');
 
         this.nodeManager.setRowData(rowData);
+        
+        if (this.hasStarted) {
+            this.dispatchUpdateEventsAndRefresh();
+        }
+    }
 
-        // - clears selection
-        this.selectionService.reset();
-        // - updates filters
-        this.filterManager.onNewRowsLoaded('rowDataUpdated');
+    private dispatchUpdateEventsAndRefresh(): void {
 
         // this event kicks off:
         // - shows 'no rows' overlay if needed
@@ -942,8 +1060,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
 
         this.refreshModel({
             step: ClientSideRowModelSteps.EVERYTHING,
-            groupState: groupState,
-            newData: true
+            newData: true,
         });
     }
 
@@ -998,7 +1115,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         }
 
         if (rowNodeTrans.length > 0) {
-            const event: WithoutGridCommon<AsyncTransactionsFlushed> = {                
+            const event: WithoutGridCommon<AsyncTransactionsFlushed> = {
                 type: Events.EVENT_ASYNC_TRANSACTIONS_FLUSHED,
                 results: rowNodeTrans
             };
@@ -1026,7 +1143,7 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
     }
 
     private createRowNodeOrder(): { [id: string]: number; } | undefined {
-        const suppressSortOrder = this.gridOptionsService.is('suppressMaintainUnsortedOrder');
+        const suppressSortOrder = this.gridOptionsService.get('suppressMaintainUnsortedOrder');
         if (suppressSortOrder) { return; }
 
         const orderMap: { [id: string]: number } = {};
@@ -1047,11 +1164,18 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         rowNodeOrder: { [id: string]: number; } | undefined,
         forceRowNodeOrder: boolean
     ): void {
-        const animate = !this.gridOptionsService.is('suppressAnimationFrame');
+        if (!this.hasStarted) { return; }
+
+        const animate = !this.gridOptionsService.get('suppressAnimationFrame');
 
         if (forceRowNodeOrder) {
             rowNodeOrder = this.createRowNodeOrder();
         }
+
+        const event: WithoutGridCommon<RowDataUpdatedEvent> = {
+            type: Events.EVENT_ROW_DATA_UPDATED
+        };
+        this.eventService.dispatchEvent(event);
 
         this.refreshModel({
             step: ClientSideRowModelSteps.EVERYTHING,
@@ -1061,14 +1185,6 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
             keepEditingRows: true,
             animate
         });
-
-        // - updates filters
-        this.filterManager.onNewRowsLoaded('rowDataUpdated');
-
-        const event: WithoutGridCommon<RowDataUpdatedEvent> = {
-            type: Events.EVENT_ROW_DATA_UPDATED
-        };
-        this.eventService.dispatchEvent(event);
     }
 
     private doRowsToDisplay() {
@@ -1093,6 +1209,9 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         const atLeastOne = this.resetRowHeightsForAllRowNodes();
 
         this.rootNode.setRowHeight(this.rootNode.rowHeight, true);
+        if (this.rootNode.sibling) {
+            this.rootNode.sibling.setRowHeight(this.rootNode.sibling.rowHeight, true);
+        }
 
         // when pivotMode but pivot not active, root node is displayed on its own
         // because it's only ever displayed alone, refreshing the model (onRowHeightChanged) is not required
@@ -1112,6 +1231,10 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
             if (detailNode) {
                 detailNode.setRowHeight(detailNode.rowHeight, true);
             }
+
+            if (rowNode.sibling) {
+                rowNode.sibling.setRowHeight(rowNode.sibling.rowHeight, true);
+            }
             atLeastOne = true;
         });
 
@@ -1124,4 +1247,13 @@ export class ClientSideRowModel extends BeanStub implements IClientSideRowModel 
         this.resetRowHeights();
     }
 
+    private onGridReady(): void {
+        if (this.hasStarted) { return; }
+        // App can start using API to add transactions, so need to add data into the node manager if not started
+        this.setInitialData();
+    }
+
+    public isRowDataLoaded(): boolean {
+        return this.nodeManager.hasData();
+    }
 }

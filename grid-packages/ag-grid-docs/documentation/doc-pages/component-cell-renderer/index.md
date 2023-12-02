@@ -2,34 +2,29 @@
 title: "Cell Renderer"
 ---
 
-
-[[only-javascript]]
+<framework-specific-section frameworks="javascript">
 |By default the grid will create the cell values using simple text. If you want more complex HTML inside the cells you can achieve this using Cell Renderers.
+</framework-specific-section>
 
-[[only-vue]]
+<framework-specific-section frameworks="vue">
 |By default the grid will create the cell values using simple text. If you want more complex HTML inside the cells you can achieve this using Cell Renderers.
+</framework-specific-section>
 
-[[only-react]]
-|<video-section id="9IbhW4z--mg" title="React Cell Renderers" header="true">
-|By default the grid will create the cell values using simple text. If you want more complex HTML inside the cells you can achieve this using Cell Renderers.
-|</video-section>
+<framework-specific-section frameworks="react">
+<video-section id="9IbhW4z--mg" title="React Cell Renderers" header="true">
+By default the grid will create the cell values using simple text. If you want more complex HTML inside the cells you can achieve this using Cell Renderers.
+</video-section>
+</framework-specific-section>
 
-[[only-angular]]
-|<video-section id="xsafnM77NVs" title="Angular Cell Renderers" header="true">
-|By default the grid will create the cell values using simple text. If you want more complex HTML inside the cells you can achieve this using Cell Renderers.
-|</video-section>
+<framework-specific-section frameworks="angular">
+<video-section id="xsafnM77NVs" title="Angular Cell Renderers" header="true">
+By default the grid will create the cell values using simple text. If you want more complex HTML inside the cells you can achieve this using Cell Renderers.
+</video-section>
+</framework-specific-section>
 
-## Simple Cell Renderer
 
-md-include:simple-renderer-javascript.md
-md-include:simple-renderer-angular.md
-md-include:simple-renderer-react.md
-md-include:simple-renderer-vue.md
-
-## Simple Cell Renderer Example
-
-The example below shows a simple Cell Renderer in action. It uses a Cell Renderer to render a hash (`#`) symbol for each medal won
-(instead of the medal count), and the `MedalCellRenderer` defined in the code snippet above for the `Total` column:
+The example below uses a Cell Renderer to render a hash (`#`) symbol for each medal won
+(instead of the medal count), and a cell with a button in the `Total` column:
 
 <grid-example title='Simple Cell Renderer' name='simple' type='mixed' options='{ "exampleHeight": 460 }'></grid-example>
 
@@ -50,14 +45,58 @@ See the section [registering custom components](/components/#registering-custom-
 
 Component Refresh needs a bit more explanation. Here we go through some of the finer details.
 
-[[only-javascript]]
-md-include:component-refresh-general.md
-[[only-angular]]
-md-include:component-refresh-general.md
-[[only-vue]]
-md-include:component-refresh-general.md
-  
-md-include:component-refresh-react.md
+### Events Causing Refresh
+
+<framework-specific-section frameworks="javascript,angular,vue">
+| The grid can refresh the data in the browser, but not every refresh / redraw of the grid results in the refresh method
+| of your cell renderer getting called. The following items are those that **do** cause refresh to be called:
+|
+| - Calling `rowNode.setDataValue(colKey, value)` to set a value directly onto the `rowNode`. This is the preferred API way to change one value from outside of the grid.
+| - When editing a cell and editing is stopped, so that cell displays new value after editing.
+| - Calling `api.refreshCells()` to inform grid data has changed (see [Refresh](/view-refresh/)).
+|
+| If any of the above occur and the grid confirms the data has changed via [Change Detection](/change-detection/), then the `refresh()` method will be called.
+</framework-specific-section>
+
+<framework-specific-section frameworks="react">
+|When the grid can refresh a cell (instead of replacing it altogether) then the update will occur as follows:
+|
+|- For class components, `componentWillReceiveProps`, `getDerivedStateFromProps` will get called and the function re-rendered.
+|- For functional components, the function will get called again with new props.
+|
+|The grid can refresh the data in the browser, but not every refresh / redraw of the grid results in the refresh of your cell renderer.
+|
+|The following items are those that **do** cause refresh to be called:
+|
+|- Calling `rowNode.setDataValue(colKey, value)` to set a value directly onto the `rowNode`. This is the preferred API way to change one value from outside the grid.
+|- When editing a cell and editing is stopped, so that cell displays new value after editing.
+|- Calling `api.refreshCells()` to inform grid data has changed (see [Refresh](/view-refresh/)).
+|
+|If any of the above occur and the grid confirms the data has changed via [Change Detection](/change-detection/), then the Cell Renderer is refreshed.
+</framework-specific-section>
+
+The following will **not** result in the cell renderer's refresh method being called:
+
+- Calling `rowNode.setData(data)` to set new data into a `rowNode`. When you set the data for the whole row, the whole row in the DOM is recreated again from scratch.
+- Scrolling the grid vertically causes columns (and their containing cells) to be removed and inserted due to column virtualisation.
+
+All of the above will result in the component being destroyed and recreated.
+
+### Grid vs Component Refresh
+
+<framework-specific-section frameworks="javascript,angular,vue">
+| The refresh method returns back a boolean value. If you do not want to handle the refresh in the cell renderer, just return back `false` from an otherwise empty method. This will indicate to the grid that you did not refresh and the grid will instead destroy the component and create another instance of your component from scratch instead.
+</framework-specific-section>
+
+<framework-specific-section frameworks="react">
+|If you choose to implement the `refresh` method, then note that this method returns a boolean value. If you do not
+|want to handle the refresh in the cell renderer, just return `false` from an otherwise empty method. This will
+|indicate to the grid that you did not refresh and the grid will instead destroy the component and create another instance of your component from scratch instead.
+</framework-specific-section>
+
+The example below demonstrates handling the refresh, where the Gold, Silver and Bronze column cell renderers refresh when the Update Data button is clicked.
+
+<grid-example title='Component Refresh' name='component-refresh' type='mixed'></grid-example>
 
 ### Change Detection
 
@@ -74,17 +113,16 @@ The diagram below (which is taken from the section [Cell Content](/cell-content/
 
 In short, a value is prepared. The value comes using either the `colDef.field` or the `colDef.valueGetter`. The value is also optionally passed through a `colDef.valueFormatter` if it exists. Then the value is finally placed into the DOM, either directly, or by using the chosen `colDef.cellRenderer`.
 
-[[only-javascript]]
-|<image-caption src='value-getters/resources/valueGetterFlow.svg' width="55rem" centered="true" alt='Value Getter Flow' constrained='true'></image-caption>
-[[only-angular]]
-|<image-caption src='resources/valueGetterFlowFw.svg' width="55rem" centered="true" alt='Value Getter Flow' constrained='true'></image-caption>
-[[only-react]]
-|<image-caption src='resources/valueGetterFlowFw.svg' width="55rem" centered="true" alt='Value Getter Flow' constrained='true'></image-caption>
-[[only-vue]]
-|<image-caption src='resources/valueGetterFlowFw.svg' width="55rem" centered="true" alt='Value Getter Flow' constrained='true'></image-caption>
+<framework-specific-section frameworks="javascript">
+<image-caption src='value-getters/resources/valueGetterFlow.svg' width="55rem" centered="true" alt='Value Getter Flow' constrained='true' filterdarkmode="true"></image-caption>
+</framework-specific-section>
+
+<framework-specific-section frameworks="angular,react,vue">
+<image-caption src='resources/valueGetterFlowFw.svg' width="55rem" centered="true" alt='Value Getter Flow' constrained='true' filterdarkmode="true"></image-caption>
+</framework-specific-section>
 
 ## Complementing Cell Renderer Params
-
+ 
 On top of the parameters provided by the grid, you can also provide your own parameters. This is useful if you want to
 'configure' your Cell Renderer. For example, you might have a Cell Renderer for formatting currency but you need to
 provide what currency for your cell renderer to use.
@@ -95,7 +133,7 @@ md-include:complementing-component-javascript.md
 md-include:complementing-component-angular.md
 md-include:complementing-component-react.md
 md-include:complementing-component-vue.md
-
+ 
 ## Data in Cell Renderers
 
 Sometimes the `data` property in the parameters given to a cell renderer might not be populated. This can happen for
@@ -111,20 +149,16 @@ md-include:data-in-renderer-vue.md
 md-include:renderer-function-javascript.md
 md-include:renderer-function-angular.md
 md-include:renderer-function-vue.md 
-
-<!-- 
-// taking these out, as they are regarding using JavaScript Function inside Framework Grid,
-// which isn't supported with the new xxxComp attributes.
-md-include:renderer-function-react.md
--->
-
-[[only-javascript]]
-|[[note]]
-|| You might be wondering how the grid knows if you have provided a Cell Renderer component class or
-|| a simple function, as JavaScript uses functions to implement classes. The answer is the grid looks
-|| for the getGui() method in the prototype of the function (a mandatory method in the cell renderer
-|| interface). If the getGui() method exists, it assumes a component, otherwise it assumes a function.
-
+ 
+<framework-specific-section frameworks="javascript">
+<note>
+| You might be wondering how the grid knows if you have provided a Cell Renderer component class or
+| a simple function, as JavaScript uses functions to implement classes. The answer is the grid looks
+| for the `getGui()` method in the prototype of the function (a mandatory method in the cell renderer
+| interface). If the `getGui()` method exists, it assumes a component, otherwise it assumes a function.
+</note>
+</framework-specific-section>
+ 
 ## Complex Cell Renderer Example
 
 The example below shows five columns formatted, demonstrating each of the methods above.
@@ -154,17 +188,17 @@ After the grid has created an instance of a cell renderer for a cell it is possi
 
 An example of getting the cell renderer for exactly one cell is as follows:
 
-```js
-// example - get cell renderer for first row and column 'gold'
-const firstRowNode = gridOptions.api.getDisplayedRowAtIndex(0);
-const params = { columns: ['gold'], rowNodes: [firstRowNode] };
-const instances = gridOptions.api.getCellRendererInstances(params);
-
-if (instances.length > 0) {
-    // got it, user must be scrolled so that it exists
-    const instance = instances[0];
-}
-```
+<snippet transform={false}>
+|// example - get cell renderer for first row and column 'gold'
+|const firstRowNode = api.getDisplayedRowAtIndex(0);
+|const params = { columns: ['gold'], rowNodes: [firstRowNode] };
+|const instances = api.getCellRendererInstances(params);
+|
+|if (instances.length > 0) {
+|    // got it, user must be scrolled so that it exists
+|    const instance = instances[0];
+|}
+</snippet>
 
 Note that this method will only return instances of the cell renderer that exists. Due to row and column virtualisation, renderers will only exist for cells that the user can actually see due to horizontal and vertical scrolling.
 
@@ -177,43 +211,54 @@ The example below demonstrates custom methods on cell renderers called by the ap
 
 <grid-example title='Get Cell Renderer' name='get-cell-renderer' type='generated'></grid-example>
 
-[[only-react]]
-|[[note]]
-||Note that the hook version of the above example makes use of `useImperativeHandle` to expose methods to the grid (and other components). Please
-||refer to the [hook specific](/react-hooks/) documentation for more information.
+<framework-specific-section frameworks="react">
+<note>
+Note that the hook version of the above example makes use of `useImperativeHandle` to expose methods to the grid (and other components). Please
+refer to the [hook specific](../react-hooks/) documentation for more information.
+</note>
+</framework-specific-section>
 
-[[only-angular]]
+<framework-specific-section frameworks="angular">
 |### Example: Rendering using more complex Components
 |This example illustrates a few different ideas:
 |- Custom Cell Renderers
 |- Parent/Child Communication using [context](/context/)
 |- Storing the Grid API via the "Grid Ready" event, and using it later
-|
-|<grid-example title='Simple Dynamic Component' name='dynamic-components' type='mixed' options='{ "extras": ["fontawesome", "bootstrap"] }'></grid-example>
-[[only-react]]
+</framework-specific-section>
+<framework-specific-section frameworks="angular">
+<grid-example title='Simple Dynamic Component' name='dynamic-components' type='mixed' options='{ "extras": ["fontawesome"] }'></grid-example>
+</framework-specific-section>
+
+<framework-specific-section frameworks="react">
 |### Example: Rendering using more complex Components
 |This example illustrates a few different ideas:
 |- Custom Cell Renderers
 |- Parent/Child Communication using [context](/context/)
 |- Using a `ref` to access `AgGridReact` in order to access the underlying APIs
-|
-|<grid-example title='Simple Dynamic Component' name='dynamic-components' type='mixed' options='{ "extras": ["fontawesome", "bootstrap"] }'></grid-example>
-[[only-vue]]
+</framework-specific-section>
+<framework-specific-section frameworks="react">
+<grid-example title='Simple Dynamic Component' name='dynamic-components' type='mixed' options='{ "extras": ["fontawesome"] }'></grid-example>
+</framework-specific-section>
+
+<framework-specific-section frameworks="vue">
 |### Example: Rendering using more complex Components
 |This example illustrates a few different ideas:
 |- Custom Cell Renderers
 |- Parent/Child Communication using [context](/context/)
 |- Storing the Grid API via the "Grid Ready" event, and using it later
-|
-|<grid-example title='Simple Dynamic Component' name='dynamic-components' type='mixed' options='{ "extras": ["fontawesome", "bootstrap"] }'></grid-example>
+</framework-specific-section>
+<framework-specific-section frameworks="vue">
+<grid-example title='Simple Dynamic Component' name='dynamic-components' type='mixed' options='{ "extras": ["fontawesome"] }'></grid-example>
+</framework-specific-section>
 
-[[only-angular]]
-|
+<framework-specific-section frameworks="angular">
 | ### Example: Rendering using nested Modules
 |
 | Using more complex Angular Components in the Cell Renderers - specifically how you can use nested `NgModule`'s within the grid.
-|
-| <grid-example title='Richer Dynamic Components' name='angular-rich-dynamic' type='angular' options='{ "exampleHeight": 380, "extras": ["bootstrap"] }'></grid-example>
+</framework-specific-section>
+<framework-specific-section frameworks="angular">
+<grid-example title='Richer Dynamic Components' name='angular-rich-dynamic' type='angular' options='{ "exampleHeight": 380 }'></grid-example>
+</framework-specific-section>
 
 ## Cell Renderer Keyboard Navigation
 
@@ -221,10 +266,10 @@ When using custom cell renderers, the custom cell renderer is responsible for im
 
 Adding support for keyboard navigation and focus requires a custom `suppressKeyboardEvent` function in grid options. See [Suppress Keyboard Events](/keyboard-navigation/#suppress-keyboard-events).
 
-An example of this is shown below, enabling keyboard navigation through the custom cell elements when pressing <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd>:
+An example of this is shown below, enabling keyboard navigation through the custom cell elements when pressing <kbd>⇥ Tab</kbd> and <kbd>⇧ Shift</kbd>+<kbd>⇥ Tab</kbd>:
 
-- Click on the top left `Natalie Coughlin` cell, press the <kbd>Tab</kbd> key and notice that the button, textbox and link can be tabbed into. At the end of the cell elements, the tab focus moves to the next cell in the next row
-- Use <kbd>Shift</kbd>+<kbd>Tab</kbd> to navigate in the reverse direction
+- Click on the top left `Natalie Coughlin` cell, press the <kbd>⇥ Tab</kbd> key and notice that the button, textbox and link can be tabbed into. At the end of the cell elements, the tab focus moves to the next cell in the next row
+- Use <kbd>⇧ Shift</kbd>+<kbd>⇥ Tab</kbd> to navigate in the reverse direction
 
 The `suppressKeyboardEvent` callback is used to capture tab events and determine if the user is tabbing forward or backwards. It also suppresses the default behaviour of moving to the next cell if tabbing within the child elements. 
 

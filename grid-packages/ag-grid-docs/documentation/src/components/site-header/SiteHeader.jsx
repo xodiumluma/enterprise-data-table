@@ -1,134 +1,201 @@
 import classnames from 'classnames';
 import { withPrefix } from 'gatsby';
-import React, { useRef, useState } from 'react';
-import supportedFrameworks from 'utils/supported-frameworks.js';
+import React, { useState } from 'react';
+import breakpoints from '../../design-system/breakpoint.module.scss';
 import LogoType from '../../images/inline-svgs/ag-grid-logotype.svg';
 import MenuIcon from '../../images/inline-svgs/menu-icon.svg';
+import { useWindowSize } from '../../utils/use-window-size';
+import { Collapsible } from '../Collapsible';
 import { Icon } from '../Icon';
 import LogoMark from '../LogoMark';
+import { DarkModeToggle } from './DarkModeToggle';
 import styles from './SiteHeader.module.scss';
+import menuData from '../../../doc-pages/licensing/menu.json';
+import apiMenuData from '../../../doc-pages/licensing/api-menu.json';
+import Search from "../search/Search";
+import {getCurrentFramework} from '../../utils/local-storage';
+import {PromoBanner} from '../promo-banner/PromoBanner'; 
+
+const SITE_HEADER_SMALL_WIDTH = parseInt(breakpoints['site-header-small'], 10);
 
 const links = [
     {
         name: 'Demo',
-        url: '/example',
+        url: '/example/',
+        docsLink: false,
     },
     {
-        name: 'Documentation',
-        url: withPrefix('/documentation/'),
+        name: 'Docs',
+        url: '/getting-started',
+        docsLink: true,
     },
     {
-        name: 'Pricing',
-        url: '/license-pricing',
+        name: 'API',
+        url: '/reference',
+        docsLink: true,
     },
     {
         name: 'Blog',
         url: 'https://blog.ag-grid.com/',
+        docsLink: false,
+    },
+    {
+        name: 'Pricing',
+        url: '/license-pricing',
+        docsLink: false,
     },
     {
         name: 'Github',
         url: 'https://github.com/ag-grid/ag-grid',
         icon: <Icon name="github" />,
-        cssClass: 'github-item',
+        github: true,
+        docsLink: false,
     },
 ];
 
-const getCurrentPageName = (path) => {
-    const rawPath = path.split('/')[1];
+const IS_SSR = typeof window === 'undefined';
 
-    const allLinks = [
-        ...links,
-        ...supportedFrameworks.map((framework) => ({ name: 'Documentation', url: `/${framework}-data-grid` })),
-    ];
+const isLinkSelected = (name, path) => {
+    const link = links.find(l => l.name === name);
+    if (!link) return false;
 
-    const match = allLinks.filter((link) => link.url.includes(rawPath));
-
-    if (match && match.length === 1) {
-        return match[0].name;
+    if (!link.docsLink) {
+        return link.url.startsWith('http') ? path === link.url : path.startsWith(link.url);
     }
-};
 
-const HeaderLinks = ({ path, toggleButtonRef }) => {
-    return (
-        <ul className={classnames(styles.navItemList, 'list-style-none')}>
-            {links.map((link) => {
-                const linkClasses = classnames(styles.navItem, {
-                    [styles.navItemActive]: link.name === getCurrentPageName(path),
-                    [styles[link.cssClass]]: link.cssClass,
-                });
-
-                return (
-                    <li key={link.name.toLocaleLowerCase()} className={linkClasses}>
-                        <a
-                            className={styles.navLink}
-                            href={link.url}
-                            onClick={() => {
-                                const isOpen = !toggleButtonRef.current?.classList.contains('collapsed');
-                                if (isOpen) {
-                                    toggleButtonRef.current?.click();
-                                }
-                            }}
-                            aria-label={`AG Grid ${link.name}`}
-                        >
-                            {link.icon}
-                            <span>{link.name}</span>
-                        </a>
-                    </li>
-                );
-            })}
-        </ul>
+    const checkItemsRecursive = items => items.some(item =>
+        item.url && path.endsWith(item.url) || (item.items && checkItemsRecursive(item.items))
     );
+
+    const menuToCheck = link.docsLink ? (name === "API" ? apiMenuData : menuData) : [];
+    const whatsNewLink = name === "Docs" ? menuToCheck.find(item => item.title === "What's New") : null;
+
+    return checkItemsRecursive(menuToCheck) || (whatsNewLink && path.endsWith(whatsNewLink.url));
 };
 
-const HeaderExpandButton = ({ buttonRef }) => (
+const HeaderLinks = ({ path, isOpen, toggleIsOpen, currentFramework }) => {
+    return links.map((link) => {
+        const linkClasses = classnames(styles.navItem, {
+            [styles.navItemActive]: isLinkSelected(link.name, path),
+            [styles.buttonItem]: link.github,
+            [styles.githubItem]: link.github,
+        });
+
+        return (
+            <li key={link.name.toLocaleLowerCase()} className={linkClasses}>
+                <a
+                    className={styles.navLink}
+                    href={link.docsLink ? withPrefix(`/${currentFramework}-data-grid${link.url}`) : link.url}
+                    onClick={() => {
+                        if (isOpen) {
+                            toggleIsOpen();
+                        }
+                    }}
+                    aria-label={`AG Grid ${link.name}`}
+                >
+                    {link.icon}
+                    <span>{link.name}</span>
+                </a>
+            </li>
+        );
+    });
+};
+
+const HeaderExpandButton = ({ isOpen, toggleIsOpen }) => (
     <button
-        ref={buttonRef}
         className={styles.mobileMenuButton}
         type="button"
-        data-toggle="collapse"
-        data-target="#main-nav"
-        aria-controls="main-nav"
-        aria-expanded="false"
+        aria-controls={styles.mainNav}
+        aria-expanded={isOpen.toString()}
         aria-label="Toggle navigation"
+        onClick={() => toggleIsOpen && toggleIsOpen()}
     >
         <MenuIcon className={styles.menuIcon} />
     </button>
 );
 
-const HeaderNav = ({ path }) => {
-    const buttonRef = useRef();
+const HeaderNav = ({ path, currentFramework }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const { width } = useWindowSize();
+    const isDesktop = width >= SITE_HEADER_SMALL_WIDTH;
+    const isDocsUrl = path.includes('-data-grid');
+
+    const toggleIsOpen = () => {
+        setIsOpen((currentIsOpen) => {
+            return !currentIsOpen;
+        });
+    };
+
     return (
         <>
-            <HeaderExpandButton buttonRef={buttonRef} />
-            <nav className={classnames(styles.nav, 'collapse')} id="main-nav">
-                <HeaderLinks path={path} toggleButtonRef={buttonRef} />
-            </nav>
+            { isDocsUrl ? <>
+                <button
+                    id="mobile-docs-nav-button"
+                    className={classnames(styles.mobileNavButton, 'button-input')}
+                    type="button"
+                    data-toggle="collapse"
+                    data-target="#side-nav"
+                    aria-controls="side-nav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation"
+                >
+                    <span>Docs</span>
+                    <Icon name="collapseCategories" />
+                </button>
+                
+                <Search currentFramework={currentFramework} /> 
+            </> : null }
+
+            {IS_SSR && (
+                <>
+                    <HeaderExpandButton isOpen={false} />
+                    <nav id="main-nav" className={styles.mainNav}>
+                        <ul className={classnames(styles.navItemList, 'list-style-none')}>
+                            <HeaderLinks path={path} isOpen={isOpen} toggleIsOpen={toggleIsOpen} currentFramework={currentFramework} />
+                            <DarkModeToggle />
+                        </ul>
+                    </nav>
+                </>
+            )}
+            {!IS_SSR && (
+                <>
+                    <HeaderExpandButton isOpen={isOpen} toggleIsOpen={toggleIsOpen} />
+                    <Collapsible id={styles.mainNav} isDisabled={isDesktop} isOpen={isOpen}>
+                        <nav id={isDesktop ? 'main-nav' : undefined} className={styles.mainNav}>
+                            <ul className={classnames(styles.navItemList, 'list-style-none')}>
+                                <HeaderLinks path={path} isOpen={isOpen} toggleIsOpen={toggleIsOpen} currentFramework={currentFramework} />
+                                <DarkModeToggle />
+                            </ul>
+                        </nav>
+                    </Collapsible>
+                </>
+            )}
         </>
     );
 };
 
-export const SiteHeader = ({ path }) => {
+export const SiteHeader = ({ path, currentFramework }) => {
     const [isLogoHover, setIsLogoHover] = useState(false);
     return (
-        <header className={classnames('ag-styles', styles.header)}>
-            <div className={classnames(styles.headerInner, 'page-margin')}>
+        <><PromoBanner /><header className={styles.header}>
+            <div className={styles.headerInner}>
                 <a
                     href="/"
                     aria-label="Home"
                     className={styles.headerLogo}
                     onMouseEnter={() => {
                         setIsLogoHover(true);
-                    }}
+                    } }
                     onMouseLeave={() => {
                         setIsLogoHover(false);
-                    }}
+                    } }
                 >
                     <LogoType />
                     <LogoMark bounce={isLogoHover} />
                 </a>
 
-                <HeaderNav path={path} />
+                <HeaderNav path={path} currentFramework={currentFramework} />
             </div>
-        </header>
+        </header></>
     );
 };

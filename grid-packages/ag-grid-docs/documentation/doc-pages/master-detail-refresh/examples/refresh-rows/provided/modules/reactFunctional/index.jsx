@@ -1,10 +1,10 @@
 'use strict';
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AgGridReact } from '@ag-grid-community/react';
 import '@ag-grid-community/styles/ag-grid.css';
-import '@ag-grid-community/styles/ag-theme-alpine.css';
+import '@ag-grid-community/styles/ag-theme-quartz.css';
 import { ModuleRegistry } from '@ag-grid-community/core';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { MasterDetailModule } from '@ag-grid-enterprise/master-detail';
@@ -39,12 +39,6 @@ const GridExample = () => {
     const detailCellRendererParams = useMemo(() => {
         return {
             refreshStrategy: 'rows',
-            template: (props) => (
-                <div class="ag-details-row ag-details-row-fixed-height">
-                    <div style="padding: 4px; font-weight: bold;">{props.data.name} {props.data.calls} calls</div>
-                    <div ref="eDetailGrid" class="ag-details-grid ag-details-grid-fixed-height" />
-                </div>
-            ),
             detailGridOptions: {
                 rowSelection: 'multiple',
                 enableCellChangeFlash: true,
@@ -60,7 +54,7 @@ const GridExample = () => {
                 ],
                 defaultColDef: {
                     flex: 1,
-                    sortable: true,
+                    
                 },
             },
             getDetailRowData: (params) => {
@@ -115,7 +109,7 @@ const GridExample = () => {
     return (
         <div style={containerStyle}>
 
-            <div style={gridStyle} className="ag-theme-alpine">
+            <div style={gridStyle} className={/** DARK MODE START **/document.documentElement.dataset.defaultTheme || 'ag-theme-quartz'/** DARK MODE END **/}>
                 <AgGridReact
                     ref={gridRef}
                     rowData={rowData}
@@ -127,8 +121,7 @@ const GridExample = () => {
                     detailCellRendererParams={detailCellRendererParams}
                     onGridReady={onGridReady}
                     onFirstDataRendered={onFirstDataRendered}
-                >
-                </AgGridReact>
+                />
             </div>
 
         </div>
@@ -137,4 +130,4 @@ const GridExample = () => {
 }
 
 const root = createRoot(document.getElementById('root'));
-root.render(<GridExample />);
+root.render(<StrictMode><GridExample /></StrictMode>);

@@ -36,7 +36,7 @@ export class PrimaryColsHeaderPanel extends Component {
 
     private static TEMPLATE = /* html */
         `<div class="ag-column-select-header" role="presentation">
-            <div ref="eExpand" class="ag-column-select-header-icon" tabindex="0"></div>
+            <div ref="eExpand" class="ag-column-select-header-icon"></div>
             <ag-checkbox ref="eSelect" class="ag-column-select-header-checkbox"></ag-checkbox>
             <ag-input-text-field class="ag-column-select-header-filter-wrapper" ref="eFilterTextField"></ag-input-text-field>
         </div>`;
@@ -50,7 +50,6 @@ export class PrimaryColsHeaderPanel extends Component {
         this.createExpandIcons();
 
         this.addManagedListener(this.eExpand, 'click', this.onExpandClicked.bind(this));
-
         this.addManagedListener(this.eExpand, 'keydown', (e: KeyboardEvent) => {
             if (e.key === KeyCode.SPACE) {
                 e.preventDefault();
@@ -59,13 +58,16 @@ export class PrimaryColsHeaderPanel extends Component {
         });
 
         this.addManagedListener(this.eSelect.getInputElement(), 'click', this.onSelectClicked.bind(this));
+        this.addManagedPropertyListener('functionsReadOnly', () => this.onFunctionsReadOnlyPropChanged());
 
-        this.eFilterTextField.onValueChange(() => this.onFilterTextChanged());
+        this.eFilterTextField
+            .setAutoComplete(false)
+            .onValueChange(() => this.onFilterTextChanged());
 
         this.addManagedListener(
             this.eFilterTextField.getInputElement(),
-            'keypress',
-            this.onMiniFilterKeyPress.bind(this)
+            'keydown',
+            this.onMiniFilterKeyDown.bind(this)
         );
 
         this.addManagedListener(this.eventService, Events.EVENT_NEW_COLUMNS_LOADED, this.showOrHideOptions.bind(this));
@@ -74,10 +76,22 @@ export class PrimaryColsHeaderPanel extends Component {
 
         this.eSelect.setInputAriaLabel(translate('ariaColumnSelectAll', 'Toggle Select All Columns'));
         this.eFilterTextField.setInputAriaLabel(translate('ariaFilterColumnsInput', 'Filter Columns Input'));
+
+        this.activateTabIndex([this.eExpand]);
+    }
+
+    private onFunctionsReadOnlyPropChanged(): void {
+        const readOnly = this.gridOptionsService.get('functionsReadOnly');
+        this.eSelect.setReadOnly(readOnly);
+        this.eSelect.addOrRemoveCssClass('ag-column-select-column-readonly', readOnly);
     }
 
     public init(params: ToolPanelColumnCompParams): void {
         this.params = params;
+
+        const readOnly = this.gridOptionsService.get('functionsReadOnly');
+        this.eSelect.setReadOnly(readOnly);
+        this.eSelect.addOrRemoveCssClass('ag-column-select-column-readonly', readOnly);
 
         if (this.columnModel.isReady()) {
             this.showOrHideOptions();
@@ -126,7 +140,7 @@ export class PrimaryColsHeaderPanel extends Component {
         this.onFilterTextChangedDebounced();
     }
 
-    private onMiniFilterKeyPress(e: KeyboardEvent): void {
+    private onMiniFilterKeyDown(e: KeyboardEvent): void {
         if (e.key === KeyCode.ENTER) {
             // we need to add a delay that corresponds to the filter text debounce delay to ensure
             // the text filtering has happened, otherwise all columns will be deselected

@@ -35,7 +35,6 @@ export function areEqual<T>(a?: T[] | null, b?: T[] | null, comparator?: (a: T, 
         a.every((value, index) => comparator ? comparator(value, b[index]) : b[index] === value);
 }
 
-/** @deprecated */
 export function shallowCompare(arr1: any[], arr2: any[]): boolean {
     return areEqual(arr1, arr2);
 }
@@ -57,6 +56,16 @@ export function removeRepeatsFromArray<T>(array: T[], object: T) {
     }
 }
 
+export function removeFromUnorderedArray<T>(array: T[], object: T) {
+    const index = array.indexOf(object);
+
+    if (index >= 0) {
+        // preserve the last element, then shorten array length by 1 to delete index
+        array[index] = array[array.length - 1];
+        array.pop();
+    }
+}
+
 export function removeFromArray<T>(array: T[], object: T) {
     const index = array.indexOf(object);
 
@@ -65,8 +74,16 @@ export function removeFromArray<T>(array: T[], object: T) {
     }
 }
 
+export function removeAllFromUnorderedArray<T>(array: T[], toRemove: T[]) {
+    for (let i = 0; i < toRemove.length; i++) {
+        removeFromUnorderedArray(array, toRemove[i]);
+    }
+}
+
 export function removeAllFromArray<T>(array: T[], toRemove: T[]) {
-    toRemove.forEach(item => removeFromArray(array, item));
+    for (let i = 0; i < toRemove.length; i++) {
+        removeFromArray(array, toRemove[i]);
+    }
 }
 
 export function insertIntoArray<T>(array: T[], object: T, toIndex: number) {
@@ -96,7 +113,7 @@ export function includes<T>(array: T[], value: T): boolean {
     return array.indexOf(value) > -1;
 }
 
-export function flatten(arrayOfArrays: any[]): any[] {
+export function flatten<T>(arrayOfArrays: (T | T[])[]): T[] {
     return [].concat.apply([], arrayOfArrays);
 }
 
